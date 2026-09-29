@@ -1,0 +1,4645 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<name>Concesiones_Electricas_Empresa_25</name>
+<Style id="0"><LineStyle><width> 1.5 </width></LineStyle><PolyStyle><color> 7d0000ff </color></PolyStyle></Style>
+<Style id="1"><LineStyle><width> 1.5 </width></LineStyle><PolyStyle><color> 7d00ff00 </color></PolyStyle></Style>
+<Style id="2"><LineStyle><width> 1.5 </width></LineStyle><PolyStyle><color> 7dff0000 </color></PolyStyle></Style>
+<Style id="3"><LineStyle><width> 1.5 </width></LineStyle><PolyStyle><color> 7d00ffff </color></PolyStyle></Style>
+<Style id="4"><LineStyle><width> 1.5 </width></LineStyle><PolyStyle><color> 7dFF8000 </color></PolyStyle></Style>
+<Style id="5"><LineStyle><width> 1.5 </width></LineStyle><PolyStyle><color> 5078C8F0 </color></PolyStyle></Style>
+<Style id="6"><LineStyle><width> 1.5 </width></LineStyle><PolyStyle><color> 50E67800 </color></PolyStyle></Style>
+<Style id="7"><LineStyle><width> 1.5 </width></LineStyle><PolyStyle><color> 5078DC00 </color></PolyStyle></Style>
+<Style id="8"><LineStyle><width> 1.5 </width></LineStyle><PolyStyle><color> 50327800 </color></PolyStyle></Style>
+<Style id="9"><LineStyle><width> 1.5 </width></LineStyle><PolyStyle><color> 5000E614 </color></PolyStyle></Style>
+<Schema name="ConcesionSchema" id="ConcesionSchema">
+	<SimpleField type="string" name="ID">
+	<displayName>ID</displayName>
+	</SimpleField>
+	<SimpleField type="string" name="EMPRESA_ID">
+	<displayName>ID Empresa</displayName>
+	</SimpleField>
+	<SimpleField type="string" name="CONCESION_ID">
+	<displayName>ID Concesión</displayName>
+	</SimpleField>
+	<SimpleField type="string" name="NOMBRE_CONCESION">
+	<displayName>Nombre Concesión</displayName>
+	</SimpleField>
+	<SimpleField type="string" name="NUMERO_DOC_OTORGAMIENTO">
+	<displayName>Número Documento</displayName>
+	</SimpleField>
+	<SimpleField type="string" name="FECHA_DOC_OTORGAMIENTO">
+	<displayName>Fecha Otorgamiento</displayName>
+	</SimpleField>
+	<SimpleField type="string" name="POLIGONAL_ID">
+	<displayName>ID Poligonal</displayName>
+	</SimpleField>
+	<SimpleField type="string" name="ID_CONCESION">
+	<displayName>ID Concesión</displayName>
+	</SimpleField>
+	<SimpleField type="string" name="TIPO_DECRETO">
+	<displayName>Tipo Decreto</displayName>
+	<!-- Valores posibles: CONCESION|AMPLIACION|TRANSFERENCIA -->
+	</SimpleField>
+	<SimpleField type="string" name="ESTADO">
+	<displayName>Estado</displayName>
+	<!-- Valores posibles: EN TRAMITE|OTORGADA|OTORGADA_POR_TRANSFERENCIA|TRANSFERIDA_A_OTRA_EMPRESA -->
+	</SimpleField>
+	<SimpleField type="string" name="NUMERO_INGRESO_OP_SEC">
+	<displayName>Número Ingreso OP a SEC</displayName>
+	<!-- Solo para concesiones en tramitación -->
+	</SimpleField>
+	<SimpleField type="string" name="NUMERO_CASO_TIMES">
+	<displayName>Número Caso TIMES</displayName>
+	<!-- Solo para concesiones en tramitación -->
+	</SimpleField>
+	</Schema>
+<Placemark>
+<name>605-EXTENSION POBLACION VILLA AUSTRAL. SEGUNDA ETAPA - POLIGONO 605</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">605</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">6</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION POBLACION VILLA AUSTRAL. SEGUNDA ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">699</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1992-12-31 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">605</SimpleData>
+<SimpleData name="ID_CONCESION">6</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#5</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.928833061058,-53.130585306453,0
+-70.9250061137,-53.132921891678,0
+-70.927706070841,-53.136798121039,0
+-70.933971486355,-53.133163167194,0
+-70.928833061058,-53.130585306453,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>802-EXTENSION LOTEO 215 VIVIENDAS EN PROLONGACION MARDONES - POLIGONO 802</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">802</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">8</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LOTEO 215 VIVIENDAS EN PROLONGACION MARDONES</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">675</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1996-09-05 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">802</SimpleData>
+<SimpleData name="ID_CONCESION">8</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#2</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.916299205357,-53.131767726554,0
+-70.909209017463,-53.135037366341,0
+-70.9120320902,-53.137338607783,0
+-70.916623893442,-53.135367743297,0
+-70.918618845208,-53.13652236994,0
+-70.921054132349,-53.134810836004,0
+-70.916299205357,-53.131767726554,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>803-EXTENSION PARCELAS EN RUTA N 9 KM. 10 NORTE - POLIGONO 803</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">803</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">8</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION PARCELAS EN RUTA N 9 KM. 10 NORTE</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">675</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1996-09-05 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">803</SimpleData>
+<SimpleData name="ID_CONCESION">8</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#3</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.884959585576,-53.081390180297,0
+-70.88549163019,-53.081264871159,0
+-70.885989509355,-53.081041203949,0
+-70.886377822796,-53.080360748122,0
+-70.886056630802,-53.079844381942,0
+-70.88502516974,-53.079474130628,0
+-70.878082347656,-53.080842622502,0
+-70.876120946779,-53.081404016343,0
+-70.875784723176,-53.081912793907,0
+-70.875782304175,-53.082200532671,0
+-70.876345190224,-53.083126683886,0
+-70.876803781025,-53.083371188782,0
+-70.877376666745,-53.083497010125,0
+-70.879178363048,-53.082695371345,0
+-70.884959585576,-53.081390180297,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>804-EXTENSION LOTEO 454 VIVIENDAS EN PROLONGACION CARLOS CONDELL - POLIGONO 804</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">804</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">8</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LOTEO 454 VIVIENDAS EN PROLONGACION CARLOS CONDELL</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">675</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1996-09-05 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">804</SimpleData>
+<SimpleData name="ID_CONCESION">8</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#4</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.934925546361,-53.140088449877,0
+-70.932423781038,-53.136317050846,0
+-70.925836867592,-53.137457720665,0
+-70.927474008598,-53.140964546372,0
+-70.934925546361,-53.140088449877,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>902-EXTENSION LOTEO SIMON BOLIVAR (203 VIVIENDAS). - POLIGONO 902</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">902</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">9</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LOTEO SIMON BOLIVAR (203 VIVIENDAS).</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">487</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1998-09-04 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">902</SimpleData>
+<SimpleData name="ID_CONCESION">9</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#2</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.950467101043,-53.178503608677,0
+-70.951184480046,-53.179471835318,0
+-70.946360835425,-53.18134889045,0
+-70.943318357962,-53.178935147431,0
+-70.947886956952,-53.177377057616,0
+-70.950467101043,-53.178503608677,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>903-EXTENSION AERODROMO TENIENTE JULIO GALLARDO. - POLIGONO 903</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">903</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">9</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION AERODROMO TENIENTE JULIO GALLARDO.</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">487</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1998-09-04 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">903</SimpleData>
+<SimpleData name="ID_CONCESION">9</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#3</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-72.527449464148,-51.696816205498,0
+-72.524103325498,-51.697932820066,0
+-72.524700279955,-51.695481223884,0
+-72.527177786761,-51.685343939686,0
+-72.532074945538,-51.679367462299,0
+-72.533066270392,-51.66964846664,0
+-72.535981625956,-51.669763655632,0
+-72.534955973229,-51.679859671669,0
+-72.5301213448,-51.685756641466,0
+-72.530394784145,-51.686580790067,0
+-72.52892188032,-51.690776682457,0
+-72.527449464148,-51.696816205498,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1001-EXTENSION PARCELA EN SECTOR LOS CALAFATES KM 15 NORTE. - POLIGONO 1001</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1001</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">10</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION PARCELA EN SECTOR LOS CALAFATES KM 15 NORTE.</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">589</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1998-10-26 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1001</SimpleData>
+<SimpleData name="ID_CONCESION">10</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#1</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.881786925444,-53.028152583136,0
+-70.881417964815,-53.027556042808,0
+-70.880930926147,-53.02732998898,0
+-70.880345049713,-53.027231366335,0
+-70.877711655217,-53.027371877671,0
+-70.875310653749,-53.028057099506,0
+-70.87626361684,-53.029741312315,0
+-70.876872691794,-53.029686746865,0
+-70.8786262357,-53.029200529862,0
+-70.880739703897,-53.029104186385,0
+-70.881471155116,-53.028777939918,0
+-70.881786925444,-53.028152583136,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1002-EXTENSION LOTEO PARENACOOP. PRIMERA ETAPA (LINEAS DE ALTA Y BAJA TENSION). - POLIGONO 1002</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1002</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">10</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LOTEO PARENACOOP. PRIMERA ETAPA (LINEAS DE ALTA Y BAJA TENSION).</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">589</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1998-10-26 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1002</SimpleData>
+<SimpleData name="ID_CONCESION">10</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#2</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.890425261261,-53.12807274259,0
+-70.893286540426,-53.126516843902,0
+-70.889953474683,-53.124475001856,0
+-70.886828449908,-53.12581023709,0
+-70.890425261261,-53.12807274259,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1101-ELECTRIFICACION LOTEO LOS FLAMENCOS (PARENACOOP). 2 ETAPA - POLIGONO 1101</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1101</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">11</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">ELECTRIFICACION LOTEO LOS FLAMENCOS (PARENACOOP). 2 ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">727</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2000-12-14 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1101</SimpleData>
+<SimpleData name="ID_CONCESION">11</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#1</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.891720012053,-53.125561774586,0
+-70.888341106672,-53.123493644822,0
+-70.88546097493,-53.124959818075,0
+-70.88934892899,-53.127388564768,0
+-70.891720012053,-53.125561774586,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1102-ELECTRIFICACION LOTEO DEL MAR. 1 ETAPA - POLIGONO 1102</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1102</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">11</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">ELECTRIFICACION LOTEO DEL MAR. 1 ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">727</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2000-12-14 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1102</SimpleData>
+<SimpleData name="ID_CONCESION">11</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#2</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.950032051278,-53.15307621208,0
+-70.948056808459,-53.149089723825,0
+-70.939938853373,-53.150471978441,0
+-70.940815595771,-53.152336734312,0
+-70.93621459843,-53.153121907895,0
+-70.937401887702,-53.155242365267,0
+-70.950032051278,-53.15307621208,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1104-ELECTRIFICACION PARCELAS EN SECTOR OJO BUENO - POLIGONO 1104</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1104</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">11</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">ELECTRIFICACION PARCELAS EN SECTOR OJO BUENO</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">727</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2000-12-14 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1104</SimpleData>
+<SimpleData name="ID_CONCESION">11</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#4</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.872229244065,-53.058817859335,0
+-70.864646685146,-53.06051033155,0
+-70.865974005804,-53.062215723734,0
+-70.872743959101,-53.060706788127,0
+-70.874419763466,-53.060806261951,0
+-70.87751082465,-53.0608474195,0
+-70.881112726832,-53.062336909374,0
+-70.892944411943,-53.062257101462,0
+-70.894600945085,-53.057834275468,0
+-70.891499073198,-53.057541995886,0
+-70.890439002461,-53.060256057739,0
+-70.88217063475,-53.060243327309,0
+-70.878472300295,-53.058935206498,0
+-70.87224454683,-53.058826609141,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1105-SUMINISTRO ENERGIA ELECTRICA CANTERA CONSTRUCTORA VILICIC - POLIGONO 1105</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1105</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">11</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">SUMINISTRO ENERGIA ELECTRICA CANTERA CONSTRUCTORA VILICIC</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">727</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2000-12-14 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1105</SimpleData>
+<SimpleData name="ID_CONCESION">11</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#5</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.896777892048,-53.034351773741,0
+-70.896109237828,-53.03474903891,0
+-70.896761195587,-53.036689631863,0
+-70.896472239807,-53.037242675182,0
+-70.895552902132,-53.037706869315,0
+-70.894356509847,-53.037636025949,0
+-70.892487302953,-53.03684763043,0
+-70.891736090428,-53.036383074142,0
+-70.89095362004,-53.036907990326,0
+-70.89061164916,-53.037614704179,0
+-70.889889159405,-53.038147650154,0
+-70.889053274339,-53.038475606259,0
+-70.881095677254,-53.039680629399,0
+-70.879824616108,-53.040294114412,0
+-70.879481210815,-53.041315491812,0
+-70.878043952091,-53.042911570032,0
+-70.876635384343,-53.043796911963,0
+-70.875867812798,-53.044672128117,0
+-70.875054919654,-53.046222355475,0
+-70.872362598044,-53.045374693125,0
+-70.873422874705,-53.043335090466,0
+-70.875692392682,-53.04166301128,0
+-70.87646030609,-53.040796780827,0
+-70.87691568931,-53.039261175183,0
+-70.874965894313,-53.035578771041,0
+-70.875173573349,-53.034865230578,0
+-70.876169938109,-53.034453923976,0
+-70.877353654189,-53.034579093997,0
+-70.877797604493,-53.034841805911,0
+-70.879399793901,-53.0377294862,0
+-70.880062295157,-53.037871856509,0
+-70.887221764789,-53.036841401795,0
+-70.88789249668,-53.036489108165,0
+-70.88822310325,-53.035180204093,0
+-70.888860850019,-53.034756502603,0
+-70.888953792874,-53.034494295183,0
+-70.887837058046,-53.03248911504,0
+-70.888044510403,-53.031775553797,0
+-70.889025383215,-53.031355393158,0
+-70.889651330901,-53.031345447916,0
+-70.889428887161,-53.030351011122,0
+-70.889531590503,-53.029630120413,0
+-70.890465727098,-53.029165736273,0
+-70.891661485892,-53.02922763657,0
+-70.89213409173,-53.029462867292,0
+-70.892702071067,-53.030173087345,0
+-70.908263550392,-53.029987314532,0
+-70.908443726756,-53.027988473489,0
+-70.908513007422,-53.02618021756,0
+-70.908587217838,-53.024821420405,0
+-70.913430064097,-53.02474358745,0
+-70.913288259352,-53.026256319524,0
+-70.915168241918,-53.026279999104,0
+-70.915111397925,-53.031055015364,0
+-70.908015418645,-53.034163008227,0
+-70.896777892048,-53.034351773741,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1106-ELECTRIFICACION EN B.T. PROLONGACION CALLE JOSE VELASQUEZ - POLIGONO 1106</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1106</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">11</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">ELECTRIFICACION EN B.T. PROLONGACION CALLE JOSE VELASQUEZ</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">727</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2000-12-14 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1106</SimpleData>
+<SimpleData name="ID_CONCESION">11</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#6</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.931825208732,-53.145299431569,0
+-70.930217355486,-53.142457497001,0
+-70.928421995792,-53.142099995678,0
+-70.92728190389,-53.142684868557,0
+-70.927161048443,-53.143325160254,0
+-70.928392036729,-53.145436007512,0
+-70.929331731131,-53.146050127143,0
+-70.930676989383,-53.14603730915,0
+-70.931825208732,-53.145299431569,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1108-ELECTRIFICACION CONJUNTO HABITACIONAL COLONIA SUIZA. 2 ETAPA - POLIGONO 1108</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1108</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">11</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">ELECTRIFICACION CONJUNTO HABITACIONAL COLONIA SUIZA. 2 ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">727</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2000-12-14 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1108</SimpleData>
+<SimpleData name="ID_CONCESION">11</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#8</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.907986009576,-53.134427631878,0
+-70.904635885452,-53.136423254127,0
+-70.907808222882,-53.138512221542,0
+-70.911580837792,-53.136266980211,0
+-70.907986009576,-53.134427631878,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1109-SUMINISTRO ENERGIA ELECTRICA PLANTA TRAT. AGUAS SERVIDAS. ESMAG - POLIGONO 1109</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1109</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">11</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">SUMINISTRO ENERGIA ELECTRICA PLANTA TRAT. AGUAS SERVIDAS. ESMAG</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">727</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2000-12-14 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1109</SimpleData>
+<SimpleData name="ID_CONCESION">11</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#9</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-72.500137410367,-51.738335898901,0
+-72.490495315283,-51.745558806631,0
+-72.487306265331,-51.744807136775,0
+-72.497641041144,-51.737113605468,0
+-72.500137410367,-51.738335898901,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>11011-ELECTRIFICACION LOTEO LOMAS DE AGOSTINI. 1 ETAPA - POLIGONO 11011</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">11011</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">11</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">ELECTRIFICACION LOTEO LOMAS DE AGOSTINI. 1 ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">727</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2000-12-14 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">11011</SimpleData>
+<SimpleData name="ID_CONCESION">11</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#1</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.901303405983,-53.128331031014,0
+-70.895314964284,-53.131851955874,0
+-70.89889541131,-53.134060526773,0
+-70.906758700394,-53.129331633447,0
+-70.904404325744,-53.128146599812,0
+-70.901303405983,-53.128331031014,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>11012-ELECTRIFICACION PARCELAS EN SECTOR LYNCH - POLIGONO 11012</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">11012</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">11</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">ELECTRIFICACION PARCELAS EN SECTOR LYNCH</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">727</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2000-12-14 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">11012</SimpleData>
+<SimpleData name="ID_CONCESION">11</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#2</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.974654179896,-53.163594071475,0
+-70.973642028394,-53.161749781745,0
+-70.964106738082,-53.162923398154,0
+-70.958320747854,-53.154126933902,0
+-70.955445593538,-53.155037293778,0
+-70.960985184294,-53.163361446481,0
+-70.958647256442,-53.1635977212,0
+-70.95924268868,-53.165502934943,0
+-70.974654179896,-53.163594071475,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>11013-ELECTRIFICACION PARCELAS EN VILLA GENEROSA - POLIGONO 11013</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">11013</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">11</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">ELECTRIFICACION PARCELAS EN VILLA GENEROSA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">727</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2000-12-14 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">11013</SimpleData>
+<SimpleData name="ID_CONCESION">11</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#3</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.967730901754,-53.179028767924,0
+-70.971509633059,-53.187021893963,0
+-70.956228677255,-53.189683349787,0
+-70.950196507515,-53.18111532041,0
+-70.967730901754,-53.179028767924,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>11015-ELECTRIFICACION CONJUNTO HABITACIONAL COLONIA SUIZA. 3 ETAPA - POLIGONO 11015</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">11015</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">11</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">ELECTRIFICACION CONJUNTO HABITACIONAL COLONIA SUIZA. 3 ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">727</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2000-12-14 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">11015</SimpleData>
+<SimpleData name="ID_CONCESION">11</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#5</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.909527905655,-53.133800536155,0
+-70.906441681271,-53.135000802497,0
+-70.907507679954,-53.13679083961,0
+-70.910165787776,-53.137395541262,0
+-70.912385128697,-53.135525821407,0
+-70.909527905655,-53.133800536155,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>11016-ELECTRIFICACION LOTEO LOS GLACIARES (CARDENAL SILVA HENRIQUEZ) - POLIGONO 11016</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">11016</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">11</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">ELECTRIFICACION LOTEO LOS GLACIARES (CARDENAL SILVA HENRIQUEZ)</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">727</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2000-12-14 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">11016</SimpleData>
+<SimpleData name="ID_CONCESION">11</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#6</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.915638576232,-53.12397448425,0
+-70.90959496401,-53.127559964896,0
+-70.911449382819,-53.129265392279,0
+-70.906020168992,-53.132571094854,0
+-70.912059878681,-53.135944614861,0
+-70.921954978345,-53.130543720485,0
+-70.921771330198,-53.127768575523,0
+-70.915638576232,-53.12397448425,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1402-ELECTRIFICACION VILLA HELENA - POLIGONO 1402</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1402</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">14</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">ELECTRIFICACION VILLA HELENA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">5</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2013-01-15 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1402</SimpleData>
+<SimpleData name="ID_CONCESION">14</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">59480</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#2</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.904537814553,-53.093980006523,0
+-70.909321100404,-53.098452630065,0
+-70.89445738322,-53.104201461531,0
+-70.889674972105,-53.09972823652,0
+-70.904537814553,-53.093980006523,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1403-ELECTRIFICACION LOTEO HIELOS PATAGONICOS I. II Y III (50 Y 71 VIVIENDAS) PN - POLIGONO 1403</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1403</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">14</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">ELECTRIFICACION LOTEO HIELOS PATAGONICOS I. II Y III (50 Y 71 VIVIENDAS) PN</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">5</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2013-01-15 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1403</SimpleData>
+<SimpleData name="ID_CONCESION">14</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">59480</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#3</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-72.483047400815,-51.737242461236,0
+-72.493209134114,-51.738673880605,0
+-72.48913779928,-51.742085338878,0
+-72.478975444867,-51.740653559481,0
+-72.483047400815,-51.737242461236,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1405-EXTENSION RED MT PESQUERA BAKKAVOR (PO) - POLIGONO 1405</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1405</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">14</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION RED MT PESQUERA BAKKAVOR (PO)</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">5</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2013-01-15 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1405</SimpleData>
+<SimpleData name="ID_CONCESION">14</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">59480</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#5</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.398091690755,-53.288590548566,0
+-70.398210536085,-53.292230004644,0
+-70.3754136273,-53.292495108901,0
+-70.375296718163,-53.288855617901,0
+-70.398091690755,-53.288590548566,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1406-EXTENSION RED MT ALIMENTADOR N3. (PO) - POLIGONO 1406</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1406</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">14</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION RED MT ALIMENTADOR N3. (PO)</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">5</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2013-01-15 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1406</SimpleData>
+<SimpleData name="ID_CONCESION">14</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">59480</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#6</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.359574581616,-53.29642544002,0
+-70.359690471817,-53.300073936677,0
+-70.349189847687,-53.300193186748,0
+-70.349074851819,-53.296544674342,0
+-70.359574581616,-53.29642544002,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1407-EXTENSION ALIMENTADOR N3 SUMINISTRO PLANTA PESQUERA BELOCEAN (PO) - POLIGONO 1407</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1407</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">14</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION ALIMENTADOR N3 SUMINISTRO PLANTA PESQUERA BELOCEAN (PO)</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">5</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2013-01-15 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1407</SimpleData>
+<SimpleData name="ID_CONCESION">14</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">59480</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#7</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.38583400267,-53.289956232505,0
+-70.384092010647,-53.289904545645,0
+-70.383526475444,-53.2900459542,0
+-70.38285682656,-53.290215536609,0
+-70.382867950715,-53.291024483751,0
+-70.382871043863,-53.292049277509,0
+-70.387624490709,-53.291967092849,0
+-70.391189482317,-53.292249188638,0
+-70.392181483887,-53.291842063438,0
+-70.392434200031,-53.291308718058,0
+-70.392545010638,-53.290102798294,0
+-70.388134097124,-53.290100285896,0
+-70.38583400267,-53.289956232505,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>102-PUNTA ARENAS. SECTOR NORTE 050-PA-3-3 - POLIGONO 102</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">102</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">1</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">PUNTA ARENAS. SECTOR NORTE 050-PA-3-3</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">246</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1983-11-04 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">102</SimpleData>
+<SimpleData name="ID_CONCESION">1</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#2</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.8720953022,-53.045747519158,0
+-70.870322418199,-53.050972027191,0
+-70.87350720483,-53.05147033501,0
+-70.875376365856,-53.0457227991,0
+-70.872662822219,-53.045073273485,0
+-70.8720953022,-53.045747519158,0
+-70.8720953022,-53.045747519158,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>2016-EXTENSION LINEA LOTEO PAMPA REDONDA. 1RA. ETAPA   - POLIGONO 2016</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">2016</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA LOTEO PAMPA REDONDA. 1RA. ETAPA  </SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">2016</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#6</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.930379481026,-53.117730556133,0
+-70.93158991673,-53.117063588671,0
+-70.931878902977,-53.116843121881,0
+-70.93205731427,-53.116489589253,0
+-70.931995997752,-53.116121966754,0
+-70.931712308908,-53.115793916441,0
+-70.931238532802,-53.115558856956,0
+-70.930650538245,-53.115442527353,0
+-70.930039524491,-53.115479409697,0
+-70.929494274084,-53.115650082896,0
+-70.928298374978,-53.116307803032,0
+-70.918594399693,-53.122218651664,0
+-70.920763888871,-53.123613174797,0
+-70.930379481026,-53.117730556133,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>406-EXTENSION LINEA POBLACION PEDRO AGUIRRE CERDA. 6 ETAPA - POLIGONO 406</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">406</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">4</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA POBLACION PEDRO AGUIRRE CERDA. 6 ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">234</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-07-26 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">406</SimpleData>
+<SimpleData name="ID_CONCESION">4</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#6</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.947248608357,-53.174186835424,0
+-70.951613944147,-53.180031207561,0
+-70.946135077416,-53.181981922711,0
+-70.94089486061,-53.178291382716,0
+-70.947248608357,-53.174186835424,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>104-PUNTA ARENAS. SECTOR SUR 050-PA-2 - POLIGONO 104</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">104</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">1</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">PUNTA ARENAS. SECTOR SUR 050-PA-2</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">246</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1983-11-04 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">104</SimpleData>
+<SimpleData name="ID_CONCESION">1</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#4</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.934600209436,-53.199692501636,0
+-70.936352946875,-53.202702835719,0
+-70.93795390512,-53.205994321294,0
+-70.937611906598,-53.214675776502,0
+-70.937789961614,-53.215302219403,0
+-70.940473297849,-53.22098552785,0
+-70.939806739399,-53.229105853842,0
+-70.940522253376,-53.229687578895,0
+-70.941725692954,-53.229793841463,0
+-70.942695123549,-53.229364474818,0
+-70.942903832678,-53.229010440601,0
+-70.9434482711,-53.221845083896,0
+-70.943692487513,-53.221283685614,0
+-70.943442970245,-53.220074030804,0
+-70.94080385795,-53.214713725841,0
+-70.940969930028,-53.205136066179,0
+-70.940658366096,-53.204206122616,0
+-70.937629643807,-53.199139789464,0
+-70.937593574061,-53.198340214819,0
+-70.937582969583,-53.19744132948,0
+-70.937705456978,-53.197169619592,0
+-70.93758813683,-53.196560168629,0
+-70.937589318984,-53.196254469667,0
+-70.937485309926,-53.195276188178,0
+-70.936617912953,-53.193636027163,0
+-70.932869630369,-53.189848943656,0
+-70.93198230333,-53.188424846996,0
+-70.931146000034,-53.186469472097,0
+-70.930105123872,-53.185955900229,0
+-70.929193571061,-53.185988650196,0
+-70.928459845772,-53.186315203116,0
+-70.928153772956,-53.18683262161,0
+-70.929216668495,-53.189503592658,0
+-70.929970135291,-53.190615208129,0
+-70.93395516528,-53.194677245313,0
+-70.934442803026,-53.195865073541,0
+-70.934600209436,-53.199692501636,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>3022-EXTENSION LINEA HUERTOS FAMILIARES. 3A ETAPA - POLIGONO 3022</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">3022</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA HUERTOS FAMILIARES. 3A ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">3022</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#2</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-72.469872006734,-51.711858848006,0
+-72.457037058856,-51.710645465247,0
+-72.442259785745,-51.705583763537,0
+-72.44382723419,-51.703729746492,0
+-72.450095058595,-51.706190235664,0
+-72.461385085955,-51.701036348005,0
+-72.458583253962,-51.6978986685,0
+-72.447197326938,-51.703118076418,0
+-72.445451081409,-51.701667161557,0
+-72.460834437282,-51.694585021893,0
+-72.480065873185,-51.689806466854,0
+-72.481222770357,-51.691490247604,0
+-72.46102713596,-51.696729197869,0
+-72.463778145087,-51.699958272825,0
+-72.480374413501,-51.692693794082,0
+-72.48203750269,-51.694182647138,0
+-72.452921145921,-51.707177548746,0
+-72.458004160023,-51.708898889599,0
+-72.470313738407,-51.710064731021,0
+-72.469872006734,-51.711858848006,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1012-PUERTO NATALES. SECTOR CENTRAL 050-PN 1-2 - POLIGONO 1012</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1012</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">1</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">PUERTO NATALES. SECTOR CENTRAL 050-PN 1-2</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">246</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1983-11-04 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1012</SimpleData>
+<SimpleData name="ID_CONCESION">1</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#2</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-72.474489698743,-51.731734674416,0
+-72.46882388883,-51.733339440554,0
+-72.468119871746,-51.73634605121,0
+-72.465204994404,-51.736148279531,0
+-72.465645840626,-51.734224209299,0
+-72.458038988256,-51.736335158911,0
+-72.451637954673,-51.735539930136,0
+-72.452202490821,-51.733744497361,0
+-72.457710377977,-51.734448420948,0
+-72.473264003861,-51.730080505773,0
+-72.474489698743,-51.731734674416,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>2022-ExtensiOn calle Esmeralda esq. Oscar Viel - POLIGONO 2022</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">2022</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">ExtensiOn calle Esmeralda esq. Oscar Viel</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">2022</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#2</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.3673291603,-53.288344928392,0
+-70.366700818029,-53.291219851587,0
+-70.361341063302,-53.291577816401,0
+-70.360665616162,-53.288735786343,0
+-70.3673291603,-53.288344928392,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>101-PUNTA ARENAS. SECTOR CENTRAL 050-PA 1-2 - POLIGONO 101</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">101</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">1</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">PUNTA ARENAS. SECTOR CENTRAL 050-PA 1-2</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">246</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1983-11-04 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">101</SimpleData>
+<SimpleData name="ID_CONCESION">1</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#1</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.899252950906,-53.100474817371,0
+-70.897348973445,-53.099300443207,0
+-70.893774362024,-53.101236430317,0
+-70.895715211711,-53.102230460977,0
+-70.899252950906,-53.100474817371,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>103-PUNTA ARENAS. SECTOR CENTRAL 050-PA 1-1 - POLIGONO 103</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">103</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">1</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">PUNTA ARENAS. SECTOR CENTRAL 050-PA 1-1</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">246</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1983-11-04 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">103</SimpleData>
+<SimpleData name="ID_CONCESION">1</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#3</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.881713344203,-53.145913232617,0
+-70.882431768143,-53.146953771654,0
+-70.884220696511,-53.148876425771,0
+-70.884324924476,-53.149549068625,0
+-70.883951319338,-53.150238263945,0
+-70.884193613564,-53.152356202509,0
+-70.885058174351,-53.154680063219,0
+-70.885735910327,-53.15546949102,0
+-70.885674978832,-53.156126766816,0
+-70.885825311093,-53.157508931746,0
+-70.886103836505,-53.15806193458,0
+-70.88609724919,-53.159617404982,0
+-70.889468864008,-53.162818531811,0
+-70.890292695052,-53.16318305975,0
+-70.891624024214,-53.163521539922,0
+-70.891920706779,-53.163804524285,0
+-70.892199676848,-53.164024855489,0
+-70.893018017492,-53.164263584256,0
+-70.894036560468,-53.164292340318,0
+-70.895956227891,-53.16372235657,0
+-70.896674295897,-53.164061553047,0
+-70.897574033472,-53.164110152265,0
+-70.900964133901,-53.165332740442,0
+-70.90417429158,-53.165865836767,0
+-70.907244381863,-53.166949515647,0
+-70.907711428062,-53.167022949371,0
+-70.908042526093,-53.167404239281,0
+-70.908867397827,-53.167786604596,0
+-70.909788559712,-53.167978617901,0
+-70.911604827269,-53.168785598796,0
+-70.913334813314,-53.169333211874,0
+-70.917406084768,-53.172054808453,0
+-70.91792003461,-53.175525887185,0
+-70.918684469368,-53.177230774148,0
+-70.920535912944,-53.179817189405,0
+-70.924085929765,-53.182897600562,0
+-70.923772512492,-53.183585947476,0
+-70.924685619483,-53.185594074552,0
+-70.925719981485,-53.18596394941,0
+-70.926940794021,-53.185818335983,0
+-70.927473096471,-53.186340166804,0
+-70.927900352942,-53.186522053716,0
+-70.928404738243,-53.187421936669,0
+-70.930010379711,-53.187845457769,0
+-70.931025883998,-53.187460383794,0
+-70.93129191767,-53.186718842413,0
+-70.930494852304,-53.185302261724,0
+-70.929480761157,-53.184051022478,0
+-70.924666940425,-53.180164066495,0
+-70.941557551705,-53.173084005602,0
+-70.940471061519,-53.171555328688,0
+-70.946588524598,-53.16820087837,0
+-70.94669867456,-53.167659639743,0
+-70.945021216651,-53.16530453387,0
+-70.947255485838,-53.163766580791,0
+-70.940859270288,-53.149989463714,0
+-70.939698448189,-53.149783615694,0
+-70.931681083072,-53.150750096036,0
+-70.932637541545,-53.15040192037,0
+-70.932922302476,-53.150082625292,0
+-70.935093650406,-53.149813596293,0
+-70.9359204146,-53.149575389481,0
+-70.936437374808,-53.149099468879,0
+-70.936245879621,-53.147834902757,0
+-70.938860331906,-53.14545478468,0
+-70.937807779629,-53.143997455277,0
+-70.936953233304,-53.143615773408,0
+-70.93590850979,-53.143659738733,0
+-70.935036224336,-53.143880705105,0
+-70.934205523215,-53.144361718114,0
+-70.934073458185,-53.145083115288,0
+-70.934666717017,-53.145972540266,0
+-70.927590150741,-53.146896485717,0
+-70.926788286233,-53.145686740116,0
+-70.922712202371,-53.141140446681,0
+-70.921235636132,-53.140552922633,0
+-70.912874993912,-53.13612032256,0
+-70.902821685762,-53.138672947426,0
+-70.901314796108,-53.13806768195,0
+-70.900158175131,-53.13828394273,0
+-70.899510708141,-53.138519040814,0
+-70.898742680316,-53.138054791411,0
+-70.900633353726,-53.135839902853,0
+-70.921286725245,-53.123272082141,0
+-70.919117236836,-53.121877568461,0
+-70.897788168018,-53.134716517287,0
+-70.896992620916,-53.133964996305,0
+-70.890596450071,-53.131971944441,0
+-70.8850146333,-53.132518986858,0
+-70.883587604461,-53.133045048893,0
+-70.873360302296,-53.125780223755,0
+-70.876122595287,-53.124343176035,0
+-70.876361629825,-53.12399776576,0
+-70.876106286774,-53.123282543668,0
+-70.875102557138,-53.122884793296,0
+-70.873928532637,-53.123038141577,0
+-70.872070792555,-53.123966433337,0
+-70.871145377488,-53.12330669113,0
+-70.886190254993,-53.110554295374,0
+-70.88640437115,-53.109984492505,0
+-70.886914750368,-53.109697692149,0
+-70.888735889396,-53.109659813042,0
+-70.890888155907,-53.108996291911,0
+-70.892232947093,-53.108318601134,0
+-70.893778350043,-53.107107255046,0
+-70.893867781395,-53.106422543446,0
+-70.893561227491,-53.105905964643,0
+-70.891526402631,-53.105156139507,0
+-70.887599098023,-53.102467364686,0
+-70.885696419182,-53.096195094666,0
+-70.884804798022,-53.093224328402,0
+-70.881055468768,-53.093553378267,0
+-70.88175125667,-53.096149661194,0
+-70.880361537961,-53.096477311539,0
+-70.880755236167,-53.099339100591,0
+-70.878772674149,-53.099433353008,0
+-70.877297685998,-53.099177922243,0
+-70.876032795894,-53.099287776686,0
+-70.875926140461,-53.100269435757,0
+-70.87655100678,-53.100897917571,0
+-70.877568768887,-53.10128644159,0
+-70.877730570519,-53.10157158845,0
+-70.877755789467,-53.103522154953,0
+-70.878092386205,-53.104047289736,0
+-70.880738140414,-53.105794638681,0
+-70.878942336984,-53.111550026247,0
+-70.876845927469,-53.114532023703,0
+-70.876770030808,-53.114847891609,0
+-70.868716311084,-53.121402887018,0
+-70.867932427065,-53.120902728569,0
+-70.866745190927,-53.120750533866,0
+-70.865933905867,-53.120997010171,0
+-70.865454529571,-53.121660836449,0
+-70.865560093241,-53.122027795533,0
+-70.871218023283,-53.128762830111,0
+-70.876888599744,-53.131631453777,0
+-70.865516162114,-53.138265443658,0
+-70.869286991283,-53.139716706213,0
+-70.871045361282,-53.139581196347,0
+-70.879777729553,-53.13412120872,0
+-70.882036618459,-53.135524009754,0
+-70.881200742569,-53.136238487186,0
+-70.874245970417,-53.140978330221,0
+-70.875895556134,-53.142462763054,0
+-70.879497697036,-53.143116203555,0
+-70.879555471249,-53.143411980144,0
+-70.879522806824,-53.1436912034,0
+-70.879815708035,-53.1442350034,0
+-70.880379550435,-53.14481947643,0
+-70.881713344203,-53.145913232617,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>105-PUNTA ARENAS. SECTOR NORTE 050-PA-3-1 - POLIGONO 105</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">105</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">1</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">PUNTA ARENAS. SECTOR NORTE 050-PA-3-1</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">246</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1983-11-04 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">105</SimpleData>
+<SimpleData name="ID_CONCESION">1</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#5</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.901813737422,-52.915187835116,0
+-70.8432932118,-52.944089824439,0
+-70.835084605527,-52.954808017667,0
+-70.836130546013,-52.955601028441,0
+-70.814111016324,-52.985096114626,0
+-70.818326914272,-52.990057492503,0
+-70.818647902755,-52.995923499846,0
+-70.821081773403,-52.999581409988,0
+-70.819216467693,-53.000940589823,0
+-70.820233864214,-53.008827816954,0
+-70.823763962047,-53.011947424022,0
+-70.825247565043,-53.024493600555,0
+-70.826052997529,-53.025910748109,0
+-70.826871200287,-53.02692311478,0
+-70.840848848477,-53.037891934286,0
+-70.840438766867,-53.038419739274,0
+-70.842371827331,-53.040376742981,0
+-70.844102191667,-53.040376896178,0
+-70.861458224094,-53.05924763508,0
+-70.862712907896,-53.059965227457,0
+-70.880828854241,-53.089385304008,0
+-70.880527068807,-53.091026370574,0
+-70.878295089112,-53.091214465791,0
+-70.87450629705,-53.084791966653,0
+-70.875379746318,-53.084274726474,0
+-70.872685514735,-53.083094436518,0
+-70.871204832276,-53.084070740417,0
+-70.870888569263,-53.085729990539,0
+-70.87467310605,-53.090003907189,0
+-70.875218577816,-53.093618535876,0
+-70.876101757325,-53.09435083636,0
+-70.876588359336,-53.09660880135,0
+-70.874688815668,-53.098266045504,0
+-70.876032795894,-53.099287776686,0
+-70.880608025218,-53.098361448658,0
+-70.880361929811,-53.096486295978,0
+-70.87987258208,-53.095882664841,0
+-70.879246837843,-53.09317737781,0
+-70.880897627996,-53.093016435199,0
+-70.881055468768,-53.093553378267,0
+-70.884804798022,-53.093224328402,0
+-70.884571523163,-53.090620736593,0
+-70.884338667009,-53.088367772157,0
+-70.88985699181,-53.087183390154,0
+-70.890231121371,-53.086179483887,0
+-70.889662815887,-53.085478249066,0
+-70.888220843453,-53.085285366306,0
+-70.883051833763,-53.086257361247,0
+-70.879448834287,-53.080335548635,0
+-70.879549108345,-53.079210132917,0
+-70.878653170803,-53.078864657634,0
+-70.865302862358,-53.05808155591,0
+-70.866550804595,-53.057261810284,0
+-70.865804641952,-53.055879963943,0
+-70.862434855201,-53.055249485475,0
+-70.861606558023,-53.054381367313,0
+-70.891288930096,-53.049678470269,0
+-70.892944477073,-53.050686064574,0
+-70.90016842615,-53.049384096679,0
+-70.898691767962,-53.046000194946,0
+-70.859393534124,-53.052195290189,0
+-70.846246092116,-53.038185874455,0
+-70.8329869308,-53.026963859392,0
+-70.831860313567,-53.025362902,0
+-70.829680795249,-53.023544383078,0
+-70.827501680466,-53.011854067824,0
+-70.834044707523,-53.011123967229,0
+-70.835324599278,-53.012479791076,0
+-70.846514014111,-53.009897028729,0
+-70.84859164809,-53.005495258435,0
+-70.843451996867,-53.004505172356,0
+-70.840638936008,-53.007398810862,0
+-70.838314440763,-53.007767432147,0
+-70.838262862199,-53.009359582121,0
+-70.837226222117,-53.009519457079,0
+-70.836014335548,-53.00836039825,0
+-70.82557411281,-53.009627022277,0
+-70.823517228664,-53.007509817646,0
+-70.822729452804,-53.00190272578,0
+-70.82484620928,-52.999793404117,0
+-70.82240646847,-52.995650161898,0
+-70.822626347297,-52.993794708863,0
+-70.821188999589,-52.988674062871,0
+-70.818294429796,-52.985382829184,0
+-70.828319623995,-52.973010658761,0
+-70.828044979603,-52.972502412127,0
+-70.840469533807,-52.954356110888,0
+-70.840015962316,-52.95384167086,0
+-70.844841235114,-52.947590185881,0
+-70.850610296257,-52.943607455414,0
+-70.904289548626,-52.917036257676,0
+-70.901813737422,-52.915187835116,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>106-PUNTA ARENAS. SECTOR NORTE 050-PA-3 -2 - POLIGONO 106</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">106</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">1</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">PUNTA ARENAS. SECTOR NORTE 050-PA-3 -2</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">246</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1983-11-04 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">106</SimpleData>
+<SimpleData name="ID_CONCESION">1</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#6</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.864315679139,-53.071160449808,0
+-70.863174757291,-53.07066585755,0
+-70.86213344411,-53.070403452006,0
+-70.861046059634,-53.06145679443,0
+-70.8604160078,-53.060342818744,0
+-70.859986809345,-53.0600798112,0
+-70.858948479923,-53.05988026711,0
+-70.858559780848,-53.059517724398,0
+-70.860999787464,-53.058652434493,0
+-70.860390468817,-53.05905755479,0
+-70.859903747932,-53.059191035385,0
+-70.859637739568,-53.056480016766,0
+-70.855149715143,-53.056217445309,0
+-70.85412128042,-53.056593106928,0
+-70.853823294478,-53.057299022045,0
+-70.854289086046,-53.0584155925,0
+-70.85759468913,-53.063794366258,0
+-70.85901939972,-53.070883706269,0
+-70.860607576223,-53.07586666103,0
+-70.861096034825,-53.076461393141,0
+-70.861942963473,-53.077059504235,0
+-70.862516499048,-53.077203367507,0
+-70.863690099396,-53.077068110453,0
+-70.86438061178,-53.076463909522,0
+-70.864379613338,-53.076095309087,0
+-70.863754902822,-53.075457771562,0
+-70.864748259885,-53.075298355317,0
+-70.865438801787,-53.075386426553,0
+-70.866776303029,-53.075590212849,0
+-70.867453101065,-53.075705460028,0
+-70.867792518047,-53.074234656933,0
+-70.867880612296,-53.073855666755,0
+-70.866735154709,-53.073603926679,0
+-70.870236905526,-53.072766741556,0
+-70.871298141552,-53.072453361737,0
+-70.870281603067,-53.070698189194,0
+-70.868910250161,-53.071088357816,0
+-70.865332077564,-53.071881749923,0
+-70.864423206812,-53.0712306898,0
+-70.864315679139,-53.071160449808,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>107-PUNTA ARENAS. SECTOR OESTE 050-PA 4-1 - POLIGONO 107</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">107</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">1</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">PUNTA ARENAS. SECTOR OESTE 050-PA 4-1</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">246</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1983-11-04 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">107</SimpleData>
+<SimpleData name="ID_CONCESION">1</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#7</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.998365758843,-53.158766054396,0
+-70.996323967533,-53.159249842172,0
+-70.993160150864,-53.158763403994,0
+-70.984838610654,-53.15801233751,0
+-70.981413323738,-53.158339109947,0
+-70.958137907138,-53.154381679852,0
+-70.954969868174,-53.154442731673,0
+-70.942929173511,-53.155754669275,0
+-70.942161771628,-53.156315618774,0
+-70.942270575909,-53.157069057741,0
+-70.943203824658,-53.157530334231,0
+-70.956056999486,-53.156312915368,0
+-70.957895376964,-53.156282698926,0
+-70.980464317947,-53.160144047365,0
+-70.980929338648,-53.160172274431,0
+-70.98421110587,-53.159973778714,0
+-70.986101087419,-53.160086118837,0
+-70.989194334762,-53.160340165326,0
+-70.992136062748,-53.160551713329,0
+-70.994820015125,-53.16101025712,0
+-70.995272189515,-53.161083597076,0
+-70.996845844151,-53.161147123248,0
+-71.00083076785,-53.160307023991,0
+-71.003364667536,-53.160111573932,0
+-71.005599888731,-53.159606425581,0
+-71.008021126855,-53.159241949579,0
+-71.00967802108,-53.159807383269,0
+-71.011759959595,-53.160824141066,0
+-71.013302430162,-53.161499347143,0
+-71.014867485833,-53.161697641891,0
+-71.017995304127,-53.161725588096,0
+-71.018796986408,-53.161595118374,0
+-71.024718004353,-53.160262844703,0
+-71.031525345357,-53.158384698021,0
+-71.036166738051,-53.158476237364,0
+-71.036630069961,-53.158468312673,0
+-71.042743908691,-53.158066878168,0
+-71.043602666451,-53.157881316169,0
+-71.044165491824,-53.157449086901,0
+-71.044214178277,-53.156899812407,0
+-71.043510899981,-53.156264548077,0
+-71.042472845056,-53.156138507879,0
+-71.036286675717,-53.156586121634,0
+-71.030927252115,-53.156488857295,0
+-71.023009351559,-53.158601625499,0
+-71.016501786818,-53.159862834365,0
+-71.014596801628,-53.159751230386,0
+-71.009746567389,-53.157432670716,0
+-71.008899517554,-53.157231187986,0
+-70.998943250306,-53.158639480993,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>108-PUNTA ARENAS. SECTOR OESTE 050-PA 4-2 - POLIGONO 108</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">108</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">1</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">PUNTA ARENAS. SECTOR OESTE 050-PA 4-2</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">246</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1983-11-04 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">108</SimpleData>
+<SimpleData name="ID_CONCESION">1</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#8</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.943945512463,-53.144814437727,0
+-70.940198680404,-53.145289130325,0
+-70.939286820238,-53.145627651143,0
+-70.938959365589,-53.146325264862,0
+-70.939542214577,-53.146981078858,0
+-70.940702960024,-53.147186929193,0
+-70.946603264264,-53.146380338453,0
+-70.956025280913,-53.147062038966,0
+-70.960684806611,-53.147911431581,0
+-70.961745774208,-53.147893953697,0
+-70.962605296274,-53.147394290485,0
+-70.962631879194,-53.146665606825,0
+-70.961800805664,-53.14614885436,0
+-70.956010566517,-53.14509332276,0
+-70.955559440471,-53.145037799287,0
+-70.94855930657,-53.144334430139,0
+-70.947633710342,-53.144367557792,0
+-70.946605143089,-53.144438324645,0
+-70.944242734692,-53.14477362141,0
+-70.943945512463,-53.144814437727,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>109-PUNTA ARENAS. SECTPR KON AIKEN 050-PA-5 - POLIGONO 109</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">109</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">1</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">PUNTA ARENAS. SECTPR KON AIKEN 050-PA-5</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">246</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1983-11-04 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">109</SimpleData>
+<SimpleData name="ID_CONCESION">1</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#9</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.901976547668,-52.91550890077,0
+-70.903704330102,-52.916919766091,0
+-70.905105372623,-52.916645556854,0
+-70.912489404002,-52.911725736899,0
+-70.924048508273,-52.908437166215,0
+-70.960406045212,-52.903742687531,0
+-70.97628727011,-52.902760180776,0
+-71.000186606912,-52.9054170123,0
+-71.016979724102,-52.908702446001,0
+-71.021109831899,-52.908290568767,0
+-71.02184883687,-52.90978849323,0
+-71.02471102594,-52.908975488529,0
+-71.023643036052,-52.903293335006,0
+-71.018331365638,-52.904507616895,0
+-71.016673759863,-52.906918415878,0
+-71.000990375822,-52.903497365867,0
+-70.97641935725,-52.900761973005,0
+-70.959901576886,-52.901790974186,0
+-70.920776264991,-52.906745889582,0
+-70.920761007022,-52.906737145405,0
+-70.910427078287,-52.910149551905,0
+-70.901976547668,-52.91550890077,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1010-PUERTO NATALES. SECTOR CENTRAL 050-PN 1-1 - POLIGONO 1010</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1010</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">1</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">PUERTO NATALES. SECTOR CENTRAL 050-PN 1-1</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">246</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1983-11-04 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1010</SimpleData>
+<SimpleData name="ID_CONCESION">1</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#0</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-72.477696501756,-51.728898111942,0
+-72.477785890072,-51.728364744799,0
+-72.478342210137,-51.7256137088,0
+-72.476848833228,-51.725217188251,0
+-72.479093947323,-51.723144723976,0
+-72.478477993899,-51.722668241971,0
+-72.478907181534,-51.721468149799,0
+-72.480874587955,-51.722003504923,0
+-72.498224918768,-51.717871554422,0
+-72.496948580836,-51.722722066726,0
+-72.502965251958,-51.723361222444,0
+-72.506260846548,-51.721778593114,0
+-72.504472546086,-51.720005957143,0
+-72.506990840448,-51.719049196129,0
+-72.515686929441,-51.727154676741,0
+-72.515373309926,-51.73225541868,0
+-72.503455207002,-51.739610077205,0
+-72.497674570924,-51.740178251509,0
+-72.496879831415,-51.740768630378,0
+-72.473746644887,-51.736885888717,0
+-72.47571400497,-51.731376548614,0
+-72.472964453051,-51.732168554339,0
+-72.471904476898,-51.730436848494,0
+-72.472330467087,-51.729380802283,0
+-72.471638782108,-51.728294849925,0
+-72.474006835837,-51.727064403145,0
+-72.477696501756,-51.728898111942,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1011-SECTOR DOROTEA (AT) 050-PN-2 - POLIGONO 1011</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1011</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">1</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">SECTOR DOROTEA (AT) 050-PN-2</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">246</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1983-11-04 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1011</SimpleData>
+<SimpleData name="ID_CONCESION">1</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#1</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-72.438162420098,-51.709778682471,0
+-72.427706333672,-51.696546833003,0
+-72.385893569836,-51.684600892278,0
+-72.369656038659,-51.669785713585,0
+-72.359675544631,-51.666285015977,0
+-72.341928696803,-51.657077253741,0
+-72.32894869434,-51.637648306851,0
+-72.332146799904,-51.610104695321,0
+-72.330646421902,-51.60875308659,0
+-72.329221851273,-51.606068042379,0
+-72.330401432054,-51.603830764536,0
+-72.333277845504,-51.603659088233,0
+-72.336008254633,-51.605632316477,0
+-72.336348613864,-51.608105266809,0
+-72.336289856371,-51.608682621402,0
+-72.335200272242,-51.609190351526,0
+-72.331933436511,-51.637347682485,0
+-72.34345111609,-51.654578237674,0
+-72.345882186327,-51.656757682494,0
+-72.361416074083,-51.664786960633,0
+-72.371737701549,-51.66840363631,0
+-72.387930053449,-51.683192850002,0
+-72.429902229283,-51.695151388577,0
+-72.440887838903,-51.709060151929,0
+-72.438162420098,-51.709778682471,0
+-72.427706333672,-51.696546833003,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1013-PUERTO NATALES. SECTOR CENTRAL 050-PN 1-3 - POLIGONO 1013</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1013</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">1</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">PUERTO NATALES. SECTOR CENTRAL 050-PN 1-3</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">246</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1983-11-04 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1013</SimpleData>
+<SimpleData name="ID_CONCESION">1</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#3</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-72.476515564228,-51.723189518786,0
+-72.47642894297,-51.725004325859,0
+-72.469527170616,-51.72490078702,0
+-72.474545590071,-51.727356088502,0
+-72.472684738247,-51.728781984981,0
+-72.46519886884,-51.725131210662,0
+-72.45787907075,-51.726025228316,0
+-72.457298597862,-51.724240955042,0
+-72.462139738512,-51.723644182432,0
+-72.439122923377,-51.712235449663,0
+-72.439418473172,-51.711360533342,0
+-72.438040121932,-51.709621706841,0
+-72.440691367881,-51.708816146699,0
+-72.442948304238,-51.711662287583,0
+-72.4655105393,-51.7229255545,0
+-72.476515564228,-51.723189518786,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1014-PUERTO NATALES. SECTOR CENTRAL 050-PN 1-4 - POLIGONO 1014</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1014</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">1</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">PUERTO NATALES. SECTOR CENTRAL 050-PN 1-4</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">246</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1983-11-04 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1014</SimpleData>
+<SimpleData name="ID_CONCESION">1</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#4</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-72.479112302223,-51.720763106675,0
+-72.48155700384,-51.713252101666,0
+-72.490493941422,-51.713173621025,0
+-72.496849483734,-51.715009016001,0
+-72.507905997877,-51.709038741047,0
+-72.509772596474,-51.703520432615,0
+-72.524700279955,-51.695481223884,0
+-72.527971009719,-51.694416966027,0
+-72.533459878169,-51.692742720538,0
+-72.534833329478,-51.694363388295,0
+-72.525444789647,-51.69748445029,0
+-72.519852848822,-51.701026770171,0
+-72.513558329785,-51.704167238869,0
+-72.51216068237,-51.705369727965,0
+-72.510588954824,-51.710003978932,0
+-72.498607679612,-51.716467433805,0
+-72.498225624655,-51.717880249646,0
+-72.49485972062,-51.718788776185,0
+-72.495534473343,-51.716797642973,0
+-72.48937272957,-51.71511920998,0
+-72.483992784249,-51.715273870517,0
+-72.481991331591,-51.721328501751,0
+-72.479112302223,-51.720763106675,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1015-PORVENIR 050-PO-1 - POLIGONO 1015</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1015</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">1</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">PORVENIR 050-PO-1</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">246</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1983-11-04 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1015</SimpleData>
+<SimpleData name="ID_CONCESION">1</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#5</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.369326837779,-53.307182418139,0
+-70.3671060096,-53.303908674995,0
+-70.366984802675,-53.300583874792,0
+-70.368326107154,-53.299354883396,0
+-70.378100145719,-53.299979501509,0
+-70.38287122793,-53.298557838582,0
+-70.386634735723,-53.294297957069,0
+-70.397436576466,-53.295178723519,0
+-70.400461950226,-53.294091434047,0
+-70.407556581303,-53.294475376226,0
+-70.415231244888,-53.296515121178,0
+-70.419298999189,-53.299271586857,0
+-70.426581205614,-53.300299433099,0
+-70.434906467349,-53.302438013555,0
+-70.434560956193,-53.305561621056,0
+-70.438313334074,-53.305570367625,0
+-70.439636064792,-53.302506874209,0
+-70.437435661787,-53.300888284946,0
+-70.425285070739,-53.297878702394,0
+-70.421054052514,-53.297443744825,0
+-70.416455464874,-53.294513849295,0
+-70.407928590514,-53.292556166468,0
+-70.3998144234,-53.292184219677,0
+-70.396742119871,-53.293209115097,0
+-70.382176209276,-53.291904507293,0
+-70.381082803304,-53.290101249044,0
+-70.368063863814,-53.289271433059,0
+-70.352111266553,-53.29006467441,0
+-70.352181409272,-53.292760789403,0
+-70.359332738595,-53.292589593115,0
+-70.358138329552,-53.29655867072,0
+-70.357013357913,-53.2965714765,0
+-70.356019003147,-53.29739185934,0
+-70.358032380207,-53.302205406165,0
+-70.362354263596,-53.302201065792,0
+-70.362584142719,-53.305650482292,0
+-70.363392288621,-53.307933618369,0
+-70.369326837779,-53.307182418139,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>201-EXTENSION LINEA POBL. CERRO PRIMAVERA. 3ERA. - POLIGONO 201</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">201</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA POBL. CERRO PRIMAVERA. 3ERA.</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">201</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#1</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.941293348548,-53.168889693303,0
+-70.944663598065,-53.171621796072,0
+-70.94159064189,-53.172822738175,0
+-70.938484343946,-53.169969375085,0
+-70.941293348548,-53.168889693303,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>202-EXTENSION LINEA POBL. ZDENKA ELENA - POLIGONO 202</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">202</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA POBL. ZDENKA ELENA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">202</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#2</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.901407375863,-53.132716790766,0
+-70.896891230459,-53.135396117994,0
+-70.900142053907,-53.137241289968,0
+-70.904616944468,-53.134643415659,0
+-70.901407375863,-53.132716790766,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>203-EXTENSION LINEA POBL. CAMILO HENRIQUEZ - POLIGONO 203</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">203</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA POBL. CAMILO HENRIQUEZ</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">203</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#3</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.946645545076,-53.162850518138,0
+-70.944382649343,-53.15945306795,0
+-70.938685397161,-53.160822637686,0
+-70.941478785744,-53.164049713028,0
+-70.946645545076,-53.162850518138,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>204-EXTENSION LINEA POBL. CERRO PRIMAVERA. 4TA.  - POLIGONO 204</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">204</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA POBL. CERRO PRIMAVERA. 4TA. </SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">204</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#4</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.944749458727,-53.167565621059,0
+-70.947324164252,-53.171560336968,0
+-70.944663598065,-53.171621796072,0
+-70.941293348548,-53.168889693303,0
+-70.944749458727,-53.167565621059,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>205-EXTENSION LINEA POBL. D. ESPINEIRA. 1RA. ETAPA   - POLIGONO 205</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">205</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA POBL. D. ESPINEIRA. 1RA. ETAPA  </SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">205</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#5</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.950698187034,-53.171064573465,0
+-70.949586744084,-53.168331640966,0
+-70.946372498002,-53.168716875565,0
+-70.94729059906,-53.171479970192,0
+-70.950698187034,-53.171064573465,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>206-EXTENSION LINEA POBL. SANTOS MARDONES - POLIGONO 206</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">206</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA POBL. SANTOS MARDONES</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">206</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#6</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.939296353902,-53.147830205035,0
+-70.939690875579,-53.147293329597,0
+-70.939696059693,-53.146744815486,0
+-70.93897059668,-53.145578857967,0
+-70.933856572129,-53.146246431549,0
+-70.935353740232,-53.148946267133,0
+-70.936665171557,-53.14917667932,0
+-70.936437779111,-53.149108452946,0
+-70.9371276224,-53.149151174471,0
+-70.937557353212,-53.149063265818,0
+-70.938496758462,-53.148670366669,0
+-70.938863063802,-53.148502570125,0
+-70.939193001307,-53.148191514446,0
+-70.939296353902,-53.147830205035,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>207-EXTENSION LINEA PROLONG. R. CORREA. 1RA. ETAPA - POLIGONO 207</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">207</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA PROLONG. R. CORREA. 1RA. ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">207</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#7</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.923915174344,-53.136275057631,0
+-70.918082262304,-53.139578840618,0
+-70.920711390195,-53.140867063549,0
+-70.926394870016,-53.137565570418,0
+-70.923915174344,-53.136275057631,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>208-EXTENSION LINEA 23 KV INTERCONEXION CETREP - POLIGONO 208</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">208</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA 23 KV INTERCONEXION CETREP</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">208</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#8</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.894044896113,-53.128806374957,0
+-70.895740731245,-53.127601608668,0
+-70.894629545089,-53.12612685936,0
+-70.909506102822,-53.118139201817,0
+-70.912573573368,-53.114862304664,0
+-70.922870688614,-53.120252613792,0
+-70.935249693979,-53.129671996852,0
+-70.936028855503,-53.130045925152,0
+-70.936981951569,-53.136944240139,0
+-70.937144284466,-53.137229299708,0
+-70.939678788283,-53.140721358461,0
+-70.926706539098,-53.142190706172,0
+-70.927490063236,-53.143994131424,0
+-70.942530774693,-53.142293173944,0
+-70.943232954902,-53.141949059619,0
+-70.943431180344,-53.141703075858,0
+-70.943508251875,-53.141423107082,0
+-70.943435912274,-53.141145577499,0
+-70.940168497442,-53.136658589768,0
+-70.939193521245,-53.129949457004,0
+-70.9389686234,-53.129602484487,0
+-70.937312557291,-53.128343783692,0
+-70.92548033652,-53.11912255363,0
+-70.925158300395,-53.118938959085,0
+-70.919573052636,-53.116008308974,0
+-70.914489288084,-53.113249147803,0
+-70.914254536919,-53.113010176125,0
+-70.899676535525,-53.10195151375,0
+-70.897858984321,-53.101045487261,0
+-70.885885528313,-53.103249746199,0
+-70.886030147661,-53.104847786276,0
+-70.886618275168,-53.104973323287,0
+-70.887229969611,-53.104954633597,0
+-70.897411070966,-53.103426161181,0
+-70.910442417983,-53.113305188212,0
+-70.906975464104,-53.117010992516,0
+-70.905053013051,-53.117805984113,0
+-70.878962196635,-53.132219090707,0
+-70.880906871798,-53.133276239292,0
+-70.890261792494,-53.128434962752,0
+-70.892701408134,-53.129187369205,0
+-70.894044896113,-53.128806374957,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>209-EXTENSION LINEA POBL. HIGINIO LOPEZ - POLIGONO 209</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">209</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA POBL. HIGINIO LOPEZ</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">209</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#9</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.949448095152,-53.16593341068,0
+-70.947503003044,-53.16328602887,0
+-70.941468007075,-53.164805101625,0
+-70.943707337272,-53.167348879874,0
+-70.949448095152,-53.16593341068,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>2010-EXTENSION LINEA POBL. WALTER BARTHOLD - POLIGONO 2010</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">2010</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA POBL. WALTER BARTHOLD</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">2010</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#0</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.946361953127,-53.15724499326,0
+-70.943841440003,-53.152772865645,0
+-70.941919897753,-53.152282765038,0
+-70.939609714748,-53.154118551359,0
+-70.942121232229,-53.157736801182,0
+-70.946361953127,-53.15724499326,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>2011-EXTENSION LINEA LOTEO YUTRONIC - POLIGONO 2011</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">2011</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA LOTEO YUTRONIC</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">2011</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#1</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.927298697488,-53.14606507549,0
+-70.926355200105,-53.14436313495,0
+-70.930638045953,-53.143502580345,0
+-70.928520477551,-53.139625973887,0
+-70.922294345469,-53.140823531991,0
+-70.921598829325,-53.145339065684,0
+-70.922557105158,-53.147040803855,0
+-70.927298697488,-53.14606507549,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>2012-EXTENSION LINEA POBL. EL OVEJERO - POLIGONO 2012</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">2012</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA POBL. EL OVEJERO</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">2012</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#2</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.907419471276,-53.135812275795,0
+-70.903937931332,-53.137881907517,0
+-70.90625817694,-53.138959611456,0
+-70.909444885068,-53.137658844096,0
+-70.90926778841,-53.136699688444,0
+-70.907419471276,-53.135812275795,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>2013-EXTENSION LINEA POBL. P.A. CERDA. 1RA. ETAPA - POLIGONO 2013</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">2013</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA POBL. P.A. CERDA. 1RA. ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">2013</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#3</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.938484343946,-53.169969375085,0
+-70.944260386109,-53.175278572215,0
+-70.939373435747,-53.177075464622,0
+-70.935708450451,-53.173781596564,0
+-70.938484343946,-53.169969375085,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>2014-EXTENSION LINEA PROLONG. M. DE ALDUNATE - POLIGONO 2014</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">2014</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA PROLONG. M. DE ALDUNATE</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">2014</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#4</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.944663598065,-53.171621796072,0
+-70.952513339343,-53.178416134028,0
+-70.966869842894,-53.177217890323,0
+-70.967730901754,-53.179028767924,0
+-70.954215517182,-53.180635871295,0
+-70.957117941601,-53.183573098425,0
+-70.959809929483,-53.190091987936,0
+-70.956778565833,-53.190582369246,0
+-70.953318589326,-53.184939112551,0
+-70.950196507515,-53.18111532041,0
+-70.940829094076,-53.183794705333,0
+-70.938855525683,-53.182181570605,0
+-70.947736226889,-53.17867417226,0
+-70.94159064189,-53.172822738175,0
+-70.944663598065,-53.171621796072,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>2015-EXTENSION LINEA PROLONG. CALLE CORONEL MARDONES   - POLIGONO 2015</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">2015</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA PROLONG. CALLE CORONEL MARDONES  </SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">2015</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#5</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.923986525764,-53.133522767671,0
+-70.924366896756,-53.133336806222,0
+-70.927901599033,-53.131148826325,0
+-70.925647095833,-53.129872684444,0
+-70.920185029262,-53.133089665247,0
+-70.919670596125,-53.133286765921,0
+-70.914055057092,-53.136434007292,0
+-70.916402152454,-53.13743915815,0
+-70.917014290982,-53.137420311391,0
+-70.917575205921,-53.137258436537,0
+-70.922024365894,-53.134777193025,0
+-70.922234411319,-53.13445912896,0
+-70.922660417067,-53.134290417464,0
+-70.923986525764,-53.133522767671,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>2017-EXTENSION LINEA LOTEO PAMPA REDONDA. 2DA. ETAPA   - POLIGONO 2017</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">2017</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA LOTEO PAMPA REDONDA. 2DA. ETAPA  </SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">2017</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#7</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.933177036416,-53.130451901747,0
+-70.935451541023,-53.129174228283,0
+-70.931550411505,-53.126180771312,0
+-70.934877106096,-53.121379663901,0
+-70.93222854835,-53.12064050224,0
+-70.930743064498,-53.122175041691,0
+-70.927057814407,-53.120310763012,0
+-70.925228261058,-53.121841812038,0
+-70.929297004508,-53.123924698446,0
+-70.927004311895,-53.125795933957,0
+-70.92532160576,-53.124933089332,0
+-70.92361489827,-53.126543039406,0
+-70.927514482184,-53.128511842967,0
+-70.929078149915,-53.127380660298,0
+-70.933177036416,-53.130451901747,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>2018-EXTENSION VILLA EL BOSQUE. 2DA. ETAPA - POLIGONO 2018</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">2018</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION VILLA EL BOSQUE. 2DA. ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">2018</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#8</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.890475760287,-53.131946889444,0
+-70.88367330868,-53.132612144552,0
+-70.885223459897,-53.135239827903,0
+-70.889078979862,-53.1348640355,0
+-70.891217831446,-53.133526437766,0
+-70.890475760287,-53.131946889444,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>2019-EXTENSION VILLA ZURICH. IRA. ETAPA - POLIGONO 2019</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">2019</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION VILLA ZURICH. IRA. ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">2019</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#9</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.89167923388,-53.132799858492,0
+-70.88872236897,-53.134573004603,0
+-70.892780000761,-53.136756204678,0
+-70.894864432788,-53.134861989704,0
+-70.89167923388,-53.132799858492,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>2020-EXTENSION POBL. D. ESPINEIRA. 2DA. ETAPA - POLIGONO 2020</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">2020</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION POBL. D. ESPINEIRA. 2DA. ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">2020</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#0</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.950830072501,-53.168365222119,0
+-70.953217247326,-53.171841429556,0
+-70.947324164252,-53.171560336968,0
+-70.944749458727,-53.167565621059,0
+-70.950830072501,-53.168365222119,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>2021-EXTENSION LINEA PROLONG. CALLE CORONEL MARDONES - POLIGONO 2021</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">2021</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA PROLONG. CALLE CORONEL MARDONES</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">2021</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#1</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.933953644332,-53.137092374375,0
+-70.934298875548,-53.136790073553,0
+-70.934432123301,-53.136428282072,0
+-70.934310996496,-53.136061633443,0
+-70.933463519679,-53.135167345114,0
+-70.932960447166,-53.134950748744,0
+-70.932359259313,-53.134879593527,0
+-70.931749181184,-53.134943439375,0
+-70.930081617502,-53.135429012147,0
+-70.923046575945,-53.139588656651,0
+-70.925623320602,-53.141039449756,0
+-70.933953644332,-53.137092374375,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>2023-EXTENSION PROLONG. R. CORREA. 2DA. ETAPA - POLIGONO 2023</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">2023</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">2</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION PROLONG. R. CORREA. 2DA. ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">3</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1987-01-07 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">2023</SimpleData>
+<SimpleData name="ID_CONCESION">2</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#3</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.933559668452,-53.133313707831,0
+-70.931293171153,-53.132109791447,0
+-70.924158221863,-53.136361035681,0
+-70.92626402877,-53.137648603476,0
+-70.933559668452,-53.133313707831,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>301-EXTENSION LINEA CONJUNTO HABITACIONAL EL GOLF - ENAP - POLIGONO 301</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">301</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA CONJUNTO HABITACIONAL EL GOLF - ENAP</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">301</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#1</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.880448377177,-53.139549915511,0
+-70.875898297149,-53.142525653802,0
+-70.867668404584,-53.139283592155,0
+-70.87328236576,-53.135671082715,0
+-70.880448377177,-53.139549915511,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>302-EXTENSION CONJUNTO HABITACIONAL COSTANERA NORTE. 1 ETAPA - POLIGONO 302</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">302</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION CONJUNTO HABITACIONAL COSTANERA NORTE. 1 ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">302</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#2</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.889594374537,-53.152054837175,0
+-70.891094309,-53.151473607064,0
+-70.891513038811,-53.150792662409,0
+-70.891005586016,-53.150135420851,0
+-70.889872902678,-53.149883688677,0
+-70.887631287173,-53.150602533114,0
+-70.887300955366,-53.150913449228,0
+-70.88736276632,-53.151640705355,0
+-70.888251664605,-53.152130082902,0
+-70.889594374537,-53.152054837175,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>303-EXTENSION LINEA VILLA LAS NIEVES - POLIGONO 303</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">303</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA VILLA LAS NIEVES</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">303</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#3</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.875178729975,-53.130813287355,0
+-70.8705431504,-53.127334945355,0
+-70.886000058679,-53.120545881534,0
+-70.889921890151,-53.123414611611,0
+-70.875178729975,-53.130813287355,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>304-EXTENSION LOTEO EL DESECHO. KM. 10.5 NORTE - POLIGONO 304</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">304</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LOTEO EL DESECHO. KM. 10.5 NORTE</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">304</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#4</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.871158006219,-53.081958677241,0
+-70.872504795737,-53.083402962571,0
+-70.874883417825,-53.084192642322,0
+-70.875711304044,-53.083658136248,0
+-70.875680048753,-53.082939377573,0
+-70.874540109918,-53.081446915356,0
+-70.875824947341,-53.081120982932,0
+-70.876555492433,-53.08006654737,0
+-70.874026723025,-53.076159512263,0
+-70.872827733219,-53.076052523918,0
+-70.871861003317,-53.076481308172,0
+-70.871682924987,-53.077194370935,0
+-70.873081557151,-53.07949194552,0
+-70.872284749715,-53.078677348382,0
+-70.870427892519,-53.077861435234,0
+-70.868459397658,-53.077568703977,0
+-70.867725472397,-53.077858937952,0
+-70.867514228065,-53.078842233602,0
+-70.869552454464,-53.079709285963,0
+-70.871158006219,-53.081958677241,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>305-EXTENSION LINEA INTERCONEXION R. CARNICER - INDEPENDENCIA  - POLIGONO 305</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">305</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA INTERCONEXION R. CARNICER - INDEPENDENCIA </SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">305</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#5</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.945789384673,-53.15516852168,0
+-70.941448753646,-53.156093490704,0
+-70.947636150841,-53.166556443217,0
+-70.950312851349,-53.16619795997,0
+-70.949480399305,-53.161365635555,0
+-70.945789384673,-53.15516852168,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>306-EXTENSION LINEA PARCELAS EN PROLONGACION GRAL. DEL CANTO  - POLIGONO 306</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">306</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA PARCELAS EN PROLONGACION GRAL. DEL CANTO </SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">306</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#6</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.952558089792,-53.146120990194,0
+-70.950872253724,-53.142579331662,0
+-70.954375176872,-53.1420094073,0
+-70.952877074094,-53.13930981677,0
+-70.942855924333,-53.140552670092,0
+-70.943757593726,-53.142309111754,0
+-70.947036978913,-53.142084698963,0
+-70.949510420553,-53.146845236044,0
+-70.952558089792,-53.146120990194,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>307-EXTENSION LINEA PARCELAS VILLA ANDREA - POLIGONO 307</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">307</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA PARCELAS VILLA ANDREA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">307</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#7</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.939349747635,-53.121801357562,0
+-70.935677524059,-53.123227719353,0
+-70.931962482882,-53.121705720811,0
+-70.929969245615,-53.122583181238,0
+-70.936233522966,-53.129611044037,0
+-70.937915843506,-53.130788416279,0
+-70.938267898112,-53.130971488178,0
+-70.938841592368,-53.131097005111,0
+-70.939454032702,-53.131087027936,0
+-70.940015183454,-53.130934032791,0
+-70.940436629836,-53.130666433724,0
+-70.940660241706,-53.130321142648,0
+-70.940643640656,-53.129952795668,0
+-70.940389261933,-53.12961529707,0
+-70.939525270162,-53.129018012526,0
+-70.940592538219,-53.128155493716,0
+-70.937408845277,-53.124835853594,0
+-70.938701322449,-53.124329311906,0
+-70.942592987124,-53.126774260493,0
+-70.945576946819,-53.12830788376,0
+-70.945958074112,-53.128472476484,0
+-70.946545068558,-53.128561776062,0
+-70.947155438869,-53.128506839392,0
+-70.947685029476,-53.128318361107,0
+-70.948060373753,-53.128024516711,0
+-70.948208416532,-53.127662466168,0
+-70.948117071683,-53.127295342988,0
+-70.947803719483,-53.126976806383,0
+-70.939349747635,-53.121801357562,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>308-EXTENSION LINEA PARCELAS EN KM. 11.5 NORTE. RUTA NO.  - POLIGONO 308</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">308</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA PARCELAS EN KM. 11.5 NORTE. RUTA NO. </SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">308</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#8</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.868942944639,-53.069775209194,0
+-70.868702317636,-53.070767960874,0
+-70.86892244381,-53.071025231705,0
+-70.869396558832,-53.071287501857,0
+-70.870640550249,-53.071402806942,0
+-70.878576514758,-53.069560535805,0
+-70.879219601954,-53.068903050687,0
+-70.87888802293,-53.068144081486,0
+-70.8784142772,-53.067890833731,0
+-70.877155843064,-53.067784829032,0
+-70.868942944639,-53.069775209194,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>309-EXTENSION LINEA PARCELAS EN KM. 12 NORTE. RUTA NO. 9   - POLIGONO 309</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">309</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA PARCELAS EN KM. 12 NORTE. RUTA NO. 9  </SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">309</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#9</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.865048357567,-53.066698595162,0
+-70.860672743406,-53.067684162135,0
+-70.861998972742,-53.069362642415,0
+-70.87132849557,-53.067301239104,0
+-70.871734456473,-53.067025132481,0
+-70.871942998659,-53.066671215275,0
+-70.87189719072,-53.066303319045,0
+-70.871629207997,-53.065974881268,0
+-70.871170833308,-53.065730353841,0
+-70.870583286575,-53.065604734547,0
+-70.8699725295,-53.065632318435,0
+-70.865706769741,-53.064665373792,0
+-70.865177198425,-53.064844500869,0
+-70.864801822289,-53.065138086898,0
+-70.864637974867,-53.065491290731,0
+-70.864713551236,-53.065858722742,0
+-70.865048357567,-53.066698595162,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>3010-EXTENSION LINEA PARCELAS EN PROLONGACION IGNACIO CARRERA PINTO - POLIGONO 3010</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">3010</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA PARCELAS EN PROLONGACION IGNACIO CARRERA PINTO</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">3010</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#0</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.954835434772,-53.14950906338,0
+-70.95529093647,-53.149330760607,0
+-70.962131465963,-53.149137302383,0
+-70.965968032793,-53.14866043835,0
+-70.967526410943,-53.148400936154,0
+-70.968686792637,-53.147941209539,0
+-70.969001565172,-53.14763032038,0
+-70.969089311577,-53.147260250673,0
+-70.968938383052,-53.146903119159,0
+-70.968580725588,-53.1466033502,0
+-70.968048692372,-53.146414351286,0
+-70.967433169326,-53.146361590199,0
+-70.966839160018,-53.146452321574,0
+-70.966177002241,-53.146688026533,0
+-70.962402023726,-53.147199846281,0
+-70.953926630087,-53.147608969613,0
+-70.951022460478,-53.148861347429,0
+-70.95073825011,-53.149189668536,0
+-70.95068022977,-53.14955923639,0
+-70.950860905214,-53.149915902461,0
+-70.951262486169,-53.150197022638,0
+-70.951808623849,-53.150367883746,0
+-70.952423371912,-53.150402757274,0
+-70.953001708103,-53.150294374296,0
+-70.954835434772,-53.14950906338,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>3011-EXTENSION LINEA PARCELAS EN KM. 12 NORTE. RUTA NO. 9   - POLIGONO 3011</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">3011</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA PARCELAS EN KM. 12 NORTE. RUTA NO. 9  </SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">3011</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#1</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.872289070032,-53.063294270374,0
+-70.87289872416,-53.062898074393,0
+-70.873189706397,-53.062381024522,0
+-70.871910174793,-53.060063593454,0
+-70.871247082612,-53.059570549279,0
+-70.870048560802,-53.059463528476,0
+-70.86909747275,-53.059901038439,0
+-70.868888938458,-53.060254950956,0
+-70.868919799313,-53.060623083309,0
+-70.869691305744,-53.061896624036,0
+-70.866958982179,-53.062559894929,0
+-70.866359377473,-53.063189659543,0
+-70.867146695556,-53.064139304375,0
+-70.868329648177,-53.064228618406,0
+-70.872289070032,-53.063294270374,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>3012-EXTENSION VILLA EL BOSQUE. 4 ETAPA - POLIGONO 3012</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">3012</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION VILLA EL BOSQUE. 4 ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">3012</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#2</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.890385928485,-53.130581745056,0
+-70.88643932356,-53.132963928363,0
+-70.888929113338,-53.134174138076,0
+-70.8926272668,-53.131921691398,0
+-70.890385928485,-53.130581745056,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>3013-EXTENSION LINEA PARQUE INDUSTRIAL TRES PUENTES. 1 ETAPA - POLIGONO 3013</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">3013</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA PARQUE INDUSTRIAL TRES PUENTES. 1 ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">3013</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#3</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.881100863348,-53.119580502349,0
+-70.877044844716,-53.11635397867,0
+-70.874893167104,-53.117044207118,0
+-70.875558922587,-53.12066591774,0
+-70.876912697591,-53.121552627237,0
+-70.881100863348,-53.119580502349,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>3014-EXTENSION LINEA PARCELAS EN KM. 15 NORTE. 3 ETAPA     - POLIGONO 3014</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">3014</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA PARCELAS EN KM. 15 NORTE. 3 ETAPA    </SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">3014</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#4</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.87626361684,-53.029741312315,0
+-70.870941567651,-53.032198713824,0
+-70.87336341952,-53.037492073532,0
+-70.868180675455,-53.039057067975,0
+-70.866604097359,-53.037436527544,0
+-70.869273551528,-53.036045993253,0
+-70.867457290279,-53.031983761038,0
+-70.866431635479,-53.032062798445,0
+-70.866497678299,-53.03428246421,0
+-70.861732214049,-53.036182275219,0
+-70.847479391879,-53.039470367779,0
+-70.845688741453,-53.037709030033,0
+-70.862186133708,-53.033217231257,0
+-70.863023626356,-53.030848551645,0
+-70.865783213936,-53.029825298968,0
+-70.868380883707,-53.030234047555,0
+-70.875310263921,-53.028048114937,0
+-70.87626361684,-53.029741312315,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>3015-EXTENSION POBLACION PEDRO AGUIRRE CERDA. 3 ETAPA   - POLIGONO 3015</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">3015</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION POBLACION PEDRO AGUIRRE CERDA. 3 ETAPA  </SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">3015</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#5</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.942466517351,-53.173662563146,0
+-70.946718237538,-53.177674877246,0
+-70.942040889328,-53.179477441506,0
+-70.937658081599,-53.175539021119,0
+-70.942466517351,-53.173662563146,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>3016-EXTENSION LINEA PARCELAS LOTEO LENA DURA. KM. 8.5 SUR   - POLIGONO 3016</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">3016</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA PARCELAS LOTEO LENA DURA. KM. 8.5 SUR  </SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">3016</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#6</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.957483885591,-53.232664721281,0
+-70.955864688677,-53.231001084639,0
+-70.944291247738,-53.234499012296,0
+-70.942862091645,-53.228750395424,0
+-70.939608046465,-53.229019182973,0
+-70.942941695996,-53.238117238636,0
+-70.951755574108,-53.235860426512,0
+-70.957483885591,-53.232664721281,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>3017-EXTENSION LINEA PARCELAS EN KM. 15 NORTE. RUTA 9 - POLIGONO 3017</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">3017</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA PARCELAS EN KM. 15 NORTE. RUTA 9</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">3017</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#7</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.857548282176,-53.030107063906,0
+-70.8565909313,-53.028998178701,0
+-70.855795914972,-53.028543072887,0
+-70.855166139262,-53.02846299291,0
+-70.854527631262,-53.028526896797,0
+-70.853984704971,-53.028733158024,0
+-70.853625618693,-53.029053430057,0
+-70.853598759889,-53.029818056933,0
+-70.854714344054,-53.031140274264,0
+-70.857020554259,-53.032749577585,0
+-70.858826188492,-53.034159876744,0
+-70.861937791621,-53.033337998897,0
+-70.859287247747,-53.031356564971,0
+-70.857548282176,-53.030107063906,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>3018-EXTENSION LINEA LOTEO TORRES DEL PAINE - POLIGONO 3018</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">3018</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA LOTEO TORRES DEL PAINE</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">3018</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#8</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-72.491368515537,-51.737645313203,0
+-72.484018747797,-51.737227298678,0
+-72.480470833693,-51.739813287625,0
+-72.48439883024,-51.740553995622,0
+-72.490176844901,-51.739544436139,0
+-72.491368515537,-51.737645313203,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>3019-EXTENSION HUERTOS FAMILIARES. SECTORES 2 - POLIGONO 3019</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">3019</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION HUERTOS FAMILIARES. SECTORES 2</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">3019</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#9</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-72.489144654412,-51.713225719795,0
+-72.491241705587,-51.711957502688,0
+-72.501161100123,-51.710334347646,0
+-72.501903695155,-51.712094863586,0
+-72.492404286209,-51.713709066002,0
+-72.489144654412,-51.713225719795,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>3020-EXTENSION HUERTOS FAMILIARES. SECTORES 1 - POLIGONO 3020</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">3020</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION HUERTOS FAMILIARES. SECTORES 1</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">3020</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#0</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-72.472773447095,-51.712137076965,0
+-72.470138256239,-51.723034327825,0
+-72.467665764929,-51.726335586341,0
+-72.46519886884,-51.725131210662,0
+-72.46716978433,-51.723033298491,0
+-72.468131819633,-51.71903398179,0
+-72.463983387336,-51.718647687075,0
+-72.464417554256,-51.716840388209,0
+-72.46857978533,-51.717235959861,0
+-72.469879072575,-51.711858908584,0
+-72.470312429235,-51.710060564628,0
+-72.474963711554,-51.710502422855,0
+-72.513782141535,-51.693487842768,0
+-72.515576554034,-51.695072687173,0
+-72.475726699896,-51.712398452457,0
+-72.472773447095,-51.712137076965,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>3021-EXTENSION LINEA HUERTOS FAMILIARES. 2A ETAPA - POLIGONO 3021</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">3021</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">3</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA HUERTOS FAMILIARES. 2A ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">111</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-04-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">3021</SimpleData>
+<SimpleData name="ID_CONCESION">3</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#1</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-72.460721988087,-51.709152080985,0
+-72.486479720777,-51.697843930956,0
+-72.481282603756,-51.692138644514,0
+-72.483879750787,-51.691232032616,0
+-72.486455088337,-51.694111131608,0
+-72.496274272893,-51.689779251827,0
+-72.498028526176,-51.691291567816,0
+-72.487940527394,-51.695770732103,0
+-72.488882686613,-51.696789155478,0
+-72.508607129727,-51.688117010824,0
+-72.510360752006,-51.689647113382,0
+-72.490340880368,-51.698421160615,0
+-72.493804064239,-51.702272362889,0
+-72.491386457183,-51.703326926986,0
+-72.487937859609,-51.69947596497,0
+-72.464897937353,-51.709548086318,0
+-72.460721988087,-51.709152080985,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>401-EXTENSION LINEA LOTEO BAHIA CATALINA - POLIGONO 401</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">401</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">4</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA LOTEO BAHIA CATALINA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">234</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-07-26 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">401</SimpleData>
+<SimpleData name="ID_CONCESION">4</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#1</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.869254011146,-53.130349057153,0
+-70.873079458065,-53.132725368653,0
+-70.877181707733,-53.130125404975,0
+-70.873576808931,-53.127664837997,0
+-70.869254011146,-53.130349057153,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>402-EXTENSION LINEA VILLA AUSTRAL - POLIGONO 402</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">402</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">4</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA VILLA AUSTRAL</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">234</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-07-26 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">402</SimpleData>
+<SimpleData name="ID_CONCESION">4</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#2</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.927130408358,-53.131619837524,0
+-70.920610952739,-53.135600172734,0
+-70.925054143779,-53.138342473033,0
+-70.929891838601,-53.135530986213,0
+-70.927130408358,-53.131619837524,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>403-EXTENSION LINEA PARCELA EN CAMINO SUR. KM. 10.5 - POLIGONO 403</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">403</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">4</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA PARCELA EN CAMINO SUR. KM. 10.5</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">234</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-07-26 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">403</SimpleData>
+<SimpleData name="ID_CONCESION">4</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#3</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.951847059852,-53.25170025629,0
+-70.951580346577,-53.250122291024,0
+-70.944681469183,-53.234843275612,0
+-70.941643114207,-53.235252443617,0
+-70.94847535017,-53.250406848937,0
+-70.948642829446,-53.251123352611,0
+-70.948665942357,-53.253280699997,0
+-70.948906163592,-53.253618411893,0
+-70.949352435105,-53.253871838693,0
+-70.949928221791,-53.254006268196,0
+-70.950542820864,-53.254005201917,0
+-70.951105527466,-53.253852143085,0
+-70.951543071843,-53.253584254245,0
+-70.951767618407,-53.253247927824,0
+-70.951847059852,-53.25170025629,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>404-EXTENSION LINEA PARCELAS EN VILLA JULITA  - POLIGONO 404</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">404</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">4</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA PARCELAS EN VILLA JULITA </SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">234</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-07-26 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">404</SimpleData>
+<SimpleData name="ID_CONCESION">4</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#4</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.958096160455,-53.230649765673,0
+-70.957501030958,-53.228771525287,0
+-70.944361461387,-53.229436191075,0
+-70.942398073376,-53.227436350495,0
+-70.939284655627,-53.228494004931,0
+-70.94303313349,-53.231534674749,0
+-70.958096160455,-53.230649765673,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>405-EXTENSION POBLACION PEDRO AGUIRRE CERDA 5A. ETAPA - POLIGONO 405</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">405</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">4</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION POBLACION PEDRO AGUIRRE CERDA 5A. ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">234</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-07-26 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">405</SimpleData>
+<SimpleData name="ID_CONCESION">4</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#5</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.935380698435,-53.173481242984,0
+-70.940371826452,-53.177976243838,0
+-70.935699837718,-53.179904337797,0
+-70.930677444339,-53.175373688726,0
+-70.935380698435,-53.173481242984,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>407-EXTENSION PARCELAS EN PROLONGACION CALLE PEDRO AGUIRRE CERDA - POLIGONO 407</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">407</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">4</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION PARCELAS EN PROLONGACION CALLE PEDRO AGUIRRE CERDA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">234</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-07-26 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">407</SimpleData>
+<SimpleData name="ID_CONCESION">4</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#7</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.956243676072,-53.168968688829,0
+-70.956636017327,-53.172001080341,0
+-70.953217247326,-53.171841429556,0
+-70.950830072501,-53.168365222119,0
+-70.956243676072,-53.168968688829,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>408-EXTENSION LINEA POBLACION PEDRO AGUIRRE CERDA. 7A. ETAPA - POLIGONO 408</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">408</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">4</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA POBLACION PEDRO AGUIRRE CERDA. 7A. ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">234</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-07-26 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">408</SimpleData>
+<SimpleData name="ID_CONCESION">4</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#8</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.945067464223,-53.172280506303,0
+-70.946405380974,-53.173409445714,0
+-70.945295385738,-53.17533359487,0
+-70.942590740017,-53.176411665491,0
+-70.939833782376,-53.174343811673,0
+-70.945067464223,-53.172280506303,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>409-EXTENSION LINEA POBLACION NUEVA ESPERANZA - POLIGONO 409</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">409</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">4</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA POBLACION NUEVA ESPERANZA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">234</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1989-07-26 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">409</SimpleData>
+<SimpleData name="ID_CONCESION">4</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#9</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-72.480890579261,-51.727843097239,0
+-72.474364327575,-51.734501945645,0
+-72.477840101585,-51.736330346769,0
+-72.484860933072,-51.731192790066,0
+-72.480890579261,-51.727843097239,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>501-EXTENSION POBLACION UNO NUEVA SUR. SEGUNDA ETAPA. - POLIGONO 501</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">501</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">5</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION POBLACION UNO NUEVA SUR. SEGUNDA ETAPA.</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">384</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1991-09-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">501</SimpleData>
+<SimpleData name="ID_CONCESION">5</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#1</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.942325367163,-53.177162214949,0
+-70.945447403967,-53.180015223172,0
+-70.941478262772,-53.181599407709,0
+-70.938271100648,-53.178846579266,0
+-70.942325367163,-53.177162214949,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>502-EXTENSION REFUERZO SECTOR SE � 56 - POLIGONO 502</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">502</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">5</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION REFUERZO SECTOR SE � 56</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">384</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1991-09-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">502</SimpleData>
+<SimpleData name="ID_CONCESION">5</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#2</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.861452033113,-53.061180722545,0
+-70.859632698213,-53.061559814484,0
+-70.860532748514,-53.063397813935,0
+-70.865603476343,-53.062275479498,0
+-70.86335824862,-53.059703381486,0
+-70.862468088271,-53.059825210507,0
+-70.861843853587,-53.060230571709,0
+-70.861452033113,-53.061180722545,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>503-EXTENSION POBLACION MANUEL BULNES. SEGUNDA ETAPA. - POLIGONO 503</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">503</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">5</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION POBLACION MANUEL BULNES. SEGUNDA ETAPA.</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">384</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1991-09-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">503</SimpleData>
+<SimpleData name="ID_CONCESION">5</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#3</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.936635565735,-53.174764480474,0
+-70.933827677837,-53.175879992091,0
+-70.934451678514,-53.176445256137,0
+-70.937275753936,-53.175356438535,0
+-70.936635565735,-53.174764480474,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>504-EXTENSION VILLA TORRES DEL PAINE. SEGUNDA ETAPA. - POLIGONO 504</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">504</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">5</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION VILLA TORRES DEL PAINE. SEGUNDA ETAPA.</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">384</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1991-09-12 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">504</SimpleData>
+<SimpleData name="ID_CONCESION">5</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#4</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.871408203878,-53.129011576385,0
+-70.86810431764,-53.131068369917,0
+-70.871988741506,-53.133425809537,0
+-70.875290661233,-53.131323986944,0
+-70.871408203878,-53.129011576385,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>601-EXTENSION POBLACION NUEVA SUR. TERCERA ETAPA. - POLIGONO 601</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">601</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">6</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION POBLACION NUEVA SUR. TERCERA ETAPA.</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">699</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1992-12-31 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">601</SimpleData>
+<SimpleData name="ID_CONCESION">6</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#1</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.940371826452,-53.177976243838,0
+-70.944094751133,-53.180549776696,0
+-70.938744028356,-53.182695849957,0
+-70.935699837718,-53.179904337797,0
+-70.940371826452,-53.177976243838,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>602-EXTENSION POBLACION 340 VIVIENDAS EN CALLE MARDONES - POLIGONO 602</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">602</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">6</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION POBLACION 340 VIVIENDAS EN CALLE MARDONES</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">699</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1992-12-31 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">602</SimpleData>
+<SimpleData name="ID_CONCESION">6</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#2</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.918970365807,-53.133675663065,0
+-70.913412487274,-53.136776990569,0
+-70.918369991433,-53.138989813407,0
+-70.925698983956,-53.13838598732,0
+-70.926041404649,-53.136348562381,0
+-70.918970365807,-53.133675663065,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>603-EXTENSION LINEA PARA FAENAS CONSTRUCCIONES MICSA - POLIGONO 603</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">603</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">6</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION LINEA PARA FAENAS CONSTRUCCIONES MICSA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">699</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1992-12-31 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">603</SimpleData>
+<SimpleData name="ID_CONCESION">6</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#3</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.863904947248,-53.133166065397,0
+-70.871567173617,-53.124414891713,0
+-70.868787788781,-53.12373931545,0
+-70.864220487991,-53.126642966063,0
+-70.862544392077,-53.128323468433,0
+-70.860776471609,-53.132378888202,0
+-70.858972542948,-53.13491543669,0
+-70.861591663716,-53.135674666266,0
+-70.863904947248,-53.133166065397,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>604-EXTENSION POBLACION NUEVA ESPERANZA - POLIGONO 604</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">604</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">6</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION POBLACION NUEVA ESPERANZA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">699</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1992-12-31 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">604</SimpleData>
+<SimpleData name="ID_CONCESION">6</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#4</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-72.478693642601,-51.733227965616,0
+-72.474573377471,-51.734389526593,0
+-72.475967671977,-51.736919661621,0
+-72.480483253938,-51.735685590693,0
+-72.478693642601,-51.733227965616,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>801-EXTENSION 12 PARCELAS PROLONGACION AVDA. SALVADOR ALLENDE - POLIGONO 801</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">801</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">8</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION 12 PARCELAS PROLONGACION AVDA. SALVADOR ALLENDE</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">675</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1996-09-05 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">801</SimpleData>
+<SimpleData name="ID_CONCESION">8</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#1</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.960974684331,-53.155584694077,0
+-70.960846924737,-53.151469070045,0
+-70.95766375256,-53.151521453747,0
+-70.95513369978,-53.154098396251,0
+-70.955550298557,-53.156024546923,0
+-70.960974684331,-53.155584694077,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>901-EXTENSION PARCELAS EN RUTA N� 9 KM. 11 NORTE. - POLIGONO 901</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">901</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">9</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION PARCELAS EN RUTA N� 9 KM. 11 NORTE.</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">487</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1998-09-04 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">901</SimpleData>
+<SimpleData name="ID_CONCESION">9</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#1</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.882975917746,-53.073914389942,0
+-70.882518224753,-53.073004585456,0
+-70.880148225027,-53.073087018446,0
+-70.873907434935,-53.07444417691,0
+-70.875248918305,-53.076113281705,0
+-70.881417270563,-53.07480215346,0
+-70.882144387697,-53.074359100285,0
+-70.882975917746,-53.073914389942,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1003-LOTEO SIMON BOLIVAR. SEGUNDA ETAPA - POLIGONO 1003</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1003</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">10</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">LOTEO SIMON BOLIVAR. SEGUNDA ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">589</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1998-10-26 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1003</SimpleData>
+<SimpleData name="ID_CONCESION">10</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#3</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.950123695197,-53.178850876156,0
+-70.951201744814,-53.180181811676,0
+-70.945560772404,-53.182189099501,0
+-70.942752536577,-53.178998322745,0
+-70.945061717823,-53.178106521977,0
+-70.950123695197,-53.178850876156,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1004-LOTEO EN CALLE LIBERTAD (60 VIVIENDAS) - POLIGONO 1004</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1004</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">10</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">LOTEO EN CALLE LIBERTAD (60 VIVIENDAS)</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">589</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">1998-10-26 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1004</SimpleData>
+<SimpleData name="ID_CONCESION">10</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#4</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-72.496426462901,-51.718210636852,0
+-72.496610324272,-51.721434186622,0
+-72.492417187512,-51.722109167539,0
+-72.490027508949,-51.719764804719,0
+-72.496426462901,-51.718210636852,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1103-ELECTRIFICACION LOTEO DEL MAR. 2 ETAPA - POLIGONO 1103</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1103</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">11</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">ELECTRIFICACION LOTEO DEL MAR. 2 ETAPA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">727</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2000-12-14 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1103</SimpleData>
+<SimpleData name="ID_CONCESION">11</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#3</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.942489588304,-53.155294328412,0
+-70.943118265731,-53.155967358861,0
+-70.946110431251,-53.15631407742,0
+-70.947626200694,-53.155435180557,0
+-70.948782766073,-53.153231526952,0
+-70.94849319061,-53.152121425125,0
+-70.946988449963,-53.151588621435,0
+-70.942025787818,-53.152640663706,0
+-70.942489588304,-53.155294328412,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1107-ELECTRIFICACION LOTEO LOMAS DE VILLA AGUEDA - POLIGONO 1107</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1107</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">11</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">ELECTRIFICACION LOTEO LOMAS DE VILLA AGUEDA</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">727</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2000-12-14 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1107</SimpleData>
+<SimpleData name="ID_CONCESION">11</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#7</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.903080388441,-53.133364351597,0
+-70.898781522041,-53.135545793499,0
+-70.900705942263,-53.137484024852,0
+-70.905443310209,-53.135412374532,0
+-70.903080388441,-53.133364351597,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>11010-SUMINISTRO ELECTRICO PLANTA PROCESADORA MAS-MAR - POLIGONO 11010</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">11010</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">11</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">SUMINISTRO ELECTRICO PLANTA PROCESADORA MAS-MAR</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">727</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2000-12-14 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">11010</SimpleData>
+<SimpleData name="ID_CONCESION">11</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#0</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.880755236167,-53.099339100591,0
+-70.880501255391,-53.097625904369,0
+-70.877388657911,-53.097836883979,0
+-70.877272075897,-53.099618866799,0
+-70.88023506726,-53.100084552179,0
+-70.880755236167,-53.099339100591,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>11014-ELECTRIFICACION LOTEO 141 VIVIENDAS EN CALLE LIBERTAD - POLIGONO 11014</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">11014</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">11</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">ELECTRIFICACION LOTEO 141 VIVIENDAS EN CALLE LIBERTAD</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">727</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2000-12-14 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">11014</SimpleData>
+<SimpleData name="ID_CONCESION">11</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">0</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#4</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-72.497386688852,-51.717340758552,0
+-72.497633155449,-51.721267124134,0
+-72.492417187512,-51.722109167539,0
+-72.490027508949,-51.719764804719,0
+-72.497386688852,-51.717340758552,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1401-ELECTRIFICACION BARRIO ISLA GRANDE DE CHILOE - POLIGONO 1401</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1401</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">14</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">ELECTRIFICACION BARRIO ISLA GRANDE DE CHILOE</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">5</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2013-01-15 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1401</SimpleData>
+<SimpleData name="ID_CONCESION">14</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">59480</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#1</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-70.938403958541,-53.17781049719,0
+-70.945810691911,-53.179775532118,0
+-70.952787147118,-53.18608963594,0
+-70.942039405555,-53.190374075896,0
+-70.931163312418,-53.180526412621,0
+-70.938403958541,-53.17781049719,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+<Placemark>
+<name>1404-EXTENSION RED BT. SE 14 (PN) - POLIGONO 1404</name>
+<ExtendedData>
+<SchemaData schemaUrl="#ConcesionSchema">
+<SimpleData name="ID">1404</SimpleData>
+<SimpleData name="EMPRESA_ID">25</SimpleData>
+<SimpleData name="CONCESION_ID">14</SimpleData>
+<SimpleData name="NOMBRE_CONCESION">EXTENSION RED BT. SE 14 (PN)</SimpleData>
+<SimpleData name="NUMERO_DOC_OTORGAMIENTO">5</SimpleData>
+<SimpleData name="FECHA_DOC_OTORGAMIENTO">2013-01-15 00:00:00</SimpleData>
+<SimpleData name="POLIGONAL_ID">1404</SimpleData>
+<SimpleData name="ID_CONCESION">14</SimpleData>
+<SimpleData name="TIPO_DECRETO">CONCESION</SimpleData>
+<SimpleData name="ESTADO">OTORGADA</SimpleData>
+<SimpleData name="NUMERO_INGRESO_OP_SEC">0</SimpleData>
+<SimpleData name="NUMERO_CASO_TIMES">59480</SimpleData>
+</SchemaData>
+</ExtendedData>
+<styleUrl>#4</styleUrl>
+<Polygon>
+<outerBoundaryIs>
+<LinearRing>
+<coordinates>
+-72.479835144881,-51.723386708017,0
+-72.479574556841,-51.725467585116,0
+-72.472725685142,-51.724933686526,0
+-72.473154630199,-51.722955371999,0
+-72.473154630199,-51.722955371999,0
+</coordinates>
+</LinearRing>
+</outerBoundaryIs>
+</Polygon>
+</Placemark>
+</Document>
+</kml>
