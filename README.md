@@ -1,10 +1,12 @@
 # Mapa de Punta Arenas
 
-Visor web responsivo para revisar activos eléctricos y áreas de concesión de Punta Arenas. Permite activar y desactivar capas, buscar postes, equipos y subestaciones, consultar atributos, dibujar redes BT/MT, saltar a coordenadas y usar la ubicación GPS del dispositivo.
+Visor web responsivo para revisar activos eléctricos y áreas de concesión de Punta Arenas. Permite activar y desactivar capas, buscar postes, equipos y subestaciones, consultar atributos, ver redes BT/MT, saltar a coordenadas y usar el GPS del dispositivo.
 
 ## Abrir la aplicación
 
-La aplicación se publica en Streamlit Community Cloud después de conectar este repositorio.
+[Ver el mapa en Streamlit Community Cloud](https://mapa-punta-arenas.streamlit.app/)
+
+En teléfono, el panel ocupa menos espacio. Ciérralo con **×** o tocando el mapa y reábrelo desde **⌕ Capas**. Toca un resultado de búsqueda para ir al elemento; al centrar el mapa se oculta el panel.
 
 ## Ejecutar localmente
 
