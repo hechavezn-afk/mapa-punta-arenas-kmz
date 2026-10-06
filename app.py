@@ -153,11 +153,13 @@ def read_kmz(filename: str) -> dict:
 NETWORK = "Punta Arenas.kmz"
 CONCESSION_LT = "concesiones2025v3 corregidas menor a 15.kmz"
 CONCESSION_GE = "concesiones2025v3 GEO superior a 14.kmz"
+PERIURBANO = "Periurbano completo.kmz"
 
 try:
     network = read_kmz(NETWORK)
     concession_lt = read_kmz(CONCESSION_LT)
     concession_ge = read_kmz(CONCESSION_GE)
+    periurbano = read_kmz(PERIURBANO)
 except Exception as exc:
     st.error(f"No se pudieron preparar las capas: {exc}")
     st.stop()
@@ -175,6 +177,19 @@ layers += [
     {"id": "ge14", "name": "Concesión GEO superior a 14", "color": "#ff7043",
      "data": {"points": [], "lines": [], "polygons": concession_ge["polygons"]}},
 ]
+
+layers += [{
+    "id": "periurbano",
+    "name": "Periurbano completo",
+    "color": "#8e44ad",
+    "data": {
+        "points": [item for group in periurbano["groups"].values() for item in group["points"]],
+        "lines": [item for group in periurbano["groups"].values() for item in group["lines"]],
+        "polygons": periurbano["polygons"],
+    },
+}]
+
+
 
 # Keep raw feature attributes in the browser search index; Leaflet renders the
 # dense electrical network through a shared Canvas renderer.
