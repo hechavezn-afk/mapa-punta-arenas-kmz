@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hmac
 import zipfile
 from pathlib import Path
 from xml.etree import ElementTree as ET
@@ -10,6 +11,35 @@ import streamlit.components.v1 as components
 
 
 st.set_page_config(page_title="Mapa Punta Arenas", page_icon="🌎", layout="wide", initial_sidebar_state="collapsed")
+
+# Acceso compartido administrado desde Streamlit Secrets.
+try:
+    LOGIN_CREDENTIALS = st.secrets["map_login"]
+    LOGIN_USERNAME = str(LOGIN_CREDENTIALS["username"])
+    LOGIN_PASSWORD = str(LOGIN_CREDENTIALS["password"])
+except (KeyError, FileNotFoundError):
+    st.error("El acceso aún no está configurado en Streamlit Secrets.")
+    st.stop()
+
+if not st.session_state.get("map_login_authenticated", False):
+    left, center, right = st.columns([1, 1.2, 1])
+    with center:
+        st.title("Mapa Punta Arenas")
+        st.caption("Inicia sesión para continuar")
+        with st.form("map_login_form"):
+            username = st.text_input("Cuenta")
+            password = st.text_input("Contraseña", type="password")
+            submitted = st.form_submit_button("Ingresar", use_container_width=True)
+        if submitted:
+            valid_user = hmac.compare_digest(username.strip(), LOGIN_USERNAME)
+            valid_password = hmac.compare_digest(password, LOGIN_PASSWORD)
+            if valid_user and valid_password:
+                st.session_state["map_login_authenticated"] = True
+                st.rerun()
+            else:
+                st.error("Cuenta o contraseña incorrecta.")
+    st.stop()
+
 st.markdown("""
 <style>
 html, body, #root, [data-testid="stAppViewContainer"], .stApp {width:100%!important;height:100dvh!important;min-height:100dvh!important;margin:0!important;padding:0!important;background:#f3f6f8!important;overflow:hidden!important}
