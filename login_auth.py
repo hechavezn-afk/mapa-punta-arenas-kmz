@@ -43,11 +43,11 @@ _BROWSER_SESSION = st.components.v2.component(
       const reportActivity = (event) => {
         if (!event.isTrusted || document.visibilityState !== "visible") return;
         const now = Date.now();
-        if (now - lastSent < 1500) return;
+        if (now - lastSent < 30000) return;
         lastSent = now;
         setStateValue("activity_ms", now);
       };
-      const activityEvents = ["pointerdown", "pointermove", "keydown", "touchstart", "wheel", "scroll"];
+      const activityEvents = ["pointerdown", "keydown", "touchstart", "wheel"];
       for (const eventName of activityEvents) {
         bind(document, eventName, reportActivity);
       }
