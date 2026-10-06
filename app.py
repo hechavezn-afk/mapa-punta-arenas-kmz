@@ -154,13 +154,13 @@ def read_kmz(filename: str) -> dict:
 NETWORK = "Punta Arenas.kmz"
 CONCESSION_LT = "concesiones2025v3 corregidas menor a 15.kmz"
 CONCESSION_GE = "concesiones2025v3 GEO superior a 14.kmz"
-PERIURBANO = "Periurbano completo.kmz"
+PERIURBANO = "Periurbano completo.kmz"; CENTRALITY = "Punta Arenas_v2.kmz"
 
 try:
     network = read_kmz(NETWORK)
     concession_lt = read_kmz(CONCESSION_LT)
     concession_ge = read_kmz(CONCESSION_GE)
-    periurbano = read_kmz(PERIURBANO)
+    periurbano = read_kmz(PERIURBANO); centrality = read_kmz(CENTRALITY)
 except Exception as exc:
     st.error(f"No se pudieron preparar las capas: {exc}")
     st.stop()
@@ -194,7 +194,7 @@ layers += [{
 
 # Keep raw feature attributes in the browser search index; Leaflet renders the
 # dense electrical network through a shared Canvas renderer.
-layers_json = json.dumps(layers, ensure_ascii=False, separators=(",", ":"))
+layers += [{"id":"centrality","name":"Centrality","color":"#00a6a6","data":{"points":[{**item,"centrality_group":group_name} for group_name, group in centrality["groups"].items() for item in group["points"]],"lines":[item for group in centrality["groups"].values() for item in group["lines"]],"polygons":centrality["polygons"]}}]; layers_json = json.dumps(layers, ensure_ascii=False, separators=(",", ":"))
 html = r"""<!doctype html>
 <html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -299,7 +299,7 @@ document.getElementById('gps').onclick=()=>{if(!navigator.geolocation){searchSta
 function setMapStyle(style){satelliteOn=style==='satellite';if(satelliteOn){map.removeLayer(osm);map.addLayer(satellite);if(!map.hasLayer(streetLabelGroup))map.addLayer(streetLabelGroup);scheduleStreetLabels()}else{streetQueryController?.abort();streetQuerySeq++;clearStreetLabels();map.removeLayer(satellite);map.removeLayer(streetLabelGroup);map.addLayer(osm)}document.getElementById('style-satellite').classList.toggle('active',satelliteOn);document.getElementById('style-satellite').setAttribute('aria-pressed',String(satelliteOn));document.getElementById('style-streets').classList.toggle('active',!satelliteOn);document.getElementById('style-streets').setAttribute('aria-pressed',String(!satelliteOn))}document.getElementById('style-satellite').onclick=()=>setMapStyle('satellite');document.getElementById('style-streets').onclick=()=>setMapStyle('streets');setMapStyle('satellite');
 const layerControls=document.getElementById('layer-list'),allBounds=[];
 for(const LYR of layers){const d=LYR.data,group=L.layerGroup(),color=LYR.color||'#607d8b';const items=[];
- for(const f of d.points){const props={name:f.name||'',attrs:f.attributes||{},description:f.description||''},text=[props.name,props.description,searchableAttrs(props.attrs)].join(' '),icon=symbolType(LYR.name,props.attrs);items.push({title:assetTitle(LYR.name,props.attrs,props.name),subtitle:assetSubtitle(LYR.name,props.attrs),layer:LYR.name,attrs:props.attrs,assetIcon:icon,search:norm(text+' '+LYR.name),geometry:{type:'Point',coordinates:f.coordinates}});const ll=[f.coordinates[1],f.coordinates[0]],municipalPole=LYR.id==='periurbano',municipalGroup=norm(f.municipal_group||''),municipalIcon=municipalPole?(municipalGroup.includes('subestacion')?'se-municipal':municipalGroup.includes('poste')?'poste':icon):icon,marker=L.circleMarker(ll,{renderer,radius:municipalPole?11:9,color:municipalPole?'#5c4600':'#333',weight:municipalPole?1.8:1,fillColor:municipalPole?'#ffd21f':(f.color||color),fillOpacity:0.98,assetIcon:municipalIcon});wireAssetPopup(marker,LYR.name,props.attrs,props.name,ll);marker.on('click',hidePanel);marker.on('dblclick',e=>{L.DomEvent.stop(e);map.flyTo(ll,17,{duration:0.8});marker.openPopup()});group.addLayer(marker)}
+ for(const f of d.points){const props={name:f.name||'',attrs:f.attributes||{},description:f.description||''},text=[props.name,props.description,searchableAttrs(props.attrs)].join(' '),icon=symbolType(LYR.id==='centrality'?(f.centrality_group||''):LYR.name,props.attrs);items.push({title:assetTitle(LYR.name,props.attrs,props.name),subtitle:assetSubtitle(LYR.name,props.attrs),layer:LYR.name,attrs:props.attrs,assetIcon:icon,search:norm(text+' '+LYR.name),geometry:{type:'Point',coordinates:f.coordinates}});const ll=[f.coordinates[1],f.coordinates[0]],municipalPole=LYR.id==='periurbano',municipalGroup=norm(f.municipal_group||''),municipalIcon=municipalPole?(municipalGroup.includes('subestacion')?'se-municipal':municipalGroup.includes('poste')?'poste':icon):icon,marker=L.circleMarker(ll,{renderer,radius:municipalPole?11:9,color:municipalPole?'#5c4600':'#333',weight:municipalPole?1.8:1,fillColor:municipalPole?'#ffd21f':(f.color||color),fillOpacity:0.98,assetIcon:municipalIcon});wireAssetPopup(marker,LYR.name,props.attrs,props.name,ll);marker.on('click',hidePanel);marker.on('dblclick',e=>{L.DomEvent.stop(e);map.flyTo(ll,17,{duration:0.8});marker.openPopup()});group.addLayer(marker)}
  if(d.lines.length){const coords=d.lines.map(f=>f.coordinates.map(c=>[c[1],c[0]]));if(LYR.id==='periurbano'){group.addLayer(L.polyline(coords,{renderer,color:'#5c4600',weight:6,opacity:0.96,interactive:false}));group.addLayer(L.polyline(coords,{renderer,color:'#ffd21f',weight:3.3,opacity:1,interactive:false}))}else group.addLayer(L.polyline(coords,{renderer,color:LYR.id==='network-3'?'#ff3030':LYR.id==='network-4'?'#1646ff':color,weight:2,opacity:0.95,interactive:false}));for(const f of d.lines){const attrs=f.attributes||{},text=[f.name,f.description,searchableAttrs(attrs)].join(' ');items.push({title:assetTitle(LYR.name,attrs,f.name),subtitle:assetSubtitle(LYR.name,attrs),layer:LYR.name,attrs,search:norm(text+' '+LYR.name),geometry:{type:'LineString',coordinates:f.coordinates}})}}
  for(const f of d.polygons){const latlngs=f.coordinates.map(r=>r.map(c=>[c[1],c[0]]));const municipalSector=LYR.id==='periurbano',poly=L.polygon(latlngs,{renderer,color:municipalSector?'#5c4600':color,weight:municipalSector?2.5:1.5,fillColor:color,fillOpacity:municipalSector?0.2:0.25,interactive:false});group.addLayer(poly);const attrs=f.attributes||{},text=[f.name,f.description,searchableAttrs(attrs)].join(' ');items.push({title:assetTitle(LYR.name,attrs,f.name),subtitle:assetSubtitle(LYR.name,attrs),layer:LYR.name,attrs,search:norm(text+' '+LYR.name),geometry:{type:'Polygon',coordinates:f.coordinates}})}
  for(const item of items){if(item.geometry.type==='Point'||item.geometry.type==='LineString')searchIndex.push(item);else searchIndex.push(item)}
