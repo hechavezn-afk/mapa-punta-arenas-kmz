@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import hmac
 import threading
 import time
@@ -8,6 +9,20 @@ from secrets import token_urlsafe
 import streamlit as st
 
 IDLE_TIMEOUT_SECONDS = 15 * 60
+CONFIG_USERNAME = "configedelmag"
+_CONFIG_PASSWORD_SALT = bytes.fromhex("8b6d6e6043e32a197d28bd24e4183006")
+_CONFIG_PASSWORD_HASH = bytes.fromhex("93d206f1a03596d9ac99a7dc18c059f186cc62a7ae12cae445f1a11eca6e6272")
+
+
+def is_config_user(username: str | None) -> bool:
+    return hmac.compare_digest((username or "").strip().casefold(), CONFIG_USERNAME)
+
+
+def _verify_config_password(password: str) -> bool:
+    candidate = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), _CONFIG_PASSWORD_SALT, 310_000
+    )
+    return hmac.compare_digest(candidate, _CONFIG_PASSWORD_HASH)
 
 
 _BROWSER_SESSION = st.components.v2.component(
@@ -171,6 +186,7 @@ def _clear_authentication() -> None:
         "map_login_user",
         "map_login_session_id",
         "map_login_session_token",
+        "map_login_role",
     ):
         st.session_state.pop(key, None)
 
@@ -190,10 +206,6 @@ def _keep_session_alive() -> None:
 
 def require_login() -> None:
     users = _users()
-    if not users:
-        st.error("El acceso aún no está configurado en Streamlit Secrets.")
-        st.stop()
-
     clear_browser = bool(st.session_state.pop("map_login_clear_browser_session", False))
     expected_token = st.session_state.get("map_login_session_token")
     bridge = _bridge(expected_token if st.session_state.get("map_login_authenticated") else None, clear=clear_browser)
@@ -222,6 +234,7 @@ def require_login() -> None:
         username = _resume(browser_token, st.session_state.setdefault("map_login_session_id", token_urlsafe(24)))
         if username:
             st.session_state["map_login_user"] = username
+            st.session_state["map_login_role"] = "config" if is_config_user(username) else "user"
             st.session_state["map_login_session_token"] = browser_token
             st.session_state["map_login_authenticated"] = True
             _keep_session_alive()
@@ -238,14 +251,19 @@ def require_login() -> None:
 
     if submitted:
         normalized_username = username.strip()
-        expected = users.get(normalized_username)
-        if expected is None or not hmac.compare_digest(password, expected):
+        if is_config_user(normalized_username):
+            credentials_ok = _verify_config_password(password)
+        else:
+            expected = users.get(normalized_username)
+            credentials_ok = expected is not None and hmac.compare_digest(password, expected)
+        if not credentials_ok:
             st.error("Cuenta o contraseña incorrecta.")
         else:
             session_id = st.session_state.setdefault("map_login_session_id", token_urlsafe(24))
             session_token = token_urlsafe(32)
             if _claim(normalized_username, session_id, session_token):
                 st.session_state["map_login_user"] = normalized_username
+                st.session_state["map_login_role"] = "config" if is_config_user(normalized_username) else "user"
                 st.session_state["map_login_session_token"] = session_token
                 st.session_state["map_login_authenticated"] = True
                 st.rerun()
