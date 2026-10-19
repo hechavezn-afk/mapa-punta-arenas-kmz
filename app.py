@@ -31,7 +31,6 @@ DATA_DIR = Path(__file__).parent
 KML_NS = {"k": "http://www.opengis.net/kml/2.2"}
 
 
-@st.cache_data(show_spinner="Preparando las capas del mapa…")
 def read_kmz(filename: str) -> dict:
     """Read regular KMZ archives and KML files mistakenly named .kmz."""
     path = DATA_DIR / filename
@@ -132,48 +131,52 @@ CONCESSION_LT = "concesiones2025v3 corregidas menor a 15.kmz"
 CONCESSION_GE = "concesiones2025v3 GEO superior a 14.kmz"
 PERIURBANO = "Periurbano completo.kmz"; CENTRALITY = "Punta Arenas_v2.kmz"
 
-try:
+@st.cache_resource(show_spinner="Preparando las capas del mapa…")
+def build_layers_json() -> str:
     network = read_kmz(NETWORK)
     concession_lt = read_kmz(CONCESSION_LT)
     concession_ge = read_kmz(CONCESSION_GE)
-    periurbano = read_kmz(PERIURBANO); centrality = read_kmz(CENTRALITY)
+    periurbano = read_kmz(PERIURBANO)
+    centrality = read_kmz(CENTRALITY)
+    layers = [
+        {"id": "network-" + str(i), "name": name,
+         "color": {"Equipos": "#26a69a", "Postes": "#ffca28", "Subestaciones": "#ab47bc", "Redes MT": "#ff3030", "Red BT": "#1646ff"}.get(name, "#607d8b"),
+         "data": {"points": group["points"], "lines": group["lines"], "polygons": []}}
+        for i, (name, group) in enumerate(network["groups"].items())
+        if group["points"] or group["lines"]
+    ]
+    layers += [
+        {"id": "lt15", "name": "Concesión menor a 15", "color": "#26c6da",
+         "data": {"points": [], "lines": [], "polygons": concession_lt["polygons"]}},
+        {"id": "ge14", "name": "Concesión GEO superior a 14", "color": "#ff7043",
+         "data": {"points": [], "lines": [], "polygons": concession_ge["polygons"]}},
+    ]
+
+    layers += [{
+        "id": "periurbano",
+        "name": "Periurbano completo",
+        "color": "#ffd21f",
+        "data": {
+            "points": [{**item, "municipal_group": group_name} for group_name, group in periurbano["groups"].items() for item in group["points"]],
+            "lines": [item for group in periurbano["groups"].values() for item in group["lines"]],
+            "polygons": periurbano["polygons"],
+        },
+    }]
+
+
+
+    # Keep raw feature attributes in the browser search index; Leaflet renders the
+    # dense electrical network through a shared Canvas renderer.
+    layers += [{"id":"centrality","name":"Centrality","color":"#00a6a6","data":{"points":[{**item,"centrality_group":group_name} for group_name, group in centrality["groups"].items() for item in group["points"]],"lines":[item for group in centrality["groups"].values() for item in group["lines"]],"polygons":centrality["polygons"]}}]
+    layers_json = json.dumps(layers, ensure_ascii=False, separators=(",", ":"))
+
+try:
+    layers_json = build_layers_json()
 except Exception as exc:
     st.error(f"No se pudieron preparar las capas: {exc}")
     st.stop()
-
-layers = [
-    {"id": "network-" + str(i), "name": name,
-     "color": {"Equipos": "#26a69a", "Postes": "#ffca28", "Subestaciones": "#ab47bc", "Redes MT": "#ff3030", "Red BT": "#1646ff"}.get(name, "#607d8b"),
-     "data": {"points": group["points"], "lines": group["lines"], "polygons": []}}
-    for i, (name, group) in enumerate(network["groups"].items())
-    if group["points"] or group["lines"]
-]
-layers += [
-    {"id": "lt15", "name": "Concesión menor a 15", "color": "#26c6da",
-     "data": {"points": [], "lines": [], "polygons": concession_lt["polygons"]}},
-    {"id": "ge14", "name": "Concesión GEO superior a 14", "color": "#ff7043",
-     "data": {"points": [], "lines": [], "polygons": concession_ge["polygons"]}},
-]
-
-layers += [{
-    "id": "periurbano",
-    "name": "Periurbano completo",
-    "color": "#ffd21f",
-    "data": {
-        "points": [{**item, "municipal_group": group_name} for group_name, group in periurbano["groups"].items() for item in group["points"]],
-        "lines": [item for group in periurbano["groups"].values() for item in group["lines"]],
-        "polygons": periurbano["polygons"],
-    },
-}]
-
-
-
-# Keep raw feature attributes in the browser search index; Leaflet renders the
-# dense electrical network through a shared Canvas renderer.
-layers += [{"id":"centrality","name":"Centrality","color":"#00a6a6","data":{"points":[{**item,"centrality_group":group_name} for group_name, group in centrality["groups"].items() for item in group["points"]],"lines":[item for group in centrality["groups"].values() for item in group["lines"]],"polygons":centrality["polygons"]}}]
-layers_json = json.dumps(layers, ensure_ascii=False, separators=(",", ":"))
 config_mode_json = json.dumps(CONFIG_MODE)
-html = r"""<!doctype html>
+HTML_TEMPLATE = r"""<!doctype html>
 <html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -441,6 +444,17 @@ for(const LYR of layers){const d=LYR.data,group=L.layerGroup(),color=LYR.color||
 function setAllLayers(show){for(const item of layerEntries){item.check.checked=show;if(show){if(!map.hasLayer(item.group))map.addLayer(item.group)}else if(map.hasLayer(item.group))map.removeLayer(item.group)}}document.getElementById('layers-all').onclick=()=>setAllLayers(true);document.getElementById('layers-none').onclick=()=>setAllLayers(false);
 if(allBounds.length){const b=allBounds.reduce((acc,x)=>acc.extend(x),L.latLngBounds(allBounds[0]));map.fitBounds(b.pad(0.03),{maxZoom:12})}
 initSurveyProjects();
-</script></body></html>""".replace("__LAYERS__", layers_json).replace("__CONFIG_MODE__", config_mode_json)
+</script></body></html>"""
 
+
+@st.cache_resource(show_spinner=False)
+def build_map_html(config_mode: bool) -> str:
+    return (
+        HTML_TEMPLATE
+        .replace("__LAYERS__", layers_json)
+        .replace("__CONFIG_MODE__", json.dumps(config_mode))
+    )
+
+
+html = build_map_html(CONFIG_MODE)
 components.html(html, height=850, scrolling=False)
