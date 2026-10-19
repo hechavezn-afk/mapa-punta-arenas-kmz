@@ -1,6 +1,8 @@
 
 from __future__ import annotations
 
+import base64
+import gzip
 import json
 import hmac
 import zipfile
@@ -168,7 +170,8 @@ def build_layers_json() -> str:
     # Keep raw feature attributes in the browser search index; Leaflet renders the
     # dense electrical network through a shared Canvas renderer.
     layers += [{"id":"centrality","name":"Centrality","color":"#00a6a6","data":{"points":[{**item,"centrality_group":group_name} for group_name, group in centrality["groups"].items() for item in group["points"]],"lines":[item for group in centrality["groups"].values() for item in group["lines"]],"polygons":centrality["polygons"]}}]
-    layers_json = json.dumps(layers, ensure_ascii=False, separators=(",", ":"))
+    layers_bytes = json.dumps(layers, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    return base64.b64encode(gzip.compress(layers_bytes, compresslevel=6)).decode("ascii")
 
 try:
     layers_json = build_layers_json()
@@ -182,6 +185,7 @@ HTML_TEMPLATE = r"""<!doctype html>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
 <style>
 *{box-sizing:border-box}html,body{margin:0;height:100%;font-family:Arial,sans-serif;color:#202124}#map{position:absolute;inset:0;background:#dbe5e5}
 .panel{position:absolute;z-index:1000;top:12px;left:12px;width:min(340px,calc(100vw - 24px));max-height:calc(100% - 24px);overflow:auto;background:#fff;border-radius:12px;box-shadow:0 2px 12px #0003;padding:14px;transition:opacity .16s ease,transform .16s ease}
@@ -278,7 +282,7 @@ HTML_TEMPLATE = r"""<!doctype html>
 <div class="pole-modal" id="pole-modal" hidden><section class="pole-modal-card" role="dialog" aria-modal="true" aria-labelledby="pole-modal-title"><div class="pole-modal-head"><h2 id="pole-modal-title">Activos seleccionados</h2><button id="pole-modal-close" type="button" aria-label="Cerrar">×</button></div><p id="pole-modal-count"></p><ol id="pole-modal-list" class="pole-modal-list"></ol><div class="pole-modal-actions"><button id="pole-copy" type="button">Copiar para Excel</button><button id="pole-modal-done" type="button">Cerrar</button></div></section></div>
 <script>
 const CONFIG_MODE=__CONFIG_MODE__;
-const rawLayers=__LAYERS__;
+const rawLayers=JSON.parse(pako.ungzip(Uint8Array.from(atob('__LAYERS_GZIP__'),c=>c.charCodeAt(0)),{to:'string'}));
 const MAP_CONFIG_KEY='punta_arenas_general_config_v1';
 const MAP_CONFIG_DEFAULTS={title:'Punta Arenas',subtitle:'Símbolos eléctricos · pulsa un activo para ver sus datos',defaultStyle:'satellite',features:{search:true,gps:true,route:true,survey:true,mapStyles:true,assetSelection:true},layers:{}};
 function loadMapConfig(){try{const saved=JSON.parse(localStorage.getItem(MAP_CONFIG_KEY)||'{}');return{...MAP_CONFIG_DEFAULTS,...saved,features:{...MAP_CONFIG_DEFAULTS.features,...(saved.features||{})},layers:saved.layers||{}}}catch(e){return structuredClone(MAP_CONFIG_DEFAULTS)}}
@@ -451,7 +455,7 @@ initSurveyProjects();
 def build_map_html(config_mode: bool) -> str:
     return (
         HTML_TEMPLATE
-        .replace("__LAYERS__", layers_json)
+        .replace("__LAYERS_GZIP__", layers_json)
         .replace("__CONFIG_MODE__", json.dumps(config_mode))
     )
 
