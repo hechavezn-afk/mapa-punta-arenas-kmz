@@ -187,8 +187,6 @@ def enrich_post_network(dataset: dict, catalog: dict) -> None:
                 attrs["ALIMENTADOR_ID"] = info["a"]
             if info.get("s") and not (attrs.get("SUBESTACION") or attrs.get("SE")):
                 attrs["SUBESTACION"] = info["s"]
-            if info.get("p") and not attrs.get("SUBESTACION_PRIMARIA"):
-                attrs["SUBESTACION_PRIMARIA"] = info["p"]
             item["attributes"] = attrs
 
 
@@ -435,8 +433,8 @@ function updatePoleSelectionUI(){const count=poleSelection.size;selectionBar.hid
 function clearPoleSelection(){for(const ring of poleSelectionRings.values())map.removeLayer(ring);poleSelectionRings.clear();poleSelection.clear();updatePoleSelectionUI()}
 document.getElementById('pole-selection-open').onclick=()=>{updatePoleSelectionUI();poleModal.hidden=false};document.getElementById('pole-selection-clear').onclick=clearPoleSelection;document.getElementById('pole-modal-close').onclick=document.getElementById('pole-modal-done').onclick=()=>{poleModal.hidden=true};poleModal.addEventListener('click',e=>{if(e.target===poleModal)poleModal.hidden=true});document.getElementById('pole-copy').onclick=async()=>{try{await navigator.clipboard.writeText(poleSummaryText());document.getElementById('pole-copy').textContent='Copiado'}catch{const area=document.createElement('textarea');area.value=poleSummaryText();document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();document.getElementById('pole-copy').textContent='Copiado'}setTimeout(()=>document.getElementById('pole-copy').textContent='Copiar para Excel',1600)};
 function popupFields(layer,attrs){const fields=[],put=(label,...keys)=>{for(const key of keys){const value=attrs[key];if(value!==undefined&&String(value).trim()&&!['0','#N/D','null'].includes(String(value).trim())){fields.push([label,String(value).trim()]);return}}},putSubstation=(...keys)=>{for(const key of keys){const value=attrs[key];if(value!==undefined&&String(value).trim()){fields.push(['Subestación',substationNumber(value)]);return}}},putFeeder=(...keys)=>{for(const key of keys){const value=attrs[key];if(value!==undefined&&String(value).trim()){fields.push(['Alimentador',feederNumber(value)]);return}}};
- if(layer==='Postes'){put('N° de poste','IDENTIFICADOR_VNR','POSTE_ID');putSubstation('SUBESTACION','SE','SUBESTACION_PRIMARIA');putFeeder('ALIMENTADOR','ALIMENTADOR_ID');let voltage=attrs['TIPO_TENSION_ID'];if(voltage){const v=String(voltage).trim().toUpperCase();if(v==='MT'||v==='BT')fields.push(['Red',v]);else if(v==='AMBAS'||v==='MT/BT'||v==='BT/MT')fields.push(['Red','MT y BT'])}}
- else if(layer==='Cámaras'){put('Cámara','IDENTIFICADOR_VNR');put('Poste conectado','POSTE_ASOCIADO');putSubstation('SUBESTACION','SE','SUBESTACION_PRIMARIA');putFeeder('ALIMENTADOR','ALIMENTADOR_ID');put('Tensión','TENSION_NOMINAL')}
+ if(layer==='Postes'){put('N° de poste','IDENTIFICADOR_VNR','POSTE_ID');putSubstation('SUBESTACION','SE');putFeeder('ALIMENTADOR','ALIMENTADOR_ID');let voltage=attrs['TIPO_TENSION_ID'];if(voltage){const v=String(voltage).trim().toUpperCase();if(v==='MT'||v==='BT')fields.push(['Red',v]);else if(v==='AMBAS'||v==='MT/BT'||v==='BT/MT')fields.push(['Red','MT y BT'])}}
+ else if(layer==='Cámaras'){put('Cámara','IDENTIFICADOR_VNR');put('Poste conectado','POSTE_ASOCIADO');putSubstation('SUBESTACION','SE');putFeeder('ALIMENTADOR','ALIMENTADOR_ID');put('Tensión','TENSION_NOMINAL')}
  else if(layer==='Equipos'){put('Tipo','TIPO_LMDS');putSubstation('SUBESTACION','SE');putFeeder('ALIMENTADOR_ID')}
  else if(layer==='Subestaciones'){putFeeder('ALIMENTADOR_ID');put('Potencia (kVA)','KVA')}
  else if(layer==='Redes MT'){put('Tramo MT','TRAMO_MT_ID');putFeeder('ALIMENTADOR_ID');put('Longitud (m)','LARGO_RED')}
