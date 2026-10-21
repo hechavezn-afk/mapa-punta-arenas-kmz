@@ -173,6 +173,7 @@ NETWORK = "Punta Arenas.kmz"
 CONCESSION_LT = "concesiones2025v3 corregidas menor a 15.kmz"
 CONCESSION_GE = "concesiones2025v3 GEO superior a 14.kmz"
 PERIURBANO = "Periurbano completo.kmz"; CENTRALITY = "Punta Arenas_v2.kmz"
+CAMERA_CATALOG = "cameras_catalog.json"
 
 @st.cache_resource(show_spinner="Preparando las capas del mapa…")
 def build_layers_json() -> str:
@@ -182,6 +183,20 @@ def build_layers_json() -> str:
     periurbano = read_kmz(PERIURBANO)
     centrality = read_kmz(CENTRALITY)
     centrality_points, camera_points = split_centrality_cameras(centrality)
+    camera_catalog = json.loads((DATA_DIR / CAMERA_CATALOG).read_text(encoding="utf-8"))
+    cameras_by_code = {
+        str(item.get("attributes", {}).get("IDENTIFICADOR_VNR") or item.get("name") or "").strip().upper(): item
+        for item in camera_points
+    }
+    for catalog_item in camera_catalog:
+        code = str(catalog_item.get("attributes", {}).get("IDENTIFICADOR_VNR") or catalog_item.get("name") or "").strip().upper()
+        if code in cameras_by_code:
+            existing = cameras_by_code[code]
+            existing["attributes"] = {**existing.get("attributes", {}), **catalog_item.get("attributes", {})}
+        else:
+            new_item = {**catalog_item, "centrality_group": "Camaras", "description": "Catálogo de nodos EDELMAG"}
+            camera_points.append(new_item)
+            cameras_by_code[code] = new_item
     layers = [
         {"id": "network-" + str(i), "name": name,
          "color": {"Equipos": "#26a69a", "Postes": "#ffca28", "Subestaciones": "#ab47bc", "Redes MT": "#ff3030", "Red BT": "#1646ff"}.get(name, "#607d8b"),
@@ -391,7 +406,7 @@ function clearPoleSelection(){for(const ring of poleSelectionRings.values())map.
 document.getElementById('pole-selection-open').onclick=()=>{updatePoleSelectionUI();poleModal.hidden=false};document.getElementById('pole-selection-clear').onclick=clearPoleSelection;document.getElementById('pole-modal-close').onclick=document.getElementById('pole-modal-done').onclick=()=>{poleModal.hidden=true};poleModal.addEventListener('click',e=>{if(e.target===poleModal)poleModal.hidden=true});document.getElementById('pole-copy').onclick=async()=>{try{await navigator.clipboard.writeText(poleSummaryText());document.getElementById('pole-copy').textContent='Copiado'}catch{const area=document.createElement('textarea');area.value=poleSummaryText();document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();document.getElementById('pole-copy').textContent='Copiado'}setTimeout(()=>document.getElementById('pole-copy').textContent='Copiar para Excel',1600)};
 function popupFields(layer,attrs){const fields=[],put=(label,...keys)=>{for(const key of keys){const value=attrs[key];if(value!==undefined&&String(value).trim()&&!['0','#N/D','null'].includes(String(value).trim())){fields.push([label,String(value).trim()]);return}}},putSubstation=(...keys)=>{for(const key of keys){const value=attrs[key];if(value!==undefined&&String(value).trim()){fields.push(['Subestación',substationNumber(value)]);return}}},putFeeder=(...keys)=>{for(const key of keys){const value=attrs[key];if(value!==undefined&&String(value).trim()){fields.push(['Alimentador',feederNumber(value)]);return}}};
  if(layer==='Postes'){put('N° de poste','IDENTIFICADOR_VNR','POSTE_ID');putSubstation('SUBESTACION','SE');putFeeder('ALIMENTADOR','ALIMENTADOR_ID');let voltage=attrs['TIPO_TENSION_ID'];if(voltage){const v=String(voltage).trim().toUpperCase();if(v==='MT'||v==='BT')fields.push(['Red',v]);else if(v==='AMBAS'||v==='MT/BT'||v==='BT/MT')fields.push(['Red','MT y BT'])}}
- else if(layer==='Cámaras'){put('Cámara','IDENTIFICADOR_VNR');put('Poste asociado','POSTE_ASOCIADO');putSubstation('SUBESTACION','SE');putFeeder('ALIMENTADOR','ALIMENTADOR_ID')}
+ else if(layer==='Cámaras'){put('Cámara','IDENTIFICADOR_VNR');put('Poste conectado','POSTE_ASOCIADO');put('Subestación primaria','SUBESTACION_PRIMARIA');putSubstation('SUBESTACION','SE');putFeeder('ALIMENTADOR','ALIMENTADOR_ID');put('Tensión','TENSION_NOMINAL')}
  else if(layer==='Equipos'){put('Tipo','TIPO_LMDS');putSubstation('SUBESTACION','SE');putFeeder('ALIMENTADOR_ID')}
  else if(layer==='Subestaciones'){putFeeder('ALIMENTADOR_ID');put('Potencia (kVA)','KVA')}
  else if(layer==='Redes MT'){put('Tramo MT','TRAMO_MT_ID');putFeeder('ALIMENTADOR_ID');put('Longitud (m)','LARGO_RED')}
