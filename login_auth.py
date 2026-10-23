@@ -8,7 +8,7 @@ from secrets import token_urlsafe
 
 import streamlit as st
 
-IDLE_TIMEOUT_SECONDS = 15 * 60
+IDLE_TIMEOUT_SECONDS = 30 * 60
 CONFIG_USERNAME = "configedelmag"
 _CONFIG_PASSWORD_SALT = bytes.fromhex("8b6d6e6043e32a197d28bd24e4183006")
 _CONFIG_PASSWORD_HASH = bytes.fromhex("93d206f1a03596d9ac99a7dc18c059f186cc62a7ae12cae445f1a11eca6e6272")
@@ -35,12 +35,14 @@ _BROWSER_SESSION = st.components.v2.component(
 
       try {
         if (data?.clear) {
+          localStorage.removeItem(storageKey);
           sessionStorage.removeItem(storageKey);
         } else if (data?.token) {
+          localStorage.setItem(storageKey, data.token);
           sessionStorage.setItem(storageKey, data.token);
           token = data.token;
         } else {
-          token = sessionStorage.getItem(storageKey) || "";
+          token = localStorage.getItem(storageKey) || sessionStorage.getItem(storageKey) || "";
         }
       } catch (_) {
         token = "";
