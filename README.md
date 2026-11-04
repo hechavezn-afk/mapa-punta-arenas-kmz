@@ -2,6 +2,8 @@
 
 Visor web responsivo para revisar activos eléctricos y áreas de concesión de Magallanes. Permite activar y desactivar capas, buscar postes, equipos, subestaciones y direcciones de las principales localidades, consultar atributos, ver redes BT/MT, saltar a coordenadas y usar el GPS del dispositivo.
 
+Las capas eléctricas se organizan por localidad: Punta Arenas, Puerto Natales, Porvenir y Puerto Williams. Cada grupo contiene solamente sus postes, equipos, transformadores y redes disponibles.
+
 ## Abrir la aplicación
 
 [Ver el mapa en Streamlit Community Cloud](https://mapa-punta-arenas.streamlit.app/)
