@@ -1,6 +1,6 @@
-# Mapa de Punta Arenas
+# Redes Edelmag Magallanes
 
-Visor web responsivo para revisar activos eléctricos y áreas de concesión de Punta Arenas. Permite activar y desactivar capas, buscar postes, equipos y subestaciones, consultar atributos, ver redes BT/MT, saltar a coordenadas y usar el GPS del dispositivo.
+Visor web responsivo para revisar activos eléctricos y áreas de concesión de Magallanes. Permite activar y desactivar capas, buscar postes, equipos, subestaciones y direcciones de las principales localidades, consultar atributos, ver redes BT/MT, saltar a coordenadas y usar el GPS del dispositivo.
 
 ## Abrir la aplicación
 

@@ -14,7 +14,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 
-st.set_page_config(page_title="Mapa Punta Arenas", page_icon="🌎", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Redes Edelmag Magallanes", page_icon="🌎", layout="wide", initial_sidebar_state="collapsed")
 
 
 from login_auth import is_config_user, require_login
@@ -406,7 +406,7 @@ HTML_TEMPLATE = r"""<!doctype html>
   <div class="survey-note">Los proyectos se guardan en este navegador. Usa “Respaldo JSON” para guardarlos o transferirlos a otro dispositivo. Coordenadas CAD: WGS84 / UTM 19S · EPSG:32719.</div>
 </aside>
 
-<div class="panel" id="layer-panel"><div class="panel-head"><div class="panel-head-main"><div class="title" id="map-panel-title">🌎 Punta Arenas</div><div class="sub" id="map-panel-subtitle">Símbolos eléctricos · pulsa un activo para ver sus datos</div></div><button class="tutorial-launch" id="tutorial-launch" type="button" aria-label="Abrir tutorial" title="Abrir tutorial">?</button><button class="panel-close" id="panel-close" type="button" aria-label="Cerrar búsqueda y capas" title="Ocultar panel">×</button></div>
+<div class="panel" id="layer-panel"><div class="panel-head"><div class="panel-head-main"><div class="title" id="map-panel-title">🌎 Redes Edelmag Magallanes</div><div class="sub" id="map-panel-subtitle">Símbolos eléctricos · pulsa un activo para ver sus datos</div></div><button class="tutorial-launch" id="tutorial-launch" type="button" aria-label="Abrir tutorial" title="Abrir tutorial">?</button><button class="panel-close" id="panel-close" type="button" aria-label="Cerrar búsqueda y capas" title="Ocultar panel">×</button></div>
 <div class="icon-key"><span><i class="key-icon key-post">┼</i>Poste</span><span><i class="key-icon key-f">F</i>Fusible</span><span><i class="key-icon key-d"><b>D</b></i>Desconectador</span><span><i class="key-icon key-r">R</i>Reconectador</span><span><i class="key-icon key-se">SE</i>Subestación</span><span><i class="key-icon key-camera">📹</i>Cámara</span></div>
 <div class="searchbox"><input id="search" type="search" placeholder="Buscar poste, equipo, dirección o coordenadas"><div class="search-actions"><button id="search-go">Buscar</button><button id="gps">◎ Mi ubicación</button><button id="route-toggle" type="button" aria-expanded="false">🧭 Ruta</button></div><div class="search-status" id="search-status">Ej.: equipo F, D, R o SE · también puedes buscar direcciones</div><div class="search-results" id="search-results"></div></div>
 <div class="route-panel" id="route-panel" hidden><div class="route-heading">Plan de ruta</div><div class="route-help" id="route-help">Busca un lugar o activo y selecciónalo, o añade paradas tocando el mapa.</div><div class="route-tools"><button id="route-map-add" type="button">＋ Añadir en mapa</button><button id="route-add-gps" type="button">◎ Mi ubicación</button></div><div id="route-stops"></div><div class="route-actions"><button id="route-calculate" type="button">Calcular ruta</button><button id="route-start" type="button" disabled>▶ Iniciar</button><button id="route-clear" type="button">Borrar</button></div><div class="route-summary" id="route-summary"></div><div class="route-guidance" id="route-guidance"></div></div>
@@ -427,8 +427,8 @@ function isMobileLayout(){return window.innerWidth<=900||window.matchMedia('(poi
 function updateMobileLayout(){document.body.classList.toggle('mobile-layout',isMobileLayout())}
 updateMobileLayout();window.addEventListener('resize',updateMobileLayout);
 const MAP_CONFIG_KEY='punta_arenas_general_config_v1';
-const MAP_CONFIG_DEFAULTS={title:'Punta Arenas',subtitle:'Símbolos eléctricos · pulsa un activo para ver sus datos',defaultStyle:'satellite',features:{search:true,gps:true,route:true,survey:true,mapStyles:true,assetSelection:true},layers:{}};
-function loadMapConfig(){try{const saved=JSON.parse(localStorage.getItem(MAP_CONFIG_KEY)||'{}');return{...MAP_CONFIG_DEFAULTS,...saved,features:{...MAP_CONFIG_DEFAULTS.features,...(saved.features||{})},layers:saved.layers||{}}}catch(e){return structuredClone(MAP_CONFIG_DEFAULTS)}}
+const MAP_CONFIG_DEFAULTS={title:'Redes Edelmag Magallanes',subtitle:'Símbolos eléctricos · pulsa un activo para ver sus datos',defaultStyle:'satellite',features:{search:true,gps:true,route:true,survey:true,mapStyles:true,assetSelection:true},layers:{}};
+function loadMapConfig(){try{const saved=JSON.parse(localStorage.getItem(MAP_CONFIG_KEY)||'{}');if(saved.title==='Punta Arenas')saved.title=MAP_CONFIG_DEFAULTS.title;return{...MAP_CONFIG_DEFAULTS,...saved,features:{...MAP_CONFIG_DEFAULTS.features,...(saved.features||{})},layers:saved.layers||{}}}catch(e){return structuredClone(MAP_CONFIG_DEFAULTS)}}
 let mapConfig=loadMapConfig();
 const layers=rawLayers.map((layer,index)=>{const cfg=mapConfig.layers?.[layer.id]||{},hasColor=typeof cfg.color==='string'&&/^#[0-9a-f]{6}$/i.test(cfg.color);return{...layer,sourceName:layer.name,name:String(cfg.name||layer.name).trim()||layer.name,color:hasColor?cfg.color:layer.color,customColor:hasColor,defaultOn:typeof cfg.defaultOn==='boolean'?cfg.defaultOn:layer.id.startsWith('network-'),configEnabled:cfg.enabled!==false,configOrder:cfg.order!==undefined&&Number.isFinite(Number(cfg.order))?Number(cfg.order):index}}).filter(layer=>layer.configEnabled).sort((a,b)=>a.configOrder-b.configOrder);
 

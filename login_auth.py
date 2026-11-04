@@ -245,7 +245,7 @@ def require_login() -> None:
         st.rerun()
 
     with st.form("map_login_form"):
-        st.title("Mapa Punta Arenas")
+        st.title("Redes Edelmag Magallanes")
         st.caption("Inicia sesión para continuar")
         username = st.text_input("Cuenta")
         password = st.text_input("Contraseña", type="password")
