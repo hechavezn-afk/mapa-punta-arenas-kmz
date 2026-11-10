@@ -8,7 +8,9 @@ from secrets import token_urlsafe
 
 import streamlit as st
 
-IDLE_TIMEOUT_SECONDS = 30 * 60
+# Keep the browser login alive for two hours after the last detected activity.
+# The matching token is stored in localStorage so a page refresh can resume it.
+IDLE_TIMEOUT_SECONDS = 2 * 60 * 60
 CONFIG_USERNAME = "configedelmag"
 _CONFIG_PASSWORD_SALT = bytes.fromhex("8b6d6e6043e32a197d28bd24e4183006")
 _CONFIG_PASSWORD_HASH = bytes.fromhex("93d206f1a03596d9ac99a7dc18c059f186cc62a7ae12cae445f1a11eca6e6272")
