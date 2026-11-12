@@ -17,6 +17,23 @@ python -m pip install -r requirements.txt
 streamlit run app.py
 ```
 
+## Supabase: accesos y hallazgos compartidos
+
+En Streamlit Cloud configura los secretos del servidor (nunca los subas al repositorio):
+
+```toml
+[supabase]
+url = "https://TU-PROJECT-REF.supabase.co"
+key = "sb_publishable_..."
+
+[security]
+supabase_secret_key = "sb_secret_..."
+```
+
+La clave `sb_secret_...` solo la usa Python en el servidor. Tras desplegar, entra con la cuenta de configuración y abre **Configuración general → Administrar cuentas** para crear las cuentas que falten y descargar el PDF con sus claves iniciales. Para entrar a esa pantalla también se puede usar `?admin=accounts`. Los usuarios nuevos deben completar segundo factor con Authenticator o correo; los códigos por correo dependen de habilitar Email y ajustar la plantilla de Supabase para mostrar `{{ .Token }}`.
+
+Para habilitar el almacenamiento compartido de hallazgos, ejecuta una vez el SQL de `supabase/migrations/202611120001_shared_maintenance_findings.sql` en el SQL Editor del proyecto. La migración crea tablas privadas y un bucket privado; no revoca ni modifica permisos globales de `storage.objects`.
+
 Los archivos KMZ incluidos son los datos usados por el visor:
 
 - `Punta Arenas.kmz`: postes, equipos, subestaciones y redes.

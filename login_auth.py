@@ -222,8 +222,146 @@ def _clear_authentication() -> None:
         "map_login_session_id",
         "map_login_session_token",
         "map_login_role",
+        "map_supabase_auth_client",
+        "map_supabase_pending_identity",
+        "map_supabase_pending_email",
+        "map_supabase_mfa_enrollment",
     ):
         st.session_state.pop(key, None)
+
+
+def _supabase_auth_ready() -> bool:
+    try:
+        from supabase_accounts import auth_config
+        auth_config()
+        return True
+    except Exception:
+        return False
+
+
+def _finish_supabase_login(alias: str) -> None:
+    session_id = st.session_state.setdefault("map_login_session_id", token_urlsafe(24))
+    session_token = token_urlsafe(32)
+    if not _claim(alias, session_id, session_token):
+        st.error("Esta cuenta ya tiene una sesión activa. Intenta nuevamente más tarde.")
+        return
+    st.session_state["map_login_user"] = alias
+    st.session_state["map_login_role"] = "user"
+    st.session_state["map_login_session_token"] = session_token
+    st.session_state["map_login_authenticated"] = True
+    st.session_state.pop("map_supabase_pending_identity", None)
+    st.session_state.pop("map_supabase_pending_email", None)
+    st.session_state.pop("map_supabase_mfa_enrollment", None)
+    st.rerun()
+
+
+def _supabase_second_factor() -> None:
+    """Require either a verified Authenticator factor or a one-time email code."""
+    from supabase_accounts import SupabaseSetupError
+
+    client = st.session_state.get("map_supabase_auth_client")
+    alias = st.session_state.get("map_supabase_pending_identity")
+    email = st.session_state.get("map_supabase_pending_email")
+    if not client or not alias or not email:
+        return
+    st.subheader("Verificación en dos pasos")
+    try:
+        factors = client.auth.mfa.list_factors()
+        verified = [f for f in (getattr(factors, "totp", None) or []) if getattr(f, "status", "") == "verified"]
+    except Exception:
+        st.error("No se pudo consultar el segundo factor de Supabase. Intenta recargar la página.")
+        return
+
+    options = ["Aplicación Authenticator", "Código temporal por correo"]
+    method = st.radio("Elige cómo verificar este ingreso", options, horizontal=True, key="map_mfa_method")
+    if method == "Código temporal por correo":
+        if st.button("Enviar código al correo", key="map_email_otp_send"):
+            try:
+                client.auth.sign_in_with_otp({"email": email, "options": {"should_create_user": False}})
+                st.session_state["map_email_otp_sent"] = True
+                st.success("Código enviado. Revisa tu correo, incluida la carpeta de correo no deseado.")
+            except Exception:
+                st.error("No se pudo enviar el código. Comprueba que el correo esté habilitado en Supabase Auth.")
+        if st.session_state.get("map_email_otp_sent"):
+            with st.form("map_email_otp_form", clear_on_submit=True):
+                code = st.text_input("Código de 6 dígitos", max_chars=12)
+                verify = st.form_submit_button("Verificar e ingresar", type="primary")
+            if verify:
+                try:
+                    client.auth.verify_otp({"email": email, "token": code.strip(), "type": "email"})
+                    st.session_state.pop("map_email_otp_sent", None)
+                    _finish_supabase_login(alias)
+                except Exception:
+                    st.error("El código no es válido o ya venció. Solicita uno nuevo.")
+        return
+
+    if verified:
+        factor_id = str(verified[0].id)
+    else:
+        enrollment = st.session_state.get("map_supabase_mfa_enrollment")
+        if not enrollment:
+            try:
+                enrolled = client.auth.mfa.enroll({"factor_type": "totp", "friendly_name": "Redes Edelmag"})
+                totp = getattr(enrolled, "totp", None)
+                if not totp or not getattr(totp, "qr_code", ""):
+                    raise ValueError("Missing QR")
+                enrollment = {"factor_id": str(enrolled.id), "qr_code": str(totp.qr_code),
+                              "secret": str(getattr(totp, "secret", ""))}
+                st.session_state["map_supabase_mfa_enrollment"] = enrollment
+            except Exception:
+                st.error("No se pudo iniciar la configuración de Authenticator. Puedes usar el código por correo.")
+                return
+        st.write("Escanea este QR con Microsoft Authenticator, Google Authenticator u otra app TOTP.")
+        qr = enrollment["qr_code"]
+        if qr.startswith("data:image/"):
+            st.markdown(f'<img alt="QR para configurar Authenticator" width="190" src="{qr}">', unsafe_allow_html=True)
+        if enrollment.get("secret"):
+            st.caption("Si no puedes escanear: " + enrollment["secret"])
+        factor_id = enrollment["factor_id"]
+
+    with st.form("map_totp_form", clear_on_submit=True):
+        code = st.text_input("Código de Authenticator", max_chars=12)
+        verify = st.form_submit_button("Verificar e ingresar", type="primary")
+    if verify:
+        try:
+            client.auth.mfa.challenge_and_verify({"factor_id": factor_id, "code": code.strip()})
+            _finish_supabase_login(alias)
+        except Exception:
+            st.error("El código no es válido o ya venció. Revisa la hora automática del teléfono e inténtalo de nuevo.")
+    if st.button("Cancelar e iniciar con otra cuenta", key="map_mfa_cancel"):
+        try:
+            client.auth.sign_out()
+        except Exception:
+            pass
+        _clear_authentication()
+        st.rerun()
+
+
+def _try_supabase_login(identity: str, password: str) -> bool:
+    """Start password verification for the explicitly configured roster only."""
+    from supabase_accounts import account_for_identity, auth_config
+
+    account = account_for_identity(identity)
+    if not account:
+        return False
+    alias, details = account
+    try:
+        from supabase import ClientOptions, create_client
+        url, public_key, _ = auth_config()
+        client = create_client(url, public_key, options=ClientOptions(auto_refresh_token=True, persist_session=False))
+        client.auth.sign_in_with_password({"email": details["email"], "password": password})
+        verified = client.auth.get_user()
+        if not verified or not verified.user or str(verified.user.email).casefold() != details["email"].casefold():
+            raise ValueError("Identity mismatch")
+    except Exception:
+        st.error("Cuenta o contraseña incorrecta, o el servicio de autenticación no está disponible.")
+        return True
+    st.session_state["map_supabase_auth_client"] = client
+    st.session_state["map_supabase_pending_identity"] = alias
+    st.session_state["map_supabase_pending_email"] = details["email"]
+    st.session_state.pop("map_email_otp_sent", None)
+    st.rerun()
+    return True
 
 
 @st.fragment(run_every="30s")
@@ -277,6 +415,10 @@ def require_login() -> None:
         st.session_state["map_login_clear_browser_session"] = True
         st.rerun()
 
+    if st.session_state.get("map_supabase_pending_identity"):
+        _supabase_second_factor()
+        st.stop()
+
     with st.form("map_login_form"):
         st.title("Redes Edelmag Magallanes")
         st.caption("Inicia sesión para continuar")
@@ -290,6 +432,8 @@ def require_login() -> None:
             credentials_ok = _verify_config_password(password)
             normalized_username = CONFIG_USERNAME
         else:
+            if _supabase_auth_ready() and _try_supabase_login(normalized_username, password):
+                st.stop()
             credentials_ok, static_username = _verify_static_user(normalized_username, password)
             if static_username:
                 normalized_username = static_username
