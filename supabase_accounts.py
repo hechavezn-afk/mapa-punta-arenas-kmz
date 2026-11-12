@@ -110,8 +110,8 @@ def _new_password(length: int = 20) -> str:
 
 def provision_accounts(hector_password: str) -> tuple[list[dict[str, str]], list[str]]:
     """Create absent Auth users; leave existing accounts and passwords untouched."""
-    if not hector_password or len(hector_password) < 8:
-        raise SupabaseSetupError("Escribe la clave inicial de HECTOR (mínimo 8 caracteres).")
+    if not hector_password:
+        raise SupabaseSetupError("Escribe la clave inicial de HECTOR.")
     existing = _existing_emails()
     candidates = [(HECTOR_ACCOUNT[0], HECTOR_ACCOUNT[1], HECTOR_ACCOUNT[2], hector_password)]
     candidates += [
@@ -189,7 +189,7 @@ def render_account_admin() -> None:
         st.info(message)
     with st.form("map_provision_accounts"):
         st.write(f"Se intentará crear HECTOR y {len(USER_ROSTER)} cuentas de usuarios. Las existentes se omiten.")
-        hector_password = st.text_input("Clave inicial de HECTOR", type="password", help="La clave se usa solo al crear la cuenta y no queda guardada en el código.")
+        hector_password = st.text_input("Clave inicial de HECTOR", type="password", help="La clave IONIZA indicada puede ingresarse aquí; se usa solo al crear la cuenta y no queda guardada en el código.")
         confirm = st.checkbox("Confirmo crear las cuentas que aún no existen", value=False)
         submitted = st.form_submit_button("Crear cuentas faltantes", type="primary", disabled=not confirm or not hector_password)
     if submitted:
