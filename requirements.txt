@@ -1,3 +1,4 @@
 streamlit>=1.57,<2
 supabase==2.31.0
 reportlab>=4.2,<5
+pydeck>=0.9,<1

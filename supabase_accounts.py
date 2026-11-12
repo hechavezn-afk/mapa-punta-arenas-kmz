@@ -130,6 +130,9 @@ def provision_accounts(hector_password: str) -> tuple[list[dict[str, str]], list
             "user_metadata": {"full_name": name, "account_alias": alias},
         })
         created.append({"name": name, "alias": alias, "email": email, "password": password})
+        # Keep each successful credential available if a later account fails;
+        # otherwise a partial batch could leave an account created with a lost password.
+        st.session_state["map_provisioned_credentials"] = list(created)
         existing.add(email.casefold())
     return created, skipped
 
@@ -193,6 +196,8 @@ def render_account_admin() -> None:
         confirm = st.checkbox("Confirmo crear las cuentas que aún no existen", value=False)
         submitted = st.form_submit_button("Crear cuentas faltantes", type="primary", disabled=not confirm or not hector_password)
     if submitted:
+        st.session_state.pop("map_provisioned_credentials", None)
+        st.session_state.pop("map_provision_skipped", None)
         try:
             created, skipped = provision_accounts(hector_password)
             st.session_state["map_provisioned_credentials"] = created
