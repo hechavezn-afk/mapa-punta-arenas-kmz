@@ -260,6 +260,34 @@ def _finish_supabase_login(alias: str) -> None:
     st.rerun()
 
 
+def _totp_enrollment_error(exc: Exception) -> str:
+    """Turn Supabase MFA enrollment failures into actionable, safe guidance."""
+    code = str(getattr(exc, "code", "") or "").strip().casefold()
+    message = str(getattr(exc, "message", "") or exc).strip()
+    details = f"{code} {message}".casefold()
+    if "mfa_totp_enroll_not_enabled" in details:
+        return (
+            "Supabase tiene desactivada la inscripción de Authenticator (TOTP). "
+            "En el proyecto abre Authentication → Multi-factor Authentication y activa "
+            "TOTP enrollment y TOTP verification; guarda los cambios y vuelve a ingresar."
+        )
+    if "mfa_totp_verify_not_enabled" in details:
+        return (
+            "Supabase tiene desactivada la verificación TOTP. En Authentication → "
+            "Multi-factor Authentication activa TOTP verification, guarda y vuelve a ingresar."
+        )
+    if "mfa_factor_name_conflict" in details:
+        return (
+            "Ya existe un factor Authenticator con ese nombre. Actualiza la página e inténtalo "
+            "otra vez; la app generará un nombre de configuración nuevo."
+        )
+    # Show the server's code and concise message, but never request or expose credentials.
+    safe_message = " ".join(message.split())[:240]
+    if code:
+        return f"Supabase rechazó la configuración ({code}). {safe_message}"
+    return f"No se pudo configurar Authenticator. Detalle de Supabase: {safe_message}"
+
+
 def _supabase_second_factor() -> None:
     """Require either a verified Authenticator factor or a one-time email code."""
     from supabase_accounts import SupabaseSetupError
@@ -320,15 +348,19 @@ def _supabase_second_factor() -> None:
         enrollment = st.session_state.get("map_supabase_mfa_enrollment")
         if not enrollment:
             try:
-                enrolled = client.auth.mfa.enroll({"factor_type": "totp", "friendly_name": "Redes Edelmag"})
+                # A unique name also avoids collisions with an abandoned enrollment from
+                # an earlier attempt on this account.
+                friendly_name = f"Redes Edelmag {token_urlsafe(5)}"
+                enrolled = client.auth.mfa.enroll({"factor_type": "totp", "friendly_name": friendly_name})
                 totp = getattr(enrolled, "totp", None)
                 if not totp or not getattr(totp, "qr_code", ""):
                     raise ValueError("Missing QR")
                 enrollment = {"factor_id": str(enrolled.id), "qr_code": str(totp.qr_code),
                               "secret": str(getattr(totp, "secret", ""))}
                 st.session_state["map_supabase_mfa_enrollment"] = enrollment
-            except Exception:
-                st.error("No se pudo iniciar la configuración de Authenticator. Puedes usar el código por correo.")
+            except Exception as exc:
+                st.error(_totp_enrollment_error(exc))
+                st.caption("También puedes elegir «Código temporal por correo» mientras se habilita TOTP.")
                 return
         st.write("Escanea este QR con Microsoft Authenticator, Google Authenticator u otra app TOTP.")
         qr = enrollment["qr_code"]
