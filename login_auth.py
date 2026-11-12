@@ -286,8 +286,21 @@ def _supabase_second_factor() -> None:
                 client.auth.sign_in_with_otp({"email": email, "options": {"should_create_user": False}})
                 st.session_state["map_email_otp_sent"] = True
                 st.success("Código enviado. Revisa tu correo, incluida la carpeta de correo no deseado.")
-            except Exception:
-                st.error("No se pudo enviar el código. Comprueba que el correo esté habilitado en Supabase Auth.")
+            except Exception as exc:
+                detail = " ".join((str(getattr(exc, "code", "")), str(getattr(exc, "message", exc)))).casefold()
+                if "email address not authorized" in detail or "email_address_not_authorized" in detail:
+                    st.error(
+                        "Supabase bloqueó el destinatario porque el proyecto aún usa su SMTP compartido. "
+                        "Configura un SMTP propio en Supabase: Authentication → SMTP Settings. "
+                        "Después vuelve a solicitar el código."
+                    )
+                elif "rate limit" in detail or "too many requests" in detail:
+                    st.error("Supabase limitó temporalmente los envíos. Espera un momento antes de volver a solicitar el código.")
+                else:
+                    st.error(
+                        "Supabase no pudo enviar el código. Comprueba SMTP personalizado y la plantilla de correo con {{ .Token }}. "
+                        f"Detalle: {str(getattr(exc, 'message', exc))[:220]}"
+                    )
         if st.session_state.get("map_email_otp_sent"):
             with st.form("map_email_otp_form", clear_on_submit=True):
                 code = st.text_input("Código de 6 dígitos", max_chars=12)
