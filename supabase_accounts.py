@@ -99,6 +99,31 @@ def _existing_emails() -> set[str]:
     return users
 
 
+def reset_or_create_hector(password: str) -> str:
+    """Create HECTOR if absent or reset only this account's password."""
+    if len(password) < 8:
+        raise SupabaseSetupError("Supabase requiere una clave de al menos 8 caracteres para este restablecimiento.")
+    email = HECTOR_ACCOUNT[2].casefold()
+    user_id = None
+    for page in range(1, 101):
+        result = _admin_request("GET", f"/auth/v1/admin/users?page={page}&per_page=100")
+        items = result.get("users", []) if isinstance(result, dict) else []
+        match = next((item for item in items if str(item.get("email", "")).casefold() == email), None)
+        if match:
+            user_id = match.get("id")
+            break
+        if len(items) < 100:
+            break
+    if user_id:
+        _admin_request("PUT", f"/auth/v1/admin/users/{user_id}", {"password": password})
+        return "restablecida"
+    _admin_request("POST", "/auth/v1/admin/users", {
+        "email": HECTOR_ACCOUNT[2], "password": password, "email_confirm": True,
+        "user_metadata": {"full_name": HECTOR_ACCOUNT[0], "account_alias": HECTOR_ACCOUNT[1]},
+    })
+    return "creada"
+
+
 def _new_password(length: int = 20) -> str:
     alphabet = string.ascii_letters + string.digits + "!@#$%*-_+"
     while True:
@@ -112,6 +137,8 @@ def provision_accounts(hector_password: str) -> tuple[list[dict[str, str]], list
     """Create absent Auth users; leave existing accounts and passwords untouched."""
     if not hector_password:
         raise SupabaseSetupError("Escribe la clave inicial de HECTOR.")
+    if len(hector_password) < 8:
+        raise SupabaseSetupError("La clave inicial de HECTOR debe tener al menos 8 caracteres en Supabase.")
     existing = _existing_emails()
     candidates = [(HECTOR_ACCOUNT[0], HECTOR_ACCOUNT[1], HECTOR_ACCOUNT[2], hector_password)]
     candidates += [
@@ -190,9 +217,29 @@ def render_account_admin() -> None:
     skipped = st.session_state.get("map_provision_skipped", [])
     for message in skipped:
         st.info(message)
+    if st.session_state.pop("_clear_hector_reset_form", False):
+        st.session_state.pop("hector_reset_password", None)
+        st.session_state.pop("hector_reset_confirm", None)
+    hector_reset_result = st.session_state.pop("_hector_reset_result", None)
+    if hector_reset_result:
+        st.success(f"Cuenta HECTOR {hector_reset_result} correctamente. Si tenía Authenticator configurado, ese segundo factor se conserva.")
+    with st.form("map_hector_password_reset"):
+        st.subheader("Acceso de HECTOR")
+        hector_reset_password = st.text_input("Nueva clave para HECTOR", type="password", key="hector_reset_password")
+        reset_confirm = st.checkbox("Confirmo crear o restablecer solo la cuenta HECTOR", key="hector_reset_confirm")
+        reset_submitted = st.form_submit_button("Crear / restablecer HECTOR", type="secondary",
+                                                disabled=not reset_confirm or not hector_reset_password)
+    if reset_submitted:
+        try:
+            action = reset_or_create_hector(hector_reset_password)
+            st.session_state["_hector_reset_result"] = action
+            st.session_state["_clear_hector_reset_form"] = True
+            st.rerun()
+        except SupabaseSetupError as exc:
+            st.error(str(exc))
     with st.form("map_provision_accounts"):
         st.write(f"Se intentará crear HECTOR y {len(USER_ROSTER)} cuentas de usuarios. Las existentes se omiten.")
-        hector_password = st.text_input("Clave inicial de HECTOR", type="password", help="La clave IONIZA indicada puede ingresarse aquí; se usa solo al crear la cuenta y no queda guardada en el código.")
+        hector_password = st.text_input("Clave inicial de HECTOR (mínimo 8 caracteres)", type="password", help="La clave se usa solo al crear la cuenta y no queda guardada en el código.")
         confirm = st.checkbox("Confirmo crear las cuentas que aún no existen", value=False)
         submitted = st.form_submit_button("Crear cuentas faltantes", type="primary", disabled=not confirm or not hector_password)
     if submitted:
