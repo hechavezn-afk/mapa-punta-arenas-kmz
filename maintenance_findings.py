@@ -109,6 +109,8 @@ def photo_url(path: str) -> str:
                     {"expiresIn": 3600})
     value = (data or {}).get("signedURL", "")
     base, _, _ = auth_config()
+    if value.startswith("/object/"):
+        return base + "/storage/v1" + value
     return base + value if value.startswith("/") else value
 
 
@@ -213,6 +215,15 @@ def render_findings_page() -> None:
             choices = {f"{r.get('category')} · {r.get('asset_code') or 'sin activo'} · {r.get('locality')} · {r.get('status')} · {str(r['id'])[:8]}": r for r in rows}
             label = st.selectbox("Hallazgo", list(choices), key="finding_edit_choice")
             selected = choices[label]
+            existing_photos = selected.get("photos") or []
+            if existing_photos:
+                st.caption(f"Fotos del hallazgo ({len(existing_photos)})")
+                photo_cols = st.columns(min(3, len(existing_photos)))
+                for index, photo in enumerate(existing_photos):
+                    try:
+                        photo_cols[index % len(photo_cols)].image(photo_url(photo["path"]), caption=photo.get("name", "Foto"), use_container_width=True)
+                    except (FindingsError, KeyError):
+                        photo_cols[index % len(photo_cols)].caption("No se pudo cargar esta foto.")
             with st.form("edit_shared_finding"):
                 new_status = st.selectbox("Estado", STATUSES, index=STATUSES.index(selected.get("status", "Pendiente")))
                 new_priority = st.selectbox("Prioridad", PRIORITIES, index=PRIORITIES.index(selected.get("priority", "Media")))
