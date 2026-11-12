@@ -14,6 +14,18 @@ IDLE_TIMEOUT_SECONDS = 2 * 60 * 60
 CONFIG_USERNAME = "configedelmag"
 _CONFIG_PASSWORD_SALT = bytes.fromhex("8b6d6e6043e32a197d28bd24e4183006")
 _CONFIG_PASSWORD_HASH = bytes.fromhex("93d206f1a03596d9ac99a7dc18c059f186cc62a7ae12cae445f1a11eca6e6272")
+_STATIC_USERS = {
+    "edelmag4": (
+        "EDELMAG4",
+        bytes.fromhex("038ce63c3451be146f3dbd272ee8c2b6"),
+        bytes.fromhex("5ca61eb8c4c3c5532e7466f4ee14f5c00a074c0b13d34928ad225a986f37c370"),
+    ),
+    "edelmag5": (
+        "EDELMAG5",
+        bytes.fromhex("c656eddfd19ecd357a6d767b2ddd0177"),
+        bytes.fromhex("1c678abd8ea2bfd34b5a71e81ba57ebbbe68b07c3d6e3f417f10434914c0f2fd"),
+    ),
+}
 
 
 def is_config_user(username: str | None) -> bool:
@@ -25,6 +37,15 @@ def _verify_config_password(password: str) -> bool:
         "sha256", password.encode("utf-8"), _CONFIG_PASSWORD_SALT, 310_000
     )
     return hmac.compare_digest(candidate, _CONFIG_PASSWORD_HASH)
+
+
+def _verify_static_user(username: str, password: str) -> tuple[bool, str | None]:
+    account = _STATIC_USERS.get(username.strip().casefold())
+    if account is None:
+        return False, None
+    canonical_name, salt, expected_hash = account
+    candidate = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 310_000)
+    return hmac.compare_digest(candidate, expected_hash), canonical_name
 
 
 _BROWSER_SESSION = st.components.v2.component(
@@ -257,9 +278,14 @@ def require_login() -> None:
         normalized_username = username.strip()
         if is_config_user(normalized_username):
             credentials_ok = _verify_config_password(password)
+            normalized_username = CONFIG_USERNAME
         else:
-            expected = users.get(normalized_username)
-            credentials_ok = expected is not None and hmac.compare_digest(password, expected)
+            credentials_ok, static_username = _verify_static_user(normalized_username, password)
+            if static_username:
+                normalized_username = static_username
+            else:
+                expected = users.get(normalized_username)
+                credentials_ok = expected is not None and hmac.compare_digest(password, expected)
         if not credentials_ok:
             st.error("Cuenta o contraseña incorrecta.")
         else:
