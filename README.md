@@ -34,7 +34,7 @@ La clave `sb_secret_...` solo la usa Python en el servidor. Tras desplegar, entr
 
 Los usuarios ingresan con su nombre y apellido juntos, en mayúsculas y sin espacios (por ejemplo, `LUISGARRIDO`), su contraseña de Supabase y luego el segundo factor. También pueden ingresar con su correo. En cada ingreso pueden elegir **Recordar sesión** para restaurarla tras recargar o reabrir el navegador; toda sesión vence tras cinco horas sin actividad.
 
-Para habilitar el almacenamiento compartido de hallazgos, ejecuta una vez el SQL de `supabase/migrations/202611120001_shared_maintenance_findings.sql` en el SQL Editor del proyecto. La migración crea tablas privadas y un bucket privado; no revoca ni modifica permisos globales de `storage.objects`.
+Para habilitar el almacenamiento compartido de hallazgos, ejecuta el SQL de `supabase/migrations/202611120001_shared_maintenance_findings.sql` en el SQL Editor del proyecto. Si ya lo aplicaste antes, puedes volver a ejecutarlo: es idempotente y agrega el estado **Revisado** sin borrar casos; crea tablas privadas y un bucket privado, y no revoca ni modifica permisos globales de `storage.objects`.
 
 Los archivos KMZ incluidos son los datos usados por el visor:
 

@@ -30,6 +30,14 @@ create table if not exists public.maintenance_findings (
     )
 );
 
+-- Permite registrar que un caso ya fue inspeccionado, aunque la corrección
+-- todavía esté pendiente.
+alter table public.maintenance_findings
+    drop constraint if exists maintenance_findings_status_check;
+alter table public.maintenance_findings
+    add constraint maintenance_findings_status_check
+    check (status in ('Pendiente', 'En revisión', 'Revisado', 'Resuelto', 'Cerrado'));
+
 create index if not exists maintenance_findings_locality_status_idx
     on public.maintenance_findings (locality, status, priority);
 create index if not exists maintenance_findings_updated_at_idx

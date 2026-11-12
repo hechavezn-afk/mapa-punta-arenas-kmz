@@ -3,7 +3,11 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import json
+import math
 import re
+import zipfile
+from pathlib import Path
+from xml.etree import ElementTree as ET
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
@@ -14,11 +18,18 @@ import streamlit as st
 from supabase_accounts import auth_config, SupabaseSetupError
 
 LOCALITIES = ("Punta Arenas", "Puerto Natales", "Porvenir", "Puerto Williams")
-STATUSES = ("Pendiente", "En revisión", "Resuelto", "Cerrado")
+STATUSES = ("Pendiente", "En revisión", "Revisado", "Resuelto", "Cerrado")
 PRIORITIES = ("Baja", "Media", "Alta", "Urgente")
 CATEGORIES = ("Poda preventiva", "Poste desaplomado", "Estructura dañada", "Choque de poste",
               "Retensado de línea", "Tirante o protección", "Equipo defectuoso", "Otro")
 BUCKET = "maintenance-finding-photos"
+DATA_DIR = Path(__file__).parent
+ASSET_KMZ = {
+    "Punta Arenas": ("Punta Arenas.kmz", "Punta Arenas_v2.kmz"),
+    "Puerto Natales": ("Puerto Natales.kmz",),
+    "Porvenir": ("Porvenir.kmz",),
+    "Puerto Williams": ("Puerto Williams.kmz",),
+}
 
 
 class FindingsError(RuntimeError):
@@ -62,10 +73,77 @@ def list_findings(locality: str, status_filter: str) -> list[dict]:
         query["locality"] = f"eq.{locality}"
     rows = _request("GET", "/rest/v1/maintenance_findings?" + urlencode(query)) or []
     if status_filter == "Abiertos":
-        rows = [row for row in rows if row.get("status") in ("Pendiente", "En revisión")]
+        rows = [row for row in rows if row.get("status") in ("Pendiente", "En revisión", "Revisado")]
     elif status_filter != "Todos":
         rows = [row for row in rows if row.get("status") == status_filter]
     return rows
+
+
+@st.cache_data(show_spinner="Indexando activos para vincular el hallazgo…")
+def _asset_index() -> dict:
+    """Build a lightweight lookup from the KMZ assets without loading map geometry."""
+    index: dict[str, dict[str, dict]] = {locality: {} for locality in LOCALITIES}
+    ns = {"k": "http://www.opengis.net/kml/2.2"}
+    for locality, filenames in ASSET_KMZ.items():
+        for filename in filenames:
+            path = DATA_DIR / filename
+            if not path.exists():
+                continue
+            try:
+                with zipfile.ZipFile(path) as archive:
+                    kml_name = next((name for name in archive.namelist() if name.lower().endswith(".kml")), None)
+                    if not kml_name:
+                        continue
+                    root = ET.fromstring(archive.read(kml_name))
+            except (OSError, zipfile.BadZipFile, ET.ParseError):
+                continue
+            parents = {child: parent for parent in root.iter() for child in parent}
+            for mark in root.findall(".//k:Placemark", ns):
+                point = mark.find(".//k:Point/k:coordinates", ns)
+                if point is None or not point.text:
+                    continue
+                try:
+                    coords = [float(part) for part in point.text.strip().split(",")[:2]]
+                    lon, lat = coords
+                    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+                        continue
+                except (ValueError, TypeError):
+                    continue
+                attrs = {}
+                for node in mark.findall(".//k:Data", ns):
+                    value = node.findtext("k:value", default="", namespaces=ns)
+                    if node.get("name") and value:
+                        attrs[node.get("name")] = value.strip()
+                for node in mark.findall(".//k:SimpleData", ns):
+                    if node.get("name") and node.text:
+                        attrs[node.get("name")] = node.text.strip()
+                name = (mark.findtext("k:name", default="", namespaces=ns) or "").strip()
+                aliases = [name]
+                for key in ("IDENTIFICADOR_VNR", "POSTE_ID", "EQUIPO_ID", "ID", "CODIGO", "CÓDIGO"):
+                    if attrs.get(key):
+                        aliases.append(str(attrs[key]).strip())
+                folder_names = []
+                parent = parents.get(mark)
+                while parent is not None:
+                    if parent.tag.rsplit("}", 1)[-1] == "Folder":
+                        folder_names.append(parent.findtext("k:name", default="", namespaces=ns).strip())
+                    parent = parents.get(parent)
+                kind = next((value for value in folder_names if value), "Activo")
+                record = {"name": name or next((a for a in aliases if a), "Activo"),
+                          "kind": kind, "latitude": lat, "longitude": lon}
+                for alias in aliases:
+                    normalized = _normalize_asset_code(alias)
+                    if normalized:
+                        index[locality].setdefault(normalized, record)
+    return index
+
+
+def _normalize_asset_code(value: str) -> str:
+    return re.sub(r"\s+", "", str(value or "")).casefold()
+
+
+def lookup_asset(locality: str, code: str) -> dict | None:
+    return _asset_index().get(locality, {}).get(_normalize_asset_code(code))
 
 
 def _upload_photo(file, finding_id: str) -> dict:
@@ -114,28 +192,89 @@ def photo_url(path: str) -> str:
     return base + value if value.startswith("/") else value
 
 
+def finding_history(finding_id: str) -> list[dict]:
+    query = urlencode({"select": "*", "finding_id": f"eq.{finding_id}",
+                       "order": "changed_at.desc", "limit": "100"})
+    return _request("GET", "/rest/v1/maintenance_finding_history?" + query) or []
+
+
 def _heatmap(rows):
     import pydeck as pdk
     if not rows:
         st.info("No hay hallazgos para los filtros elegidos.")
         return
-    points = [{"latitude": float(row["latitude"]), "longitude": float(row["longitude"]),
-               "weight": {"Baja": 1, "Media": 2, "Alta": 3, "Urgente": 4}.get(row.get("priority"), 2),
-               "label": f"{row.get('category','Hallazgo')} · {row.get('asset_code') or row.get('notice_number') or row['id'][:8]}"}
-              for row in rows]
-    center_lat = sum(p["latitude"] for p in points) / len(points)
-    center_lon = sum(p["longitude"] for p in points) / len(points)
+    points, paths, cells = [], [], {}
+    for row in rows:
+        weight = {"Baja": 1, "Media": 2, "Alta": 3, "Urgente": 4}.get(row.get("priority"), 2)
+        label = f"{row.get('category','Hallazgo')} · {row.get('asset_code') or row.get('notice_number') or row['id'][:8]}"
+        start = [float(row["longitude"]), float(row["latitude"])]
+        points.append({"latitude": start[1], "longitude": start[0], "weight": weight, "label": label})
+        end_lat, end_lon = row.get("second_latitude"), row.get("second_longitude")
+        if end_lat is not None and end_lon is not None:
+            end = [float(end_lon), float(end_lat)]
+            paths.append({"path": [start, end], "label": label})
+            points.append({"latitude": end[1], "longitude": end[0], "weight": weight, "label": label})
+    # Aggregate in approximately 100 m cells so the hotspot footprint stays
+    # geographically meaningful as the map zoom changes.
+    for point in points:
+        lat, lon = point["latitude"], point["longitude"]
+        cell_y = round(lat * 111_320 / 100)
+        cell_x = round(lon * 111_320 * max(0.2, abs(math.cos(math.radians(lat)))) / 100)
+        cell = cells.setdefault((cell_x, cell_y), {"latitude": 0.0, "longitude": 0.0, "weight": 0.0, "count": 0})
+        cell["latitude"] += lat
+        cell["longitude"] += lon
+        cell["weight"] += point["weight"]
+        cell["count"] += 1
+    heat_points = [{**cell, "latitude": cell["latitude"] / cell["count"],
+                    "longitude": cell["longitude"] / cell["count"],
+                    "label": f"{cell['count']} ubicaciones de hallazgos · prioridad acumulada {cell['weight']:.0f}"}
+                   for cell in cells.values()]
+    latitudes = [p["latitude"] for p in points]
+    longitudes = [p["longitude"] for p in points]
+    center_lat = (min(latitudes) + max(latitudes)) / 2
+    center_lon = (min(longitudes) + max(longitudes)) / 2
+    span = max(max(latitudes) - min(latitudes),
+               (max(longitudes) - min(longitudes)) * abs(math.cos(math.radians(center_lat))),
+               0.0001)
+    zoom = max(3, min(18, math.log2(180 / span) - 0.25))
     layers = [
-        pdk.Layer("HeatmapLayer", data=points, get_position="[longitude, latitude]", get_weight="weight",
+        pdk.Layer("HeatmapLayer", data=heat_points, get_position="[longitude, latitude]", get_weight="weight",
                   radiusPixels=55, intensity=1.2, threshold=0.03, opacity=0.72),
+        pdk.Layer("PathLayer", data=paths, get_path="path", get_color=[210, 45, 35, 220],
+                  width_min_pixels=3, pickable=True),
         pdk.Layer("ScatterplotLayer", data=points, get_position="[longitude, latitude]", get_radius=42,
                   get_fill_color="[220, 70, 45, 210]", get_line_color="[255,255,255,240]",
                   line_width_min_pixels=1, pickable=True),
     ]
     st.pydeck_chart(pdk.Deck(layers=layers, initial_view_state=pdk.ViewState(
-        latitude=center_lat, longitude=center_lon, zoom=10 if len(rows) > 8 else 14,
+        latitude=center_lat, longitude=center_lon, zoom=zoom,
         pitch=0, bearing=0), tooltip={"text": "{label}"},
-        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"), use_container_width=True)
+        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"), width="stretch")
+
+
+def _coordinate(raw: str, asset: dict | None, axis: str, label: str, optional: bool = False):
+    value = (raw or "").strip().replace(",", ".")
+    if value:
+        try:
+            number = float(value)
+        except ValueError:
+            raise FindingsError(f"Revisa la {label}; debe ser un número decimal.") from None
+        limit = 90 if axis == "latitude" else 180
+        if not -limit <= number <= limit:
+            raise FindingsError(f"La {label} está fuera de rango.")
+        return number
+    if asset:
+        return float(asset[axis])
+    if optional:
+        return None
+    raise FindingsError(f"Escribe la {label} o indica un código que exista en el inventario.")
+
+
+def _edited_coordinate(raw: str, original, asset: dict | None, axis: str, label: str, optional: bool = False):
+    """Use inventory coordinates when the code/locality changed but position did not."""
+    if asset and (not str(raw or "").strip() or str(raw).strip() == str(original)):
+        return float(asset[axis])
+    return _coordinate(raw, None, axis, label, optional=optional)
 
 
 def render_findings_page() -> None:
@@ -148,7 +287,7 @@ def render_findings_page() -> None:
     filter_cols = st.columns((1.4, 1.2, 1))
     locality = filter_cols[0].selectbox("Localidad", ("Todas",) + LOCALITIES, key="finding_locality")
     status_filter = filter_cols[1].selectbox("Estado", ("Abiertos", "Todos") + STATUSES, key="finding_status")
-    if filter_cols[2].button("Actualizar lista", use_container_width=True):
+    if filter_cols[2].button("Actualizar lista", width="stretch"):
         st.rerun()
 
     try:
@@ -167,15 +306,17 @@ def render_findings_page() -> None:
 
     map_col, form_col = st.columns((1.6, 1))
     with map_col:
-        st.subheader("Mapa de concentración")
+        st.subheader("Mapa de concentración · celdas de 100 m")
         _heatmap(rows)
         if rows:
             display = [{"Localidad": r.get("locality"), "Aviso": r.get("notice_number"),
                         "Activo": " ↔ ".join(x for x in (r.get("asset_code"), r.get("second_asset_code")) if x),
                         "Hallazgo": r.get("category"), "Prioridad": r.get("priority"), "Estado": r.get("status"),
-                        "Actualizado": str(r.get("updated_at", ""))[:16].replace("T", " ")}
+                        "Actualizado": str(r.get("updated_at", ""))[:16].replace("T", " "),
+                        "Abrir en Maps": f"https://www.google.com/maps?q={r.get('latitude')},{r.get('longitude')}"}
                        for r in rows]
-            st.dataframe(display, use_container_width=True, hide_index=True)
+            st.dataframe(display, width="stretch", hide_index=True,
+                         column_config={"Abrir en Maps": st.column_config.LinkColumn("Abrir en Maps", display_text="Ver punto")})
     with form_col:
         st.subheader("Crear hallazgo")
         with st.form("create_shared_finding", clear_on_submit=True):
@@ -183,24 +324,39 @@ def render_findings_page() -> None:
             notice = st.text_input("N.º de aviso", placeholder="Número de aviso")
             category = st.selectbox("Tipo", CATEGORIES)
             priority = st.select_slider("Prioridad", options=PRIORITIES, value="Media")
-            asset_code = st.text_input("Poste o activo", placeholder="Ej. 1-0020-020")
-            second_asset = st.text_input("Segundo poste (si aplica)", placeholder="Para tramo entre dos activos")
+            asset_code = st.text_input("Poste o activo relacionado", placeholder="Código exacto; se buscará en el inventario")
+            second_asset = st.text_input("Segundo poste / activo (si corresponde)", placeholder="Para un caso entre dos activos")
             description = st.text_area("Descripción / acción requerida", max_chars=3000)
+            st.caption("Si el código existe en el inventario, las coordenadas se completan desde el KMZ. También puedes indicarlas manualmente.")
             lat_col, lon_col = st.columns(2)
-            latitude = lat_col.number_input("Latitud", min_value=-90.0, max_value=90.0, value=-53.16, format="%.7f")
-            longitude = lon_col.number_input("Longitud", min_value=-180.0, max_value=180.0, value=-70.90, format="%.7f")
+            latitude = lat_col.text_input("Latitud", placeholder="Se completa desde el activo")
+            longitude = lon_col.text_input("Longitud", placeholder="Se completa desde el activo")
+            second_lat_col, second_lon_col = st.columns(2)
+            second_latitude = second_lat_col.text_input("Latitud segundo activo", placeholder="Opcional")
+            second_longitude = second_lon_col.text_input("Longitud segundo activo", placeholder="Opcional")
             photos = st.file_uploader("Fotos (máximo 3)", type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key="finding_create_photos")
-            submit = st.form_submit_button("Guardar hallazgo compartido", type="primary", use_container_width=True)
+            submit = st.form_submit_button("Guardar hallazgo compartido", type="primary", width="stretch")
         if submit:
             if len(photos or []) > 3:
                 st.error("Puedes adjuntar hasta 3 fotos por hallazgo.")
             else:
                 actor = str(st.session_state.get("map_login_user", "usuario"))
-                payload = {"locality": f_locality, "notice_number": notice.strip(), "category": category,
-                           "description": description.strip(), "priority": priority, "status": "Pendiente",
-                           "asset_code": asset_code.strip() or None, "second_asset_code": second_asset.strip() or None,
-                           "latitude": latitude, "longitude": longitude, "created_by": actor, "updated_by": actor}
                 try:
+                    asset = lookup_asset(f_locality, asset_code) if asset_code.strip() else None
+                    second = lookup_asset(f_locality, second_asset) if second_asset.strip() else None
+                    lat = _coordinate(latitude, asset, "latitude", "latitud del primer activo")
+                    lon = _coordinate(longitude, asset, "longitude", "longitud del primer activo")
+                    lat2 = _coordinate(second_latitude, second, "latitude", "latitud del segundo activo", optional=True)
+                    lon2 = _coordinate(second_longitude, second, "longitude", "longitud del segundo activo", optional=True)
+                    if (lat2 is None) != (lon2 is None):
+                        raise FindingsError("Completa latitud y longitud del segundo activo, o deja ambas vacías.")
+                    if second_asset.strip() and lat2 is None:
+                        raise FindingsError("No encontré el segundo activo en esa localidad; indica ambas coordenadas.")
+                    payload = {"locality": f_locality, "notice_number": notice.strip(), "category": category,
+                               "description": description.strip(), "priority": priority, "status": "Pendiente",
+                               "asset_code": asset_code.strip() or None, "second_asset_code": second_asset.strip() or None,
+                               "latitude": lat, "longitude": lon, "second_latitude": lat2, "second_longitude": lon2,
+                               "created_by": actor, "updated_by": actor}
                     save_new(payload, photos)
                     st.success("Hallazgo compartido guardado.")
                     st.rerun()
@@ -212,7 +368,7 @@ def render_findings_page() -> None:
         if not rows:
             st.caption("Agrega o filtra hallazgos para iniciar el seguimiento.")
         else:
-            choices = {f"{r.get('category')} · {r.get('asset_code') or 'sin activo'} · {r.get('locality')} · {r.get('status')} · {str(r['id'])[:8]}": r for r in rows}
+            choices = {f"{('Aviso ' + r.get('notice_number') + ' · ') if r.get('notice_number') else ''}{r.get('category')} · {' ↔ '.join(x for x in (r.get('asset_code'), r.get('second_asset_code')) if x) or 'sin activo'} · {r.get('locality')} · {r.get('status')} · {str(r['id'])[:8]}": r for r in rows}
             label = st.selectbox("Hallazgo", list(choices), key="finding_edit_choice")
             selected = choices[label]
             existing_photos = selected.get("photos") or []
@@ -221,26 +377,64 @@ def render_findings_page() -> None:
                 photo_cols = st.columns(min(3, len(existing_photos)))
                 for index, photo in enumerate(existing_photos):
                     try:
-                        photo_cols[index % len(photo_cols)].image(photo_url(photo["path"]), caption=photo.get("name", "Foto"), use_container_width=True)
+                        photo_cols[index % len(photo_cols)].image(photo_url(photo["path"]), caption=photo.get("name", "Foto"), width="stretch")
                     except (FindingsError, KeyError):
                         photo_cols[index % len(photo_cols)].caption("No se pudo cargar esta foto.")
             with st.form("edit_shared_finding"):
+                edit_locality = st.selectbox("Localidad", LOCALITIES,
+                                             index=LOCALITIES.index(selected.get("locality", LOCALITIES[0])))
                 new_status = st.selectbox("Estado", STATUSES, index=STATUSES.index(selected.get("status", "Pendiente")))
                 new_priority = st.selectbox("Prioridad", PRIORITIES, index=PRIORITIES.index(selected.get("priority", "Media")))
                 new_notice = st.text_input("Aviso", value=selected.get("notice_number", ""))
+                edit_asset = st.text_input("Activo relacionado", value=selected.get("asset_code") or "")
+                edit_second_asset = st.text_input("Segundo activo", value=selected.get("second_asset_code") or "")
+                edit_lat_col, edit_lon_col = st.columns(2)
+                edit_latitude = edit_lat_col.text_input("Latitud del punto", value=str(selected.get("latitude", "")))
+                edit_longitude = edit_lon_col.text_input("Longitud del punto", value=str(selected.get("longitude", "")))
+                edit_lat2_col, edit_lon2_col = st.columns(2)
+                edit_second_latitude = edit_lat2_col.text_input("Latitud del segundo punto", value=str(selected.get("second_latitude") or ""))
+                edit_second_longitude = edit_lon2_col.text_input("Longitud del segundo punto", value=str(selected.get("second_longitude") or ""))
                 new_desc = st.text_area("Descripción", value=selected.get("description", ""), max_chars=3000)
-                more_photos = st.file_uploader("Agregar fotos (máximo 3 por carga)", type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key="finding_edit_photos")
-                save = st.form_submit_button("Guardar seguimiento", type="primary", use_container_width=True)
+                more_photos = st.file_uploader("Agregar fotos (máximo 3 en total)", type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key="finding_edit_photos")
+                save = st.form_submit_button("Guardar seguimiento", type="primary", width="stretch")
             if save:
-                if len(more_photos or []) > 3:
-                    st.error("Puedes adjuntar hasta 3 fotos en una carga.")
+                if len(existing_photos) + len(more_photos or []) > 3:
+                    st.error("El hallazgo admite hasta 3 fotos en total.")
                 else:
                     try:
+                        matched_asset = lookup_asset(edit_locality, edit_asset) if edit_asset.strip() else None
+                        matched_second = lookup_asset(edit_locality, edit_second_asset) if edit_second_asset.strip() else None
+                        edit_lat = _edited_coordinate(edit_latitude, selected.get("latitude"), matched_asset, "latitude", "latitud")
+                        edit_lon = _edited_coordinate(edit_longitude, selected.get("longitude"), matched_asset, "longitude", "longitud")
+                        edit_lat2 = _edited_coordinate(edit_second_latitude, selected.get("second_latitude"), matched_second, "latitude", "latitud del segundo punto", optional=True)
+                        edit_lon2 = _edited_coordinate(edit_second_longitude, selected.get("second_longitude"), matched_second, "longitude", "longitud del segundo punto", optional=True)
+                        if (edit_lat2 is None) != (edit_lon2 is None):
+                            raise FindingsError("Completa latitud y longitud del segundo punto, o deja ambas vacías.")
                         update_finding(selected, {"status": new_status, "priority": new_priority,
-                                                  "notice_number": new_notice.strip(), "description": new_desc.strip(),
+                                                  "locality": edit_locality, "notice_number": new_notice.strip(),
+                                                  "asset_code": edit_asset.strip() or None,
+                                                  "second_asset_code": edit_second_asset.strip() or None,
+                                                  "latitude": edit_lat, "longitude": edit_lon,
+                                                  "second_latitude": edit_lat2, "second_longitude": edit_lon2,
+                                                  "description": new_desc.strip(),
                                                   "resolved_at": datetime.now(timezone.utc).isoformat() if new_status in ("Resuelto", "Cerrado") else None},
                                        more_photos, str(st.session_state.get("map_login_user", "usuario")))
                         st.success("Seguimiento actualizado y registrado en el historial.")
                         st.rerun()
                     except FindingsError as exc:
                         st.error(str(exc))
+            try:
+                with st.expander("Historial del caso"):
+                    history = finding_history(str(selected["id"]))
+                    if history:
+                        for event in history:
+                            snapshot = event.get("snapshot") or {}
+                            when = str(event.get("changed_at", ""))[:16].replace("T", " ")
+                            st.markdown(f"**{event.get('action')} · {when} · {event.get('changed_by', 'usuario')}**")
+                            details = [snapshot.get(key) for key in ("status", "priority", "notice_number", "asset_code") if snapshot.get(key)]
+                            if details:
+                                st.caption(" · ".join(str(value) for value in details))
+                    else:
+                        st.caption("Todavía no hay cambios registrados.")
+            except FindingsError as exc:
+                st.caption(f"No se pudo leer el historial: {exc}")
