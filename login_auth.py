@@ -25,6 +25,16 @@ _STATIC_USERS = {
         bytes.fromhex("c656eddfd19ecd357a6d767b2ddd0177"),
         bytes.fromhex("1c678abd8ea2bfd34b5a71e81ba57ebbbe68b07c3d6e3f417f10434914c0f2fd"),
     ),
+    "edelmag6": (
+        "EDELMAG6",
+        bytes.fromhex("45d6795bc58aa03500aea1261aa43337"),
+        bytes.fromhex("3163c9c8f9097c33ecf1cd3a1e65f56141f1aae64c41eac06d89a182201a3e1c"),
+    ),
+    "edelmag7": (
+        "EDELMAG7",
+        bytes.fromhex("e3998b3368b9bbee1c4ee3be682c5594"),
+        bytes.fromhex("e5c858539a55f19f81a301a6a6f1015e15df98dd9b016d245692894cff69e552"),
+    ),
 }
 
 
