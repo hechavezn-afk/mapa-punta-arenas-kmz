@@ -15,13 +15,13 @@ from uuid import uuid4
 
 import streamlit as st
 
+from finding_catalog import DEFAULT_FINDING_CATEGORIES
 from supabase_accounts import auth_config, SupabaseSetupError
 
 LOCALITIES = ("Punta Arenas", "Puerto Natales", "Porvenir", "Puerto Williams")
 STATUSES = ("Pendiente", "En revisión", "Revisado", "Resuelto", "Cerrado")
 PRIORITIES = ("Baja", "Media", "Alta", "Urgente")
-CATEGORIES = ("Poda preventiva", "Poste desaplomado", "Estructura dañada", "Choque de poste",
-              "Retensado de línea", "Tirante o protección", "Equipo defectuoso", "Otro")
+CATEGORIES = DEFAULT_FINDING_CATEGORIES
 BUCKET = "maintenance-finding-photos"
 DATA_DIR = Path(__file__).parent
 ASSET_KMZ = {
@@ -77,6 +77,19 @@ def list_findings(locality: str, status_filter: str) -> list[dict]:
     elif status_filter != "Todos":
         rows = [row for row in rows if row.get("status") == status_filter]
     return rows
+
+
+def list_shared_categories() -> list[str]:
+    query = urlencode({"select": "category", "order": "category.asc", "limit": "2000"})
+    rows = _request("GET", "/rest/v1/maintenance_findings?" + query) or []
+    return sorted({str(row.get("category", "")).strip() for row in rows if str(row.get("category", "")).strip()}, key=str.casefold)
+
+
+def _selected_category(custom: str, selected: str, available: list[str]) -> str:
+    value = (custom or "").strip()
+    if not value:
+        return selected
+    return next((item for item in available if item.casefold() == value.casefold()), value)
 
 
 @st.cache_data(show_spinner="Indexando activos para vincular el hallazgo…")
@@ -296,6 +309,11 @@ def render_findings_page() -> None:
         st.error(str(exc))
         st.info("La migración no borra datos ni cambia los permisos globales de Storage. Está en `supabase/migrations/202611120001_shared_maintenance_findings.sql`.")
         return
+    try:
+        available_categories = list(dict.fromkeys((*CATEGORIES, *list_shared_categories())))
+    except FindingsError as exc:
+        st.error(str(exc))
+        return
 
     count_cols = st.columns(4)
     for col, label, count in zip(count_cols, ("Hallazgos", "Pendientes", "Alta / urgente", "Resueltos"),
@@ -322,7 +340,9 @@ def render_findings_page() -> None:
         with st.form("create_shared_finding", clear_on_submit=True):
             f_locality = st.selectbox("Localidad", LOCALITIES, index=LOCALITIES.index(locality) if locality in LOCALITIES else 0)
             notice = st.text_input("N.º de aviso", placeholder="Número de aviso")
-            category = st.selectbox("Tipo", CATEGORIES)
+            category_choice = st.selectbox("Hallazgo", available_categories)
+            category_custom = st.text_input("Agregar tipo nuevo (opcional)", max_chars=120,
+                                            placeholder="Escribe un tipo que aún no esté en la lista")
             priority = st.select_slider("Prioridad", options=PRIORITIES, value="Media")
             asset_code = st.text_input("Poste o activo relacionado", placeholder="Código exacto; se buscará en el inventario")
             second_asset = st.text_input("Segundo poste / activo (si corresponde)", placeholder="Para un caso entre dos activos")
@@ -352,6 +372,7 @@ def render_findings_page() -> None:
                         raise FindingsError("Completa latitud y longitud del segundo activo, o deja ambas vacías.")
                     if second_asset.strip() and lat2 is None:
                         raise FindingsError("No encontré el segundo activo en esa localidad; indica ambas coordenadas.")
+                    category = _selected_category(category_custom, category_choice, available_categories)
                     payload = {"locality": f_locality, "notice_number": notice.strip(), "category": category,
                                "description": description.strip(), "priority": priority, "status": "Pendiente",
                                "asset_code": asset_code.strip() or None, "second_asset_code": second_asset.strip() or None,
@@ -386,6 +407,10 @@ def render_findings_page() -> None:
                 new_status = st.selectbox("Estado", STATUSES, index=STATUSES.index(selected.get("status", "Pendiente")))
                 new_priority = st.selectbox("Prioridad", PRIORITIES, index=PRIORITIES.index(selected.get("priority", "Media")))
                 new_notice = st.text_input("Aviso", value=selected.get("notice_number", ""))
+                edit_category = st.selectbox("Hallazgo", available_categories,
+                                             index=available_categories.index(selected.get("category"))
+                                             if selected.get("category") in available_categories else 0)
+                edit_category_custom = st.text_input("Cambiar a un tipo nuevo (opcional)", max_chars=120)
                 edit_asset = st.text_input("Activo relacionado", value=selected.get("asset_code") or "")
                 edit_second_asset = st.text_input("Segundo activo", value=selected.get("second_asset_code") or "")
                 edit_lat_col, edit_lon_col = st.columns(2)
@@ -412,6 +437,7 @@ def render_findings_page() -> None:
                             raise FindingsError("Completa latitud y longitud del segundo punto, o deja ambas vacías.")
                         update_finding(selected, {"status": new_status, "priority": new_priority,
                                                   "locality": edit_locality, "notice_number": new_notice.strip(),
+                                                  "category": _selected_category(edit_category_custom, edit_category, available_categories),
                                                   "asset_code": edit_asset.strip() or None,
                                                   "second_asset_code": edit_second_asset.strip() or None,
                                                   "latitude": edit_lat, "longitude": edit_lon,
