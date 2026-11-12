@@ -8,10 +8,8 @@ from __future__ import annotations
 
 from io import BytesIO
 import json
-import re
 import secrets
 import string
-import unicodedata
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -19,19 +17,19 @@ import streamlit as st
 
 
 USER_ROSTER = [
-    ("Luis Garrido", "lagarridob@grupocge.cl"),
-    ("Sebastián Sotomayor", "sasotomayora@edelmag.cl"),
-    ("Gerardo Castro", "gcastro@edelmag.cl"),
-    ("Víctor Levicoy", "vmlevicoyo@edelmag.cl"),
-    ("Cristian Miranda", "cemirandab@edelmag.cl"),
-    ("Sergio Villegas", "svillegas@edelmag.cl"),
-    ("Sergio Alvarado", "spalvaradob@edelmag.cl"),
-    ("Luis Estrada", "lestradao@edelmag.cl"),
-    ("Danilo Rivas", "darivasc@edelmag.cl"),
-    ("Nicole Ojeda", "nojedab@edelmag.cl"),
-    ("Andrés Montiel", "aamontielp@edelmag.cl"),
-    ("César Chavez", "cchavez@edelmag.cl"),
-    ("Luis Ojeda", "lojeda@edelmag.cl"),
+    ("Luis Garrido", "LUISGARRIDO", "lagarridob@grupocge.cl"),
+    ("Sebastián Sotomayor", "SEBASTIANSOTOMAYOR", "sasotomayora@edelmag.cl"),
+    ("Gerardo Castro", "GERARDOCASTRO", "gcastro@edelmag.cl"),
+    ("Víctor Levicoy", "VICTORLEVICOY", "vmlevicoyo@edelmag.cl"),
+    ("Cristian Miranda", "CRISTIANMIRANDA", "cemirandab@edelmag.cl"),
+    ("Sergio Villegas", "SERGIOVILLEGAS", "svillegas@edelmag.cl"),
+    ("Sergio Alvarado", "SERGIOALVARADO", "spalvaradob@edelmag.cl"),
+    ("Luis Estrada", "LUISESTRADA", "lestradao@edelmag.cl"),
+    ("Danilo Rivas", "DANILORIVAS", "darivasc@edelmag.cl"),
+    ("Nicole Ojeda", "NICOLEOJEDA", "nojedab@edelmag.cl"),
+    ("Andrés Montiel", "ANDRESMONTIEL", "aamontielp@edelmag.cl"),
+    ("César Chavez", "CESARCHAVEZ", "cchavez@edelmag.cl"),
+    ("Luis Ojeda", "LUISOJEDA", "lojeda@edelmag.cl"),
 ]
 HECTOR_ACCOUNT = ("Héctor", "HECTOR", "ingenierohcn@grupocge.cl")
 
@@ -59,15 +57,13 @@ def auth_config() -> tuple[str, str, str]:
 
 def account_roster() -> dict[str, dict[str, str]]:
     rows = [("HECTOR", HECTOR_ACCOUNT[0], HECTOR_ACCOUNT[2])]
-    rows.extend((email.split("@", 1)[0].upper(), name, email) for name, email in USER_ROSTER)
+    rows.extend((username, name, email) for name, username, email in USER_ROSTER)
     roster: dict[str, dict[str, str]] = {}
-    for legacy_alias, name, email in rows:
-        normalized_name = unicodedata.normalize("NFKD", name)
-        username = re.sub(r"[^A-Z0-9]", "", normalized_name.encode("ascii", "ignore").decode("ascii").upper())
+    for username, name, email in rows:
         record = {"name": name, "email": email, "username": username}
-        # Accept both the requested name-based username and the former email alias.
         roster[username] = record
-        roster[legacy_alias.upper()] = record
+        if username == "HECTOR":
+            roster["HECTOR"] = record
     return roster
 
 
@@ -152,8 +148,8 @@ def provision_accounts(hector_password: str) -> tuple[list[dict[str, str]], list
     existing = _existing_emails()
     candidates = [(HECTOR_ACCOUNT[0], HECTOR_ACCOUNT[1], HECTOR_ACCOUNT[2], hector_password)]
     candidates += [
-        (name, email.split("@", 1)[0].upper(), email, _new_password())
-        for name, email in USER_ROSTER
+        (name, username, email, _new_password())
+        for name, username, email in USER_ROSTER
     ]
     created, skipped = [], []
     for name, alias, email, password in candidates:
