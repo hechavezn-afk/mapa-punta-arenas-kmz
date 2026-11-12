@@ -8,9 +8,9 @@ from secrets import token_urlsafe
 
 import streamlit as st
 
-# Keep the browser login alive for two hours after the last detected activity.
-# The matching token is stored in localStorage so a page refresh can resume it.
-IDLE_TIMEOUT_SECONDS = 2 * 60 * 60
+# Keep the browser login alive for five hours after the last detected activity.
+# The browser checkbox controls whether a refresh/browser restart can resume it.
+IDLE_TIMEOUT_SECONDS = 5 * 60 * 60
 CONFIG_USERNAME = "configedelmag"
 _CONFIG_PASSWORD_SALT = bytes.fromhex("8b6d6e6043e32a197d28bd24e4183006")
 _CONFIG_PASSWORD_HASH = bytes.fromhex("93d206f1a03596d9ac99a7dc18c059f186cc62a7ae12cae445f1a11eca6e6272")
@@ -64,14 +64,18 @@ _BROWSER_SESSION = st.components.v2.component(
     js="""
     export default function ({ data, setStateValue }) {
       const storageKey = "map_login_session_token";
+      const rememberKey = storageKey + "_persistent";
       let token = "";
 
       try {
         if (data?.clear) {
           localStorage.removeItem(storageKey);
+          localStorage.removeItem(rememberKey);
           sessionStorage.removeItem(storageKey);
         } else if (data?.token) {
-          localStorage.setItem(storageKey, data.token);
+          localStorage.setItem(rememberKey, data?.remember ? "1" : "0");
+          if (localStorage.getItem(rememberKey) === "1") localStorage.setItem(storageKey, data.token);
+          else localStorage.removeItem(storageKey);
           sessionStorage.setItem(storageKey, data.token);
           token = data.token;
         } else {
@@ -204,9 +208,9 @@ def _heartbeat(username: str, session_id: str, token: str, activity_ms: int = 0)
         return True
 
 
-def _bridge(token: str | None = None, *, clear: bool = False):
+def _bridge(token: str | None = None, *, clear: bool = False, remember: bool = True):
     return _BROWSER_SESSION(
-        data={"token": token or "", "clear": clear},
+        data={"token": token or "", "clear": clear, "remember": remember},
         default={"browser_token": "", "ready": False, "activity_ms": 0},
         key="map_auth_browser_session",
         on_browser_token_change=lambda: None,
@@ -381,7 +385,11 @@ def require_login() -> None:
     users = _users()
     clear_browser = bool(st.session_state.pop("map_login_clear_browser_session", False))
     expected_token = st.session_state.get("map_login_session_token")
-    bridge = _bridge(expected_token if st.session_state.get("map_login_authenticated") else None, clear=clear_browser)
+    bridge = _bridge(
+        expected_token if st.session_state.get("map_login_authenticated") else None,
+        clear=clear_browser,
+        remember=bool(st.session_state.get("map_login_remember", False)),
+    )
     if not getattr(bridge, "ready", False):
         st.info("Restaurando sesión…")
         st.stop()
@@ -422,12 +430,14 @@ def require_login() -> None:
     with st.form("map_login_form"):
         st.title("Redes Edelmag Magallanes")
         st.caption("Inicia sesión para continuar")
-        username = st.text_input("Cuenta")
+        username = st.text_input("Usuario", help="Nombre y apellido juntos, en mayúsculas. También puedes usar tu correo.")
         password = st.text_input("Contraseña", type="password")
+        remember_session = st.checkbox("Recordar sesión (máximo 5 horas sin actividad)")
         submitted = st.form_submit_button("Ingresar", use_container_width=True)
 
     if submitted:
         normalized_username = username.strip()
+        st.session_state["map_login_remember"] = bool(remember_session)
         if is_config_user(normalized_username):
             credentials_ok = _verify_config_password(password)
             normalized_username = CONFIG_USERNAME

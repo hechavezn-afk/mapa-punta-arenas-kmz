@@ -32,6 +32,8 @@ supabase_secret_key = "sb_secret_..."
 
 La clave `sb_secret_...` solo la usa Python en el servidor. Tras desplegar, entra con la cuenta de configuración y abre **Configuración general → Administrar cuentas** para crear las cuentas que falten y descargar el PDF con sus claves iniciales. Para entrar a esa pantalla también se puede usar `?admin=accounts`. Los usuarios nuevos deben completar segundo factor con Authenticator o correo; los códigos por correo dependen de habilitar Email y ajustar la plantilla de Supabase para mostrar `{{ .Token }}`.
 
+Los usuarios ingresan con su nombre y apellido juntos, en mayúsculas y sin espacios (por ejemplo, `LUISGARRIDO`), su contraseña de Supabase y luego el segundo factor. También pueden ingresar con su correo. En cada ingreso pueden elegir **Recordar sesión** para restaurarla tras recargar o reabrir el navegador; toda sesión vence tras cinco horas sin actividad.
+
 Para habilitar el almacenamiento compartido de hallazgos, ejecuta una vez el SQL de `supabase/migrations/202611120001_shared_maintenance_findings.sql` en el SQL Editor del proyecto. La migración crea tablas privadas y un bucket privado; no revoca ni modifica permisos globales de `storage.objects`.
 
 Los archivos KMZ incluidos son los datos usados por el visor:

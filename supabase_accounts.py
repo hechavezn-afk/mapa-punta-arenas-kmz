@@ -8,8 +8,10 @@ from __future__ import annotations
 
 from io import BytesIO
 import json
+import re
 import secrets
 import string
+import unicodedata
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -58,14 +60,22 @@ def auth_config() -> tuple[str, str, str]:
 def account_roster() -> dict[str, dict[str, str]]:
     rows = [("HECTOR", HECTOR_ACCOUNT[0], HECTOR_ACCOUNT[2])]
     rows.extend((email.split("@", 1)[0].upper(), name, email) for name, email in USER_ROSTER)
-    return {alias.upper(): {"name": name, "email": email} for alias, name, email in rows}
+    roster: dict[str, dict[str, str]] = {}
+    for legacy_alias, name, email in rows:
+        normalized_name = unicodedata.normalize("NFKD", name)
+        username = re.sub(r"[^A-Z0-9]", "", normalized_name.encode("ascii", "ignore").decode("ascii").upper())
+        record = {"name": name, "email": email, "username": username}
+        # Accept both the requested name-based username and the former email alias.
+        roster[username] = record
+        roster[legacy_alias.upper()] = record
+    return roster
 
 
 def account_for_identity(identity: str) -> tuple[str, dict[str, str]] | None:
     raw = (identity or "").strip().casefold()
     for alias, account in account_roster().items():
         if raw in (alias.casefold(), account["email"].casefold()):
-            return alias, account
+            return account["username"], account
     return None
 
 
