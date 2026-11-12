@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import threading
@@ -269,6 +270,7 @@ def _supabase_second_factor() -> None:
     if not client or not alias or not email:
         return
     st.subheader("Verificación en dos pasos")
+    st.caption(f"Cuenta {alias} · correo asociado: {email}")
     try:
         factors = client.auth.mfa.list_factors()
         verified = [f for f in (getattr(factors, "totp", None) or []) if getattr(f, "status", "") == "verified"]
@@ -319,16 +321,24 @@ def _supabase_second_factor() -> None:
         qr = enrollment["qr_code"]
         if qr.startswith("data:image/"):
             st.markdown(f'<img alt="QR para configurar Authenticator" width="190" src="{qr}">', unsafe_allow_html=True)
+        elif "<svg" in qr[:300].lower():
+            qr_svg = base64.b64encode(qr.encode("utf-8")).decode("ascii")
+            st.markdown(
+                f'<img alt="QR para configurar Authenticator" width="190" '
+                f'src="data:image/svg+xml;base64,{qr_svg}">',
+                unsafe_allow_html=True,
+            )
         if enrollment.get("secret"):
-            st.caption("Si no puedes escanear: " + enrollment["secret"])
+            st.caption("Si no puedes escanear, ingresa esta clave manualmente en la app Authenticator:")
+            st.code(enrollment["secret"], language=None)
         factor_id = enrollment["factor_id"]
 
     with st.form("map_totp_form", clear_on_submit=True):
-        code = st.text_input("Código de Authenticator", max_chars=12)
+        code = st.text_input("Código de Authenticator", max_chars=12, placeholder="123456")
         verify = st.form_submit_button("Verificar e ingresar", type="primary")
     if verify:
         try:
-            client.auth.mfa.challenge_and_verify({"factor_id": factor_id, "code": code.strip()})
+            client.auth.mfa.challenge_and_verify({"factor_id": factor_id, "code": code.strip().replace(" ", "")})
             _finish_supabase_login(alias)
         except Exception:
             st.error("El código no es válido o ya venció. Revisa la hora automática del teléfono e inténtalo de nuevo.")
