@@ -67,11 +67,27 @@ def _request(method: str, path: str, payload=None, *, content_type="application/
             raw = response.read()
             return json.loads(raw.decode("utf-8")) if raw else None
     except HTTPError as exc:
+        # Keep the useful PostgREST/Storage diagnostic. The previous generic 409
+        # message incorrectly suggested that every conflict meant a missing migration.
+        try:
+            error_body = json.loads(exc.read().decode("utf-8", errors="replace"))
+        except (ValueError, OSError):
+            error_body = {}
+        error_code = str(error_body.get("code") or "")
+        error_message = str(error_body.get("message") or "").strip()
+        error_detail = str(error_body.get("details") or "").strip()
+        diagnostic = " · ".join(part for part in (error_message, error_detail) if part)
         if exc.code == 404:
             raise FindingsError("No encuentro las tablas o el bucket. Ejecuta la migración SQL de Supabase una vez.") from None
         if exc.code in (401, 403):
             raise FindingsError("Supabase rechazó el acceso del servidor. Revisa la clave privada configurada.") from None
-        raise FindingsError(f"Supabase respondió con error HTTP {exc.code}. Revisa que la migración esté aplicada.") from None
+        if exc.code == 409:
+            if error_code == "23505":
+                raise FindingsError(f"Supabase detectó un registro duplicado ({diagnostic or 'clave única'}). No se guardó el hallazgo; vuelve a intentarlo. Si persiste, comparte este detalle con soporte.") from None
+            raise FindingsError(f"Supabase respondió HTTP 409 ({diagnostic or 'conflicto de datos'}). No se guardó el hallazgo. Revisa el detalle indicado; una migración pendiente solo es una de las posibles causas.") from None
+        if diagnostic:
+            raise FindingsError(f"Supabase respondió HTTP {exc.code}: {diagnostic}") from None
+        raise FindingsError(f"Supabase respondió con error HTTP {exc.code}. Revisa la configuración de la base de datos.") from None
     except (URLError, TimeoutError, OSError, ValueError):
         raise FindingsError("No se pudo conectar con Supabase. Comprueba la conexión y vuelve a intentar.") from None
 
@@ -404,8 +420,8 @@ def render_findings_panel() -> None:
             latitude = lat_col.text_input("Latitud", value=str(location.get("lat", "")), placeholder="Se completa desde el activo")
             longitude = lon_col.text_input("Longitud", value=str(location.get("lon", "")), placeholder="Se completa desde el activo")
             second_lat_col, second_lon_col = st.columns(2)
-            second_latitude = second_lat_col.text_input("Latitud segundo activo", placeholder="Opcional")
-            second_longitude = second_lon_col.text_input("Longitud segundo activo", placeholder="Opcional")
+            second_latitude = second_lat_col.text_input("Latitud segundo activo", placeholder="Si aplica")
+            second_longitude = second_lon_col.text_input("Longitud segundo activo", placeholder="Si aplica")
             photos = st.file_uploader("Fotos (máximo 3)", type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key="finding_create_photos")
             submit = st.form_submit_button("Guardar hallazgo compartido", type="primary", width="stretch")
         if submit:
@@ -418,12 +434,19 @@ def render_findings_panel() -> None:
                     second = lookup_asset(f_locality, second_asset) if second_asset.strip() else None
                     lat = _coordinate(latitude, asset, "latitude", "latitud del primer activo")
                     lon = _coordinate(longitude, asset, "longitude", "longitud del primer activo")
-                    lat2 = _coordinate(second_latitude, second, "latitude", "latitud del segundo activo", optional=True)
-                    lon2 = _coordinate(second_longitude, second, "longitude", "longitud del segundo activo", optional=True)
-                    if (lat2 is None) != (lon2 is None):
-                        raise FindingsError("Completa latitud y longitud del segundo activo, o deja ambas vacías.")
-                    if second_asset.strip() and lat2 is None:
-                        raise FindingsError("No encontré el segundo activo en esa localidad; indica ambas coordenadas.")
+                    # A finding may concern a single point. The second asset and
+                    # its coordinates enrich the record only when available.
+                    second_lat_raw = (second_latitude or "").strip()
+                    second_lon_raw = (second_longitude or "").strip()
+                    if second_lat_raw and second_lon_raw:
+                        lat2 = _coordinate(second_lat_raw, None, "latitude", "latitud del segundo activo")
+                        lon2 = _coordinate(second_lon_raw, None, "longitude", "longitud del segundo activo")
+                    elif second and not second_lat_raw and not second_lon_raw:
+                        lat2, lon2 = float(second["latitude"]), float(second["longitude"])
+                    else:
+                        # Ignore an incomplete optional pair rather than blocking
+                        # a valid single-coordinate finding.
+                        lat2, lon2 = None, None
                     category = category_choice
                     payload = {"locality": f_locality, "notice_number": notice.strip(), "category": category,
                                "description": description.strip(), "priority": priority, "status": "Pendiente",
@@ -486,10 +509,15 @@ def render_findings_panel() -> None:
                         matched_second = lookup_asset(edit_locality, edit_second_asset) if edit_second_asset.strip() else None
                         edit_lat = _edited_coordinate(edit_latitude, selected.get("latitude"), matched_asset, "latitude", "latitud")
                         edit_lon = _edited_coordinate(edit_longitude, selected.get("longitude"), matched_asset, "longitude", "longitud")
-                        edit_lat2 = _edited_coordinate(edit_second_latitude, selected.get("second_latitude"), matched_second, "latitude", "latitud del segundo punto", optional=True)
-                        edit_lon2 = _edited_coordinate(edit_second_longitude, selected.get("second_longitude"), matched_second, "longitude", "longitud del segundo punto", optional=True)
-                        if (edit_lat2 is None) != (edit_lon2 is None):
-                            raise FindingsError("Completa latitud y longitud del segundo punto, o deja ambas vacías.")
+                        second_lat_raw = (edit_second_latitude or "").strip()
+                        second_lon_raw = (edit_second_longitude or "").strip()
+                        if second_lat_raw and second_lon_raw:
+                            edit_lat2 = _edited_coordinate(second_lat_raw, selected.get("second_latitude"), matched_second, "latitude", "latitud del segundo punto")
+                            edit_lon2 = _edited_coordinate(second_lon_raw, selected.get("second_longitude"), matched_second, "longitude", "longitud del segundo punto")
+                        elif matched_second and not second_lat_raw and not second_lon_raw:
+                            edit_lat2, edit_lon2 = float(matched_second["latitude"]), float(matched_second["longitude"])
+                        else:
+                            edit_lat2, edit_lon2 = None, None
                         update_finding(selected, {"status": new_status, "priority": new_priority,
                                                   "locality": edit_locality, "notice_number": new_notice.strip(),
                                                   "category": edit_category,
