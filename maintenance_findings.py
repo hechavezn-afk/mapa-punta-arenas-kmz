@@ -294,6 +294,7 @@ def render_findings_page() -> None:
     st.title("Hallazgos de mantenimiento")
     st.caption("Registro compartido entre usuarios · Filtra por localidad, registra aviso y prioridad, y actualiza el seguimiento.")
     if st.button("← Volver al mapa"):
+        st.session_state.pop("show_findings", None)
         st.query_params.clear()
         st.rerun()
 
