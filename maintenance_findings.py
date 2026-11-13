@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from html import escape
 import json
 import math
 import re
@@ -211,58 +212,27 @@ def finding_history(finding_id: str) -> list[dict]:
     return _request("GET", "/rest/v1/maintenance_finding_history?" + query) or []
 
 
-def _heatmap(rows):
-    import pydeck as pdk
-    if not rows:
-        st.info("No hay hallazgos para los filtros elegidos.")
-        return
-    points, paths, cells = [], [], {}
+def _map_payload(rows, show_heat, focus):
+    cases, cells = [], {}
+    colors = {"Baja": "#1976a3", "Media": "#b06300", "Alta": "#c53427", "Urgente": "#89152e"}
     for row in rows:
-        weight = {"Baja": 1, "Media": 2, "Alta": 3, "Urgente": 4}.get(row.get("priority"), 2)
-        label = f"{row.get('category','Hallazgo')} · {row.get('asset_code') or row.get('notice_number') or row['id'][:8]}"
-        start = [float(row["longitude"]), float(row["latitude"])]
-        points.append({"latitude": start[1], "longitude": start[0], "weight": weight, "label": label})
-        end_lat, end_lon = row.get("second_latitude"), row.get("second_longitude")
-        if end_lat is not None and end_lon is not None:
-            end = [float(end_lon), float(end_lat)]
-            paths.append({"path": [start, end], "label": label})
-            points.append({"latitude": end[1], "longitude": end[0], "weight": weight, "label": label})
-    # Aggregate in approximately 100 m cells so the hotspot footprint stays
-    # geographically meaningful as the map zoom changes.
-    for point in points:
-        lat, lon = point["latitude"], point["longitude"]
-        cell_y = round(lat * 111_320 / 100)
-        cell_x = round(lon * 111_320 * max(0.2, abs(math.cos(math.radians(lat)))) / 100)
-        cell = cells.setdefault((cell_x, cell_y), {"latitude": 0.0, "longitude": 0.0, "weight": 0.0, "count": 0})
-        cell["latitude"] += lat
-        cell["longitude"] += lon
-        cell["weight"] += point["weight"]
-        cell["count"] += 1
-    heat_points = [{**cell, "latitude": cell["latitude"] / cell["count"],
-                    "longitude": cell["longitude"] / cell["count"],
-                    "label": f"{cell['count']} ubicaciones de hallazgos · prioridad acumulada {cell['weight']:.0f}"}
-                   for cell in cells.values()]
-    latitudes = [p["latitude"] for p in points]
-    longitudes = [p["longitude"] for p in points]
-    center_lat = (min(latitudes) + max(latitudes)) / 2
-    center_lon = (min(longitudes) + max(longitudes)) / 2
-    span = max(max(latitudes) - min(latitudes),
-               (max(longitudes) - min(longitudes)) * abs(math.cos(math.radians(center_lat))),
-               0.0001)
-    zoom = max(3, min(18, math.log2(180 / span) - 0.25))
-    layers = [
-        pdk.Layer("HeatmapLayer", data=heat_points, get_position="[longitude, latitude]", get_weight="weight",
-                  radiusPixels=55, intensity=1.2, threshold=0.03, opacity=0.72),
-        pdk.Layer("PathLayer", data=paths, get_path="path", get_color=[210, 45, 35, 220],
-                  width_min_pixels=3, pickable=True),
-        pdk.Layer("ScatterplotLayer", data=points, get_position="[longitude, latitude]", get_radius=42,
-                  get_fill_color="[220, 70, 45, 210]", get_line_color="[255,255,255,240]",
-                  line_width_min_pixels=1, pickable=True),
-    ]
-    st.pydeck_chart(pdk.Deck(layers=layers, initial_view_state=pdk.ViewState(
-        latitude=center_lat, longitude=center_lon, zoom=zoom,
-        pitch=0, bearing=0), tooltip={"text": "{label}"},
-        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"), width="stretch")
+        start = [float(row["latitude"]), float(row["longitude"])]
+        end = None
+        if row.get("second_latitude") is not None and row.get("second_longitude") is not None:
+            end = [float(row["second_latitude"]), float(row["second_longitude"])]
+        label = " · ".join(str(row[key]) for key in ("category", "notice_number", "priority", "status") if row.get(key))
+        cases.append({"start": start, "end": end, "label": label, "color": colors.get(row.get("priority"), "#b06300")})
+        if show_heat:
+            for lat, lon in [start] + ([end] if end else []):
+                key = (round(lat * 1113.2), round(lon * 1113.2 * math.cos(math.radians(lat))))
+                cell = cells.setdefault(key, [0, 0, 0, 0])
+                cell[0] += lat
+                cell[1] += lon
+                cell[2] += 1
+                cell[3] += {"Baja": 1, "Media": 2, "Alta": 3, "Urgente": 4}.get(row.get("priority"), 2)
+    heat = [{"center": [lat / count, lon / count], "weight": weight}
+            for lat, lon, count, weight in cells.values()]
+    return {"cases": cases, "heat": heat, "focus": focus}
 
 
 def _coordinate(raw: str, asset: dict | None, axis: str, label: str, optional: bool = False):
@@ -290,19 +260,20 @@ def _edited_coordinate(raw: str, original, asset: dict | None, axis: str, label:
     return _coordinate(raw, None, axis, label, optional=optional)
 
 
-def render_findings_page() -> None:
-    st.title("Hallazgos de mantenimiento")
-    st.caption("Registro compartido entre usuarios · Filtra por localidad, registra aviso y prioridad, y actualiza el seguimiento.")
-    if st.button("← Volver al mapa"):
+def render_findings_panel() -> None:
+    heading, close = st.columns((5, 1), vertical_alignment="center")
+    heading.subheader("Hallazgos de mantenimiento")
+    if close.button("×", key="close_findings_panel", help="Cerrar hallazgos"):
         st.session_state.pop("show_findings", None)
-        st.query_params.clear()
+        st.query_params.pop("findings", None)
         st.rerun()
 
-    filter_cols = st.columns((1.4, 1.2, 1))
+    filter_cols = st.columns(2)
     locality = filter_cols[0].selectbox("Localidad", ("Todas",) + LOCALITIES, key="finding_locality")
     status_filter = filter_cols[1].selectbox("Estado", ("Abiertos", "Todos") + STATUSES, key="finding_status")
-    if filter_cols[2].button("Actualizar lista", width="stretch"):
-        st.rerun()
+    controls = st.columns(2)
+    show_heat = controls[0].checkbox("Concentración")
+    controls[1].button("Actualizar lista", width="stretch")
 
     try:
         rows = list_findings(locality, status_filter)
@@ -316,27 +287,23 @@ def render_findings_page() -> None:
         st.error(str(exc))
         return
 
-    count_cols = st.columns(4)
-    for col, label, count in zip(count_cols, ("Hallazgos", "Pendientes", "Alta / urgente", "Resueltos"),
-                                 (len(rows), sum(r.get("status") == "Pendiente" for r in rows),
-                                  sum(r.get("priority") in ("Alta", "Urgente") for r in rows),
-                                  sum(r.get("status") in ("Resuelto", "Cerrado") for r in rows))):
-        col.metric(label, count)
+    st.caption(f"{len(rows)} hallazgos con los filtros seleccionados")
+    focus = None
+    if rows:
+        by_id = {row["id"]: row for row in rows}
+        def describe(finding_id):
+            row = by_id[finding_id]
+            return " · ".join(str(row[key]) for key in ("category", "notice_number", "asset_code", "status") if row.get(key))
 
-    map_col, form_col = st.columns((1.6, 1))
-    with map_col:
-        st.subheader("Mapa de concentración · celdas de 100 m")
-        _heatmap(rows)
-        if rows:
-            display = [{"Localidad": r.get("locality"), "Aviso": r.get("notice_number"),
-                        "Activo": " ↔ ".join(x for x in (r.get("asset_code"), r.get("second_asset_code")) if x),
-                        "Hallazgo": r.get("category"), "Prioridad": r.get("priority"), "Estado": r.get("status"),
-                        "Actualizado": str(r.get("updated_at", ""))[:16].replace("T", " "),
-                        "Abrir en Maps": f"https://www.google.com/maps?q={r.get('latitude')},{r.get('longitude')}"}
-                       for r in rows]
-            st.dataframe(display, width="stretch", hide_index=True,
-                         column_config={"Abrir en Maps": st.column_config.LinkColumn("Abrir en Maps", display_text="Ver punto")})
-    with form_col:
+        finding_id = st.selectbox("Caso en el mapa", list(by_id), format_func=describe)
+        if st.button("Ubicar en el mapa"):
+            row = by_id[finding_id]
+            focus = [float(row["latitude"]), float(row["longitude"])]
+    payload = escape(json.dumps(_map_payload(rows, show_heat, focus)), quote=True)
+    st.html(f'<span hidden id="findings-map-data" data-rows="{payload}"></span>')
+
+    create_tab, follow_tab = st.tabs(("Crear hallazgo", "Seguimiento"))
+    with create_tab:
         st.subheader("Crear hallazgo")
         with st.form("create_shared_finding", clear_on_submit=True):
             f_locality = st.selectbox("Localidad", LOCALITIES, index=LOCALITIES.index(locality) if locality in LOCALITIES else 0)
@@ -385,8 +352,7 @@ def render_findings_page() -> None:
                 except FindingsError as exc:
                     st.error(str(exc))
 
-        st.divider()
-        st.subheader("Actualizar seguimiento")
+    with follow_tab:
         if not rows:
             st.caption("Agrega o filtra hallazgos para iniciar el seguimiento.")
         else:
