@@ -6,6 +6,7 @@ from html import escape
 import json
 import math
 import re
+import time
 import zipfile
 from pathlib import Path
 from xml.etree import ElementTree as ET
@@ -20,9 +21,16 @@ from finding_catalog import DEFAULT_FINDING_CATEGORIES
 from supabase_accounts import auth_config, SupabaseSetupError
 
 LOCALITIES = ("Punta Arenas", "Puerto Natales", "Porvenir", "Puerto Williams")
+LOCALITY_CENTERS = {"Punta Arenas": (-53.15, -70.92), "Puerto Natales": (-51.73, -72.51), "Porvenir": (-53.30, -70.37), "Puerto Williams": (-54.93, -67.61)}
 STATUSES = ("Pendiente", "En revisión", "Revisado", "Resuelto", "Cerrado")
 PRIORITIES = ("Baja", "Media", "Alta", "Urgente")
 CATEGORIES = DEFAULT_FINDING_CATEGORIES
+DEFAULT_CATEGORY_ICONS = {
+    "Poda preventiva": "🌳", "Poste desaplomado": "🪵", "Estructura dañada": "🛠️",
+    "Retensado de línea": "🪢", "Tirante o protección": "⚠️", "Cruceta dañada": "🔩",
+    "Aislador dañado": "⚡", "Conductor cortado o deteriorado": "🧵",
+    "Empalme irregular": "🔧", "Vegetación cercana a la red": "🌿", "Otro": "📍",
+}
 BUCKET = "maintenance-finding-photos"
 DATA_DIR = Path(__file__).parent
 ASSET_KMZ = {
@@ -80,17 +88,46 @@ def list_findings(locality: str, status_filter: str) -> list[dict]:
     return rows
 
 
-def list_shared_categories() -> list[str]:
-    query = urlencode({"select": "category", "order": "category.asc", "limit": "2000"})
-    rows = _request("GET", "/rest/v1/maintenance_findings?" + query) or []
-    return sorted({str(row.get("category", "")).strip() for row in rows if str(row.get("category", "")).strip()}, key=str.casefold)
+def list_shared_categories() -> list[dict]:
+    query = urlencode({"select": "name,icon", "order": "name.asc", "limit": "500"})
+    try:
+        rows = _request("GET", "/rest/v1/maintenance_finding_categories?" + query) or []
+        st.session_state.finding_category_catalog_ready = True
+    except FindingsError as exc:
+        # The finding workflow remains usable if the optional icon catalog migration
+        # has not been applied yet. The base shared findings table is independent.
+        if "tablas o el bucket" not in str(exc):
+            raise
+        st.session_state.finding_category_catalog_ready = False
+        return [{"name": name, "icon": DEFAULT_CATEGORY_ICONS.get(name, "📍")} for name in CATEGORIES]
+    if not rows:
+        # Seed existing/default categories once; keeps current installations backward-compatible.
+        rows = [{"name": name, "icon": DEFAULT_CATEGORY_ICONS.get(name, "📍")} for name in CATEGORIES]
+        for row in rows:
+            _request("POST", "/rest/v1/maintenance_finding_categories", row, prefer="resolution=ignore-duplicates")
+        rows = _request("GET", "/rest/v1/maintenance_finding_categories?" + query) or rows
+    return rows
 
 
-def _selected_category(custom: str, selected: str, available: list[str]) -> str:
-    value = (custom or "").strip()
-    if not value:
-        return selected
-    return next((item for item in available if item.casefold() == value.casefold()), value)
+def save_shared_category(name: str, icon: str) -> None:
+    name = (name or "").strip()
+    icon = (icon or "").strip()
+    if not name or len(name) > 120:
+        raise FindingsError("Escribe un nombre de tipo de hallazgo (máximo 120 caracteres).")
+    if not icon or len(icon) > 16:
+        raise FindingsError("Elige un emoji como icono (por ejemplo 🌳).")
+    _request("POST", "/rest/v1/maintenance_finding_categories", {"name": name, "icon": icon},
+             prefer="resolution=merge-duplicates,return=minimal")
+
+
+def delete_shared_category(name: str) -> None:
+    query = urlencode({"name": f"eq.{name}"})
+    _request("DELETE", f"/rest/v1/maintenance_finding_categories?{query}")
+
+
+def _category_icon(name: str, categories: list[dict]) -> str:
+    return next((str(row.get("icon") or "📍") for row in categories if row.get("name") == name),
+                DEFAULT_CATEGORY_ICONS.get(name, "📍"))
 
 
 @st.cache_data(show_spinner="Indexando activos para vincular el hallazgo…")
@@ -212,7 +249,7 @@ def finding_history(finding_id: str) -> list[dict]:
     return _request("GET", "/rest/v1/maintenance_finding_history?" + query) or []
 
 
-def _map_payload(rows, show_heat, focus):
+def _map_payload(rows, show_heat, focus, categories):
     cases, cells = [], {}
     colors = {"Baja": "#1976a3", "Media": "#b06300", "Alta": "#c53427", "Urgente": "#89152e"}
     for row in rows:
@@ -221,7 +258,7 @@ def _map_payload(rows, show_heat, focus):
         if row.get("second_latitude") is not None and row.get("second_longitude") is not None:
             end = [float(row["second_latitude"]), float(row["second_longitude"])]
         label = " · ".join(str(row[key]) for key in ("category", "notice_number", "priority", "status") if row.get(key))
-        cases.append({"start": start, "end": end, "label": label, "color": colors.get(row.get("priority"), "#b06300")})
+        cases.append({"start": start, "end": end, "label": label, "icon": _category_icon(row.get("category", ""), categories), "color": colors.get(row.get("priority"), "#b06300")})
         if show_heat:
             for lat, lon in [start] + ([end] if end else []):
                 key = (round(lat * 1113.2), round(lon * 1113.2 * math.cos(math.radians(lat))))
@@ -282,12 +319,40 @@ def render_findings_panel() -> None:
         st.info("La migración no borra datos ni cambia los permisos globales de Storage. Está en `supabase/migrations/202611120001_shared_maintenance_findings.sql`.")
         return
     try:
-        available_categories = list(dict.fromkeys((*CATEGORIES, *list_shared_categories())))
+        shared_categories = list_shared_categories()
     except FindingsError as exc:
         st.error(str(exc))
         return
 
+    available_categories = [str(row["name"]) for row in shared_categories]
     st.caption(f"{len(rows)} hallazgos con los filtros seleccionados")
+    with st.expander("⚙️ Administrar tipos de hallazgo"):
+        st.caption("Este catálogo es compartido por todas las personas usuarias.")
+        if not st.session_state.get("finding_category_catalog_ready", True):
+            st.info("El catálogo compartido aún necesita la migración `supabase/migrations/202611130001_shared_finding_categories.sql`. Los hallazgos y sus iconos predeterminados siguen disponibles.")
+        else:
+            with st.form("shared_finding_category_form", clear_on_submit=True):
+                cat_col, icon_col = st.columns((3, 1))
+                cat_name = cat_col.text_input("Nombre del tipo", placeholder="Ej. Cable bajo")
+                cat_icon = icon_col.text_input("Icono", value="📍", max_chars=16, help="Usa un emoji, por ejemplo 🌳 para poda")
+                cat_save = st.form_submit_button("Guardar tipo compartido", type="primary", width="stretch")
+            if cat_save:
+                try:
+                    save_shared_category(cat_name, cat_icon)
+                    st.success("Tipo e icono guardados para todos los usuarios.")
+                    st.rerun()
+                except FindingsError as exc:
+                    st.error(str(exc))
+            editable = [row for row in shared_categories if row["name"] not in CATEGORIES]
+            if editable:
+                remove_name = st.selectbox("Tipo personalizado para quitar", [row["name"] for row in editable], key="finding_category_delete")
+                if st.button("Eliminar tipo personalizado", key="delete_shared_finding_category"):
+                    try:
+                        delete_shared_category(remove_name)
+                        st.success("Tipo eliminado del catálogo compartido. Los casos históricos se conservan.")
+                        st.rerun()
+                    except FindingsError as exc:
+                        st.error(str(exc))
     focus = None
     if rows:
         by_id = {row["id"]: row for row in rows}
@@ -299,26 +364,45 @@ def render_findings_panel() -> None:
         if st.button("Ubicar en el mapa"):
             row = by_id[finding_id]
             focus = [float(row["latitude"]), float(row["longitude"])]
-    payload = escape(json.dumps(_map_payload(rows, show_heat, focus)), quote=True)
+    payload = escape(json.dumps(_map_payload(rows, show_heat, focus, shared_categories), ensure_ascii=False), quote=True)
     st.html(f'<span hidden id="findings-map-data" data-rows="{payload}"></span>')
 
     create_tab, follow_tab = st.tabs(("Crear hallazgo", "Seguimiento"))
     with create_tab:
         st.subheader("Crear hallazgo")
+        if st.button("📍 Añadir ubicación en el mapa", key="finding_place_on_map", width="stretch"):
+            st.session_state.finding_place_mode = not st.session_state.get("finding_place_mode", False)
+        placing = bool(st.session_state.get("finding_place_mode", False))
+        st.caption("Clic derecho en el mapa para colocar el hallazgo. En celular o tablet, activa este botón y toca el lugar. El marcador se puede arrastrar para corregirlo.")
+        place_col, gps_col = st.columns(2)
+        if place_col.button("Usar centro de la localidad", key="finding_use_map_center", width="stretch"):
+            center_lat, center_lon = LOCALITY_CENTERS.get(locality, LOCALITY_CENTERS["Punta Arenas"])
+            st.session_state.finding_location = {"lat": center_lat, "lon": center_lon, "source": "map"}
+            st.rerun()
+        if gps_col.button("◎ Usar mi ubicación GPS", key="finding_use_gps", width="stretch"):
+            st.session_state.finding_location = {"source": "gps", "requested_at": time.time()}
+        location = st.session_state.get("finding_location", {})
+        if not location:
+            st.html("<script>try{const p=JSON.parse(sessionStorage.getItem('finding-pending-coordinate')||'null');if(p){const n=parent.document.querySelector('#finding-coordinate-data');if(n){n.dataset.lat=p.lat;n.dataset.lon=p.lon;n.dataset.source='map'}sessionStorage.removeItem('finding-pending-coordinate')}}catch(e){}</script>")
+        coords_node = '<span hidden id="finding-coordinate-data" data-lat="{}" data-lon="{}" data-source="{}" data-requested-at="{}"></span>'.format(
+            escape(str(location.get("lat", "")), quote=True), escape(str(location.get("lon", "")), quote=True),
+            escape(str(location.get("source", "")), quote=True), escape(str(location.get("requested_at", "")), quote=True))
+        st.html(coords_node)
+        if placing:
+            st.info("Modo ubicación activo: toca el mapa para fijar el punto. En computador también puedes usar clic derecho.")
         with st.form("create_shared_finding", clear_on_submit=True):
             f_locality = st.selectbox("Localidad", LOCALITIES, index=LOCALITIES.index(locality) if locality in LOCALITIES else 0)
             notice = st.text_input("N.º de aviso", placeholder="Número de aviso")
-            category_choice = st.selectbox("Hallazgo", available_categories)
-            category_custom = st.text_input("Agregar tipo nuevo (opcional)", max_chars=120,
-                                            placeholder="Escribe un tipo que aún no esté en la lista")
+            category_choice = st.selectbox("Hallazgo", available_categories,
+                                           format_func=lambda name: f"{_category_icon(name, shared_categories)}  {name}")
             priority = st.select_slider("Prioridad", options=PRIORITIES, value="Media")
             asset_code = st.text_input("Poste o activo relacionado", placeholder="Código exacto; se buscará en el inventario")
             second_asset = st.text_input("Segundo poste / activo (si corresponde)", placeholder="Para un caso entre dos activos")
             description = st.text_area("Descripción / acción requerida", max_chars=3000)
             st.caption("Si el código existe en el inventario, las coordenadas se completan desde el KMZ. También puedes indicarlas manualmente.")
             lat_col, lon_col = st.columns(2)
-            latitude = lat_col.text_input("Latitud", placeholder="Se completa desde el activo")
-            longitude = lon_col.text_input("Longitud", placeholder="Se completa desde el activo")
+            latitude = lat_col.text_input("Latitud", value=str(location.get("lat", "")), placeholder="Se completa desde el activo")
+            longitude = lon_col.text_input("Longitud", value=str(location.get("lon", "")), placeholder="Se completa desde el activo")
             second_lat_col, second_lon_col = st.columns(2)
             second_latitude = second_lat_col.text_input("Latitud segundo activo", placeholder="Opcional")
             second_longitude = second_lon_col.text_input("Longitud segundo activo", placeholder="Opcional")
@@ -340,13 +424,16 @@ def render_findings_panel() -> None:
                         raise FindingsError("Completa latitud y longitud del segundo activo, o deja ambas vacías.")
                     if second_asset.strip() and lat2 is None:
                         raise FindingsError("No encontré el segundo activo en esa localidad; indica ambas coordenadas.")
-                    category = _selected_category(category_custom, category_choice, available_categories)
+                    category = category_choice
                     payload = {"locality": f_locality, "notice_number": notice.strip(), "category": category,
                                "description": description.strip(), "priority": priority, "status": "Pendiente",
                                "asset_code": asset_code.strip() or None, "second_asset_code": second_asset.strip() or None,
                                "latitude": lat, "longitude": lon, "second_latitude": lat2, "second_longitude": lon2,
                                "created_by": actor, "updated_by": actor}
                     save_new(payload, photos)
+                    st.session_state.finding_place_mode = False
+                    st.session_state.pop("finding_location", None)
+                    st.html("<script>try{sessionStorage.removeItem('finding-pending-coordinate')}catch(e){}</script>")
                     st.success("Hallazgo compartido guardado.")
                     st.rerun()
                 except FindingsError as exc:
@@ -374,10 +461,11 @@ def render_findings_panel() -> None:
                 new_status = st.selectbox("Estado", STATUSES, index=STATUSES.index(selected.get("status", "Pendiente")))
                 new_priority = st.selectbox("Prioridad", PRIORITIES, index=PRIORITIES.index(selected.get("priority", "Media")))
                 new_notice = st.text_input("Aviso", value=selected.get("notice_number", ""))
-                edit_category = st.selectbox("Hallazgo", available_categories,
+                edit_options = list(dict.fromkeys(available_categories + [str(selected.get("category", "Otro"))]))
+                edit_category = st.selectbox("Hallazgo", edit_options,
                                              index=available_categories.index(selected.get("category"))
-                                             if selected.get("category") in available_categories else 0)
-                edit_category_custom = st.text_input("Cambiar a un tipo nuevo (opcional)", max_chars=120)
+                                             if selected.get("category") in available_categories else 0,
+                                             format_func=lambda name: f"{_category_icon(name, shared_categories)}  {name}" if name in available_categories else f"📍  {name} (histórico)")
                 edit_asset = st.text_input("Activo relacionado", value=selected.get("asset_code") or "")
                 edit_second_asset = st.text_input("Segundo activo", value=selected.get("second_asset_code") or "")
                 edit_lat_col, edit_lon_col = st.columns(2)
@@ -404,7 +492,7 @@ def render_findings_panel() -> None:
                             raise FindingsError("Completa latitud y longitud del segundo punto, o deja ambas vacías.")
                         update_finding(selected, {"status": new_status, "priority": new_priority,
                                                   "locality": edit_locality, "notice_number": new_notice.strip(),
-                                                  "category": _selected_category(edit_category_custom, edit_category, available_categories),
+                                                  "category": edit_category,
                                                   "asset_code": edit_asset.strip() or None,
                                                   "second_asset_code": edit_second_asset.strip() or None,
                                                   "latitude": edit_lat, "longitude": edit_lon,
