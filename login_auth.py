@@ -3,15 +3,22 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import smtplib
+import ssl
 import threading
 import time
-from secrets import token_urlsafe
+import unicodedata
+from email.message import EmailMessage
+from email.utils import formataddr
+from secrets import randbelow, token_bytes, token_urlsafe
 
 import streamlit as st
 
 # Keep the browser login alive for five hours after the last detected activity.
 # The browser checkbox controls whether a refresh/browser restart can resume it.
 IDLE_TIMEOUT_SECONDS = 5 * 60 * 60
+MFA_ENTRY_WINDOW_SECONDS = 3 * 60
+MFA_ISSUER = "Redes Edelmag Magallanes"
 CONFIG_USERNAME = "configedelmag"
 _CONFIG_PASSWORD_SALT = bytes.fromhex("8b6d6e6043e32a197d28bd24e4183006")
 _CONFIG_PASSWORD_HASH = bytes.fromhex("93d206f1a03596d9ac99a7dc18c059f186cc62a7ae12cae445f1a11eca6e6272")
@@ -231,6 +238,9 @@ def _clear_authentication() -> None:
         "map_supabase_pending_identity",
         "map_supabase_pending_email",
         "map_supabase_mfa_enrollment",
+        "map_email_otp_challenge",
+        "map_email_otp_failures",
+        "map_mfa_deadline",
     ):
         st.session_state.pop(key, None)
 
@@ -257,6 +267,9 @@ def _finish_supabase_login(alias: str) -> None:
     st.session_state.pop("map_supabase_pending_identity", None)
     st.session_state.pop("map_supabase_pending_email", None)
     st.session_state.pop("map_supabase_mfa_enrollment", None)
+    st.session_state.pop("map_email_otp_challenge", None)
+    st.session_state.pop("map_email_otp_failures", None)
+    st.session_state.pop("map_mfa_deadline", None)
     st.rerun()
 
 
@@ -288,6 +301,117 @@ def _totp_enrollment_error(exc: Exception) -> str:
     return f"No se pudo configurar Authenticator. Detalle de Supabase: {safe_message}"
 
 
+def _send_login_code(user_email: str, code: str) -> bool:
+    """Deliver an app-generated code over the same Gmail SMTP flow as AMI."""
+    try:
+        config = dict(st.secrets["security"])
+        sender = str(config.get("smtp_email", "")).strip()
+        host = str(config.get("smtp_host", "")).strip()
+        port = int(config.get("smtp_port", 587))
+        password = str(config.get("smtp_app_password", ""))
+    except Exception:
+        return False
+    if host != "smtp.gmail.com" or port != 587 or not sender or not password:
+        return False
+    message = EmailMessage()
+    message["From"] = formataddr((str(config.get("sender_name", MFA_ISSUER)), sender))
+    message["To"] = user_email
+    message["Subject"] = "Código temporal de acceso · Redes Edelmag Magallanes"
+    message.set_content(
+        f"Tu código temporal de acceso es: {code}\n\n"
+        "Ingresa este código en la app dentro de los próximos 3 minutos. "
+        "Es de un solo uso. No lo compartas. Si no solicitaste este código, ignora este mensaje."
+    )
+    try:
+        with smtplib.SMTP(host, port, timeout=10) as smtp:
+            smtp.ehlo()
+            smtp.starttls(context=ssl.create_default_context())
+            smtp.ehlo()
+            smtp.login(sender, password)
+            smtp.send_message(message, from_addr=sender, to_addrs=[user_email])
+        return True
+    except (OSError, smtplib.SMTPException, ValueError):
+        return False
+
+
+@st.cache_resource
+def _email_code_throttle() -> tuple[threading.Lock, dict[str, float]]:
+    return threading.Lock(), {}
+
+
+def _reserve_email_send(email: str) -> bool:
+    lock, next_send = _email_code_throttle()
+    now = time.monotonic()
+    with lock:
+        for key in [key for key, until in next_send.items() if until <= now]:
+            del next_send[key]
+        key = email.casefold()
+        if key in next_send:
+            return False
+        next_send[key] = now + 60
+        return True
+
+
+def _render_email_code(alias: str, email: str, user_id: str) -> None:
+    deadline = st.session_state.get("map_mfa_deadline")
+    if not deadline:
+        deadline = time.time() + MFA_ENTRY_WINDOW_SECONDS
+        st.session_state["map_mfa_deadline"] = deadline
+    if time.time() >= float(deadline):
+        st.session_state.pop("map_email_otp_challenge", None)
+        st.error("El código venció. Vuelve a iniciar sesión para solicitar otro.")
+        return
+
+    challenge = st.session_state.get("map_email_otp_challenge")
+    if not challenge and st.button("Enviar código temporal", key="map_email_otp_send"):
+        if not _reserve_email_send(email):
+            st.warning("Espera un minuto antes de pedir otro código.")
+        else:
+            code = f"{randbelow(1_000_000):06d}"
+            secret = token_bytes(32)
+            if _send_login_code(email, code):
+                digest = hmac.digest(secret, code.encode("ascii"), "sha256")
+                st.session_state["map_email_otp_challenge"] = (user_id, secret, digest)
+                st.rerun()
+            st.error(
+                "No se pudo enviar el código. Configura en esta app el mismo SMTP de AMI "
+                "dentro de [security] en Streamlit Secrets."
+            )
+    if challenge and challenge[0] == user_id:
+        st.info("Código enviado. Revisa tu bandeja de entrada y correo no deseado.")
+        with st.form("map_email_otp_form", clear_on_submit=True):
+            code = st.text_input("Código temporal de 6 dígitos", type="password", max_chars=12,
+                                 autocomplete="one-time-code")
+            verify = st.form_submit_button("Verificar e ingresar", type="primary")
+        if verify:
+            digits = []
+            for char in str(code or "").strip():
+                if char.isdecimal():
+                    digits.append(str(unicodedata.decimal(char)))
+                elif char.isspace() or char in "-‐‑‒–—\u200b\u200e\u200f":
+                    continue
+                else:
+                    digits = []
+                    break
+            normalized = "".join(digits)
+            supplied = hmac.digest(challenge[1], normalized.encode("ascii"), "sha256")
+            if (time.time() < float(deadline) and len(normalized) == 6
+                    and hmac.compare_digest(challenge[2], supplied)):
+                st.session_state.pop("map_email_otp_challenge", None)
+                st.session_state.pop("map_mfa_deadline", None)
+                st.session_state.pop("map_email_otp_failures", None)
+                _finish_supabase_login(alias)
+            else:
+                failures = int(st.session_state.get("map_email_otp_failures", 0)) + 1
+                st.session_state["map_email_otp_failures"] = failures
+                if failures >= 3:
+                    st.session_state.pop("map_email_otp_challenge", None)
+                    st.session_state.pop("map_email_otp_failures", None)
+                    st.error("Se agotaron los intentos. Inicia sesión nuevamente para pedir otro código.")
+                else:
+                    st.error(f"El código no es válido o ya venció. Intento {failures} de 3.")
+
+
 def _supabase_second_factor() -> None:
     """Require either a verified Authenticator factor or a one-time email code."""
     from supabase_accounts import SupabaseSetupError
@@ -309,37 +433,10 @@ def _supabase_second_factor() -> None:
     options = ["Aplicación Authenticator", "Código temporal por correo"]
     method = st.radio("Elige cómo verificar este ingreso", options, horizontal=True, key="map_mfa_method")
     if method == "Código temporal por correo":
-        if st.button("Enviar código al correo", key="map_email_otp_send"):
-            try:
-                client.auth.sign_in_with_otp({"email": email, "options": {"should_create_user": False}})
-                st.session_state["map_email_otp_sent"] = True
-                st.success("Código enviado. Revisa tu correo, incluida la carpeta de correo no deseado.")
-            except Exception as exc:
-                detail = " ".join((str(getattr(exc, "code", "")), str(getattr(exc, "message", exc)))).casefold()
-                if "email address not authorized" in detail or "email_address_not_authorized" in detail:
-                    st.error(
-                        "Supabase bloqueó el destinatario porque el proyecto aún usa su SMTP compartido. "
-                        "Configura un SMTP propio en Supabase: Authentication → SMTP Settings. "
-                        "Después vuelve a solicitar el código."
-                    )
-                elif "rate limit" in detail or "too many requests" in detail:
-                    st.error("Supabase limitó temporalmente los envíos. Espera un momento antes de volver a solicitar el código.")
-                else:
-                    st.error(
-                        "Supabase no pudo enviar el código. Comprueba SMTP personalizado y la plantilla de correo con {{ .Token }}. "
-                        f"Detalle: {str(getattr(exc, 'message', exc))[:220]}"
-                    )
-        if st.session_state.get("map_email_otp_sent"):
-            with st.form("map_email_otp_form", clear_on_submit=True):
-                code = st.text_input("Código de 6 dígitos", max_chars=12)
-                verify = st.form_submit_button("Verificar e ingresar", type="primary")
-            if verify:
-                try:
-                    client.auth.verify_otp({"email": email, "token": code.strip(), "type": "email"})
-                    st.session_state.pop("map_email_otp_sent", None)
-                    _finish_supabase_login(alias)
-                except Exception:
-                    st.error("El código no es válido o ya venció. Solicita uno nuevo.")
+        user_response = client.auth.get_user()
+        user_id = str(user_response.user.id) if user_response and user_response.user else ""
+        if user_id:
+            _render_email_code(alias, email, user_id)
         return
 
     if verified:
@@ -348,10 +445,22 @@ def _supabase_second_factor() -> None:
         enrollment = st.session_state.get("map_supabase_mfa_enrollment")
         if not enrollment:
             try:
-                # A unique name also avoids collisions with an abandoned enrollment from
-                # an earlier attempt on this account.
+                # Discard abandoned enrollments like AMI before creating a new QR.
+                try:
+                    factors = client.auth.mfa.list_factors()
+                    for old_factor in list(getattr(factors, "all", None) or []):
+                        if (getattr(old_factor, "factor_type", None) == "totp"
+                                and getattr(old_factor, "status", None) == "unverified"):
+                            try:
+                                client.auth.mfa.unenroll({"factor_id": str(old_factor.id)})
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
+                # A unique name avoids collisions with abandoned old enrollments.
                 friendly_name = f"Redes Edelmag {token_urlsafe(5)}"
-                enrolled = client.auth.mfa.enroll({"factor_type": "totp", "friendly_name": friendly_name})
+                enrolled = client.auth.mfa.enroll({"factor_type": "totp", "friendly_name": friendly_name,
+                                                   "issuer": MFA_ISSUER})
                 totp = getattr(enrolled, "totp", None)
                 if not totp or not getattr(totp, "qr_code", ""):
                     raise ValueError("Missing QR")
@@ -384,9 +493,17 @@ def _supabase_second_factor() -> None:
     if verify:
         try:
             client.auth.mfa.challenge_and_verify({"factor_id": factor_id, "code": code.strip().replace(" ", "")})
+            assurance = client.auth.mfa.get_authenticator_assurance_level()
+            level = getattr(assurance, "current_level", "")
+            if "aal2" not in str(getattr(level, "value", level)).casefold():
+                raise RuntimeError("Supabase no confirmó el nivel AAL2")
             _finish_supabase_login(alias)
-        except Exception:
-            st.error("El código no es válido o ya venció. Revisa la hora automática del teléfono e inténtalo de nuevo.")
+        except Exception as exc:
+            detail = f"{getattr(exc, 'code', '')} {getattr(exc, 'message', exc)}".casefold()
+            if "mfa_verification_failed" in detail or "mfa_challenge_expired" in detail:
+                st.error("El código no es válido o ya venció. Revisa la hora automática del teléfono e inténtalo de nuevo.")
+            else:
+                st.error("Supabase no pudo validar el factor Authenticator. Cierra sesión, vuelve a entrar y revisa que TOTP esté habilitado en Authentication → Multi-factor Authentication.")
     if st.button("Cancelar e iniciar con otra cuenta", key="map_mfa_cancel"):
         try:
             client.auth.sign_out()

@@ -211,7 +211,7 @@ def _credentials_pdf(rows: list[dict[str, str]]) -> bytes:
 def render_account_admin() -> None:
     st.title("Administrar cuentas de acceso")
     st.caption("La clave privada se usa solo en el servidor. Las cuentas existentes no se alteran.")
-    st.info("Para que funcione el segundo factor por correo, habilita Email en Supabase Auth y configura la plantilla de acceso para incluir el token {{ .Token }}. Authenticator queda disponible mediante TOTP.")
+    st.info("El segundo factor por correo usa un código temporal propio enviado por SMTP, igual que AMI. Configura en Streamlit Secrets los parámetros smtp_host, smtp_port, smtp_email y smtp_app_password dentro de [security]. Authenticator usa TOTP de Supabase.")
     if st.session_state.get("map_provisioned_credentials"):
         rows = st.session_state["map_provisioned_credentials"]
         st.success(f"Se crearon {len(rows)} cuentas nuevas.")
