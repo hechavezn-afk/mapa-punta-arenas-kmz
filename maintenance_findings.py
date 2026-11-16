@@ -654,6 +654,12 @@ def render_findings_panel() -> None:
             escape(str(location.get("lat", "")), quote=True), escape(str(location.get("lon", "")), quote=True),
             escape(str(location.get("source", "")), quote=True), escape(str(location.get("requested_at", "")), quote=True))
         st.html(coords_node)
+        category_icons = {
+            str(row["name"]): {"icon": str(row.get("icon") or "📍"), "url": _category_icon_url(row)}
+            for row in shared_categories
+        }
+        st.html('<span hidden id="finding-category-icons" data-icons="{}"></span>'.format(
+            escape(json.dumps(category_icons, ensure_ascii=False), quote=True)))
         if placing:
             st.info("Modo ubicación activo: toca el mapa para fijar el punto. En computador también puedes usar clic derecho.")
         with st.form("create_shared_finding", clear_on_submit=True):
