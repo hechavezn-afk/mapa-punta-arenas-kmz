@@ -149,6 +149,33 @@ def _category_icon(name: str, categories: list[dict]) -> str:
                 DEFAULT_CATEGORY_ICONS.get(name, "📍"))
 
 
+@st.dialog("Configurar iconos de hallazgos", width="large")
+def _finding_icon_dialog(categories: list[dict], catalog_ready: bool) -> None:
+    st.caption("Elige el icono que aparecerá junto a cada hallazgo en el mapa y en las fichas.")
+    icon_values = {}
+    with st.form("finding_icon_config_form"):
+        for index, category in enumerate(categories):
+            name = str(category["name"])
+            name_col, icon_col = st.columns((3, 1), vertical_alignment="center")
+            name_col.markdown(f"**{_category_icon(name, categories)}  {escape(name)}**")
+            icon_values[name] = icon_col.text_input(
+                "Icono", value=_category_icon(name, categories), max_chars=16,
+                key=f"finding_icon_edit_{index}", label_visibility="collapsed",
+                help=f"Icono para {name}",
+            )
+        save_all = st.form_submit_button("Guardar todos los iconos", type="primary", width="stretch")
+    if save_all:
+        try:
+            if not catalog_ready:
+                raise FindingsError("La configuración compartida de iconos aún no está disponible en el servidor.")
+            for name, icon in icon_values.items():
+                save_shared_category(name, icon)
+            st.success("Todos los iconos quedaron actualizados para las personas usuarias.")
+            st.rerun()
+        except FindingsError as exc:
+            st.error(str(exc))
+
+
 @st.cache_data(show_spinner="Indexando activos para vincular el hallazgo…")
 def _asset_index() -> dict:
     """Build a lightweight lookup from the KMZ assets without loading map geometry."""
@@ -369,22 +396,8 @@ def render_findings_panel() -> None:
 
     available_categories = [str(row["name"]) for row in shared_categories]
     st.caption(f"{len(rows)} hallazgos con los filtros seleccionados")
-    with st.expander("🎨 Configurar iconos"):
-        st.caption("Los iconos se comparten entre usuarios y se muestran en el mapa y en las fichas.")
-        if st.session_state.get("finding_category_catalog_ready", True):
-            category_names = [str(row["name"]) for row in shared_categories]
-            icon_category = st.selectbox("Tipo de hallazgo", category_names, key="finding_icon_category")
-            current_icon = _category_icon(icon_category, shared_categories)
-            icon_value = st.text_input("Icono del mapa", value=current_icon, max_chars=16,
-                                       key=f"finding_icon_value_{icon_category}",
-                                       help="Puedes usar un emoji, por ejemplo 🌳 para poda.")
-            if st.button("Guardar icono", key="save_finding_icon", type="primary", width="stretch"):
-                try:
-                    save_shared_category(icon_category, icon_value)
-                    st.success("Icono actualizado para todas las personas usuarias.")
-                    st.rerun()
-                except FindingsError as exc:
-                    st.error(str(exc))
+    if st.button("🎨 Configurar iconos", key="open_finding_icon_config", width="stretch"):
+        _finding_icon_dialog(shared_categories, bool(st.session_state.get("finding_category_catalog_ready", True)))
     category_filter = st.selectbox("Tipo de hallazgo", ("Todos",) + tuple(available_categories), key="finding_type_filter")
     if category_filter != "Todos":
         rows = [row for row in rows if row.get("category") == category_filter]
