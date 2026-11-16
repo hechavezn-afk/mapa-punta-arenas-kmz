@@ -53,7 +53,8 @@ class FindingsError(RuntimeError):
     pass
 
 
-def _request(method: str, path: str, payload=None, *, content_type="application/json", prefer=None):
+def _request(method: str, path: str, payload=None, *, content_type="application/json", prefer=None,
+             extra_headers: dict[str, str] | None = None):
     try:
         url, _, key = auth_config()
     except SupabaseSetupError as exc:
@@ -69,6 +70,8 @@ def _request(method: str, path: str, payload=None, *, content_type="application/
         headers["Content-Type"] = content_type
     if prefer:
         headers["Prefer"] = prefer
+    if extra_headers:
+        headers.update(extra_headers)
     request = Request(url + path, data=body, headers=headers, method=method)
     try:
         with urlopen(request, timeout=25) as response:
@@ -113,7 +116,7 @@ def list_findings(locality: str, status_filter: str) -> list[dict]:
 
 
 def list_shared_categories() -> list[dict]:
-    query = urlencode({"select": "name,icon", "order": "name.asc", "limit": "500"})
+    query = urlencode({"select": "name,icon,icon_path", "order": "name.asc", "limit": "500"})
     try:
         rows = _request("GET", "/rest/v1/maintenance_finding_categories?" + query) or []
         st.session_state.finding_category_catalog_ready = True
@@ -123,24 +126,44 @@ def list_shared_categories() -> list[dict]:
         if "tablas o el bucket" not in str(exc):
             raise
         st.session_state.finding_category_catalog_ready = False
-        return [{"name": name, "icon": DEFAULT_CATEGORY_ICONS.get(name, "📍")} for name in CATEGORIES]
+        return [{"name": name, "icon": DEFAULT_CATEGORY_ICONS.get(name, "📍"), "icon_path": None} for name in CATEGORIES]
     if not rows:
         # Seed existing/default categories once; keeps current installations backward-compatible.
-        rows = [{"name": name, "icon": DEFAULT_CATEGORY_ICONS.get(name, "📍")} for name in CATEGORIES]
+        rows = [{"name": name, "icon": DEFAULT_CATEGORY_ICONS.get(name, "📍"), "icon_path": None} for name in CATEGORIES]
         for row in rows:
             _request("POST", "/rest/v1/maintenance_finding_categories", row, prefer="resolution=ignore-duplicates")
         rows = _request("GET", "/rest/v1/maintenance_finding_categories?" + query) or rows
     return rows
 
 
-def save_shared_category(name: str, icon: str) -> None:
+def _upload_category_icon(file, name: str) -> str:
+    mime = str(file.type or "").lower()
+    allowed = {"image/jpeg", "image/png", "image/webp"}
+    if mime not in allowed:
+        raise FindingsError(f"Formato no permitido para el icono {file.name}; usa PNG, JPG o WEBP.")
+    content = file.getvalue()
+    if not content or len(content) > 2 * 1024 * 1024:
+        raise FindingsError("Cada icono debe pesar menos de 2 MB.")
+    extension = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}[mime]
+    slug = re.sub(r"[^a-z0-9]+", "-", name.casefold()).strip("-")[:48] or "hallazgo"
+    path = f"finding-icons/{slug}/{uuid4().hex}.{extension}"
+    _request("POST", f"/storage/v1/object/{BUCKET}/{quote(path, safe='/')}", content,
+             content_type=mime, extra_headers={"x-upsert": "true"})
+    return path
+
+
+def save_shared_category(name: str, icon: str, *, icon_path: str | None = None,
+                         clear_icon: bool = False) -> None:
     name = (name or "").strip()
     icon = (icon or "").strip()
     if not name or len(name) > 120:
         raise FindingsError("Escribe un nombre de tipo de hallazgo (máximo 120 caracteres).")
     if not icon or len(icon) > 16:
         raise FindingsError("Elige un emoji como icono (por ejemplo 🌳).")
-    _request("POST", "/rest/v1/maintenance_finding_categories", {"name": name, "icon": icon},
+    payload = {"name": name, "icon": icon}
+    if icon_path is not None or clear_icon:
+        payload["icon_path"] = icon_path
+    _request("POST", "/rest/v1/maintenance_finding_categories", payload,
              prefer="resolution=merge-duplicates,return=minimal")
 
 
@@ -149,28 +172,66 @@ def _category_icon(name: str, categories: list[dict]) -> str:
                 DEFAULT_CATEGORY_ICONS.get(name, "📍"))
 
 
+def _category_icon_url(category: dict) -> str:
+    path = str(category.get("icon_path") or "")
+    if not path:
+        return ""
+    cache = st.session_state.setdefault("finding_icon_signed_urls", {})
+    cached = cache.get(path)
+    if cached and cached[0] > time.time():
+        return cached[1]
+    try:
+        url = photo_url(path, expires_in=604800)
+    except FindingsError:
+        return ""
+    cache[path] = (time.time() + 6 * 86400, url)
+    return url
+
+
 @st.dialog("Configurar iconos de hallazgos", width="large")
 def _finding_icon_dialog(categories: list[dict], catalog_ready: bool) -> None:
-    st.caption("Elige el icono que aparecerá junto a cada hallazgo en el mapa y en las fichas.")
-    icon_values = {}
+    st.caption("Elige un emoji o carga una imagen PNG, JPG o WEBP. Las imágenes se comparten y aparecen en el mapa.")
+    icon_values, icon_uploads, clear_images = {}, {}, {}
     with st.form("finding_icon_config_form"):
         for index, category in enumerate(categories):
             name = str(category["name"])
-            name_col, icon_col = st.columns((3, 1), vertical_alignment="center")
+            name_col, emoji_col, file_col = st.columns((2, 1, 2), vertical_alignment="center")
             name_col.markdown(f"**{_category_icon(name, categories)}  {escape(name)}**")
-            icon_values[name] = icon_col.text_input(
-                "Icono", value=_category_icon(name, categories), max_chars=16,
-                key=f"finding_icon_edit_{index}", label_visibility="collapsed",
-                help=f"Icono para {name}",
+            current_image = _category_icon_url(category)
+            if current_image:
+                name_col.image(current_image, width=32)
+            icon_values[name] = emoji_col.text_input(
+                "Emoji", value=_category_icon(name, categories), max_chars=16,
+                key=f"finding_icon_edit_{index}", help=f"Emoji alternativo para {name}",
             )
+            icon_uploads[name] = file_col.file_uploader(
+                "Archivo de icono", type=["png", "jpg", "jpeg", "webp"],
+                key=f"finding_icon_file_{index}", label_visibility="collapsed",
+                help="PNG, JPG o WEBP; máximo 2 MB.",
+            )
+            clear_images[name] = file_col.checkbox("Usar emoji", key=f"finding_icon_clear_{index}",
+                                                   disabled=not bool(category.get("icon_path")))
+            if icon_uploads[name] is not None:
+                name_col.image(icon_uploads[name].getvalue(), width=32)
         save_all = st.form_submit_button("Guardar todos los iconos", type="primary", width="stretch")
     if save_all:
         try:
             if not catalog_ready:
                 raise FindingsError("La configuración compartida de iconos aún no está disponible en el servidor.")
-            for name, icon in icon_values.items():
-                save_shared_category(name, icon)
-            st.success("Todos los iconos quedaron actualizados para las personas usuarias.")
+            changed = 0
+            for category in categories:
+                name = str(category["name"])
+                icon = icon_values[name].strip()
+                uploaded = icon_uploads[name]
+                clear_icon = bool(clear_images[name])
+                changed_icon = icon != _category_icon(name, categories)
+                if not (uploaded or clear_icon or changed_icon):
+                    continue
+                image_path = _upload_category_icon(uploaded, name) if uploaded else None
+                save_shared_category(name, icon, icon_path=image_path, clear_icon=clear_icon)
+                changed += 1
+            st.success(f"Se actualizaron {changed} icono(s) para todas las personas usuarias.")
+            st.session_state.pop("finding_icon_signed_urls", None)
             st.rerun()
         except FindingsError as exc:
             st.error(str(exc))
@@ -294,9 +355,9 @@ def update_finding(finding: dict, patch: dict, photos, documents, actor: str, ev
     return {**finding, **payload}
 
 
-def photo_url(path: str) -> str:
+def photo_url(path: str, *, expires_in: int = 3600) -> str:
     data = _request("POST", f"/storage/v1/object/sign/{BUCKET}/{quote(path, safe='/')}",
-                    {"expiresIn": 3600})
+                    {"expiresIn": expires_in})
     value = (data or {}).get("signedURL", "")
     base, _, _ = auth_config()
     if value.startswith("/object/"):
@@ -321,6 +382,7 @@ def _map_payload(rows, show_heat, focus, categories):
         label = " · ".join(str(row[key]) for key in ("category", "notice_number", "priority", "status") if row.get(key))
         cases.append({"id": str(row.get("id", "")), "start": start, "end": end, "label": label,
                       "icon": _category_icon(row.get("category", ""), categories),
+                      "icon_url": _category_icon_url(next((item for item in categories if item.get("name") == row.get("category")), {})),
                       "category": row.get("category") or "", "notice": row.get("notice_number") or "",
                       "requester": row.get("requester") or "", "locality": row.get("locality") or "",
                       "status": row.get("status") or "Pendiente", "priority": row.get("priority") or "Media",
