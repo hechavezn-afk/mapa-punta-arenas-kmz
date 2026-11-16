@@ -166,19 +166,42 @@ def _registry() -> dict:
     return {"guard": threading.Lock(), "owners": {}}
 
 
+def _session_limit(username: str) -> int:
+    return 3 if username.strip().casefold() == "hector" else 1
+
+
+def _sessions_for(registry: dict, username: str) -> dict:
+    """Return a per-user token map, upgrading any in-memory single-session entry."""
+    owners = registry["owners"]
+    key = next((name for name in owners if name.casefold() == username.casefold()), username)
+    owner = owners.get(key)
+    if owner is None:
+        owner = {"sessions": {}}
+        owners[key] = owner
+    elif "sessions" not in owner:
+        owner = {"sessions": {owner["token"]: owner}}
+        owners[key] = owner
+    return owner["sessions"]
+
+
 def _claim(username: str, session_id: str, token: str) -> bool:
     registry = _registry()
     now = time.monotonic()
     with registry["guard"]:
-        owner = registry["owners"].get(username)
-        if owner and now - owner["last_activity"] < IDLE_TIMEOUT_SECONDS:
-            if owner["token"] != token:
-                return False
-            owner["session"] = session_id
-            return True
-        registry["owners"][username] = {
+        sessions = _sessions_for(registry, username)
+        for old_token, owner in list(sessions.items()):
+            if now - owner["last_activity"] >= IDLE_TIMEOUT_SECONDS:
+                sessions.pop(old_token, None)
+        existing = next(
+            ((old_token, owner) for old_token, owner in sessions.items() if owner["session"] == session_id),
+            None,
+        )
+        if existing:
+            sessions.pop(existing[0], None)
+        elif token not in sessions and len(sessions) >= _session_limit(username):
+            return False
+        sessions[token] = {
             "session": session_id,
-            "token": token,
             "last_activity": now,
             "activity_ms": 0,
         }
@@ -189,14 +212,15 @@ def _resume(token: str, session_id: str) -> str | None:
     registry = _registry()
     now = time.monotonic()
     with registry["guard"]:
-        for username, owner in list(registry["owners"].items()):
-            if owner["token"] != token:
-                continue
-            if now - owner["last_activity"] >= IDLE_TIMEOUT_SECONDS:
-                registry["owners"].pop(username, None)
-                return None
-            owner["session"] = session_id
-            return username
+        for username, owner_group in list(registry["owners"].items()):
+            sessions = _sessions_for(registry, username)
+            for active_token, owner in list(sessions.items()):
+                if now - owner["last_activity"] >= IDLE_TIMEOUT_SECONDS:
+                    sessions.pop(active_token, None)
+                    continue
+                if active_token == token:
+                    owner["session"] = session_id
+                    return username
     return None
 
 
@@ -204,16 +228,28 @@ def _heartbeat(username: str, session_id: str, token: str, activity_ms: int = 0)
     registry = _registry()
     now = time.monotonic()
     with registry["guard"]:
-        owner = registry["owners"].get(username)
-        if not owner or owner["session"] != session_id or owner["token"] != token:
+        sessions = _sessions_for(registry, username)
+        owner = sessions.get(token)
+        if not owner or owner["session"] != session_id:
             return False
         if now - owner["last_activity"] >= IDLE_TIMEOUT_SECONDS:
-            registry["owners"].pop(username, None)
+            sessions.pop(token, None)
             return False
         if activity_ms and activity_ms > owner["activity_ms"]:
             owner["activity_ms"] = activity_ms
             owner["last_activity"] = now
         return True
+
+
+def _release(username: str | None, session_id: str | None, token: str | None) -> None:
+    if not username or not session_id or not token:
+        return
+    registry = _registry()
+    with registry["guard"]:
+        sessions = _sessions_for(registry, username)
+        owner = sessions.get(token)
+        if owner and owner["session"] == session_id:
+            sessions.pop(token, None)
 
 
 def _bridge(token: str | None = None, *, clear: bool = False, remember: bool = True):
@@ -228,6 +264,11 @@ def _bridge(token: str | None = None, *, clear: bool = False, remember: bool = T
 
 
 def _clear_authentication() -> None:
+    _release(
+        st.session_state.get("map_login_user"),
+        st.session_state.get("map_login_session_id"),
+        st.session_state.get("map_login_session_token"),
+    )
     for key in (
         "map_login_authenticated",
         "map_login_user",
@@ -245,6 +286,18 @@ def _clear_authentication() -> None:
         st.session_state.pop(key, None)
 
 
+def logout() -> None:
+    client = st.session_state.get("map_supabase_auth_client")
+    if client:
+        try:
+            client.auth.sign_out()
+        except Exception:
+            pass
+    _clear_authentication()
+    st.session_state["map_login_remember"] = False
+    st.session_state["map_login_clear_browser_session"] = True
+
+
 def _supabase_auth_ready() -> bool:
     try:
         from supabase_accounts import auth_config
@@ -258,7 +311,10 @@ def _finish_supabase_login(alias: str) -> None:
     session_id = st.session_state.setdefault("map_login_session_id", token_urlsafe(24))
     session_token = token_urlsafe(32)
     if not _claim(alias, session_id, session_token):
-        st.error("Esta cuenta ya tiene una sesión activa. Intenta nuevamente más tarde.")
+        if alias.strip().casefold() == "hector":
+            st.error("La cuenta HECTOR ya tiene tres sesiones activas. Cierra sesión en otro equipo e inténtalo nuevamente.")
+        else:
+            st.error("Esta cuenta ya tiene una sesión activa. Ciérrala en el otro equipo e inténtalo nuevamente.")
         return
     st.session_state["map_login_user"] = alias
     st.session_state["map_login_role"] = "user"
@@ -639,5 +695,8 @@ def require_login() -> None:
                 st.session_state["map_login_authenticated"] = True
                 st.rerun()
             else:
-                st.error("Prueba otra cuenta; este usuario está ocupado.")
+                if normalized_username.strip().casefold() == "hector":
+                    st.error("La cuenta HECTOR ya tiene tres sesiones activas. Cierra sesión en otro equipo e inténtalo nuevamente.")
+                else:
+                    st.error("Esta cuenta ya tiene una sesión activa. Ciérrala en el otro equipo e inténtalo nuevamente.")
     st.stop()

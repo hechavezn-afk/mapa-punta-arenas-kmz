@@ -19,8 +19,11 @@ from finding_catalog import DEFAULT_FINDING_CATEGORIES
 st.set_page_config(page_title="Redes Edelmag Magallanes", page_icon="🌎", layout="wide", initial_sidebar_state="collapsed")
 
 
-from login_auth import is_config_user, require_login
+from login_auth import is_config_user, logout, require_login
 require_login()
+if st.button("Cerrar sesión", key="logout_from_map"):
+    logout()
+    st.rerun()
 CONFIG_MODE = is_config_user(st.session_state.get("map_login_user"))
 if CONFIG_MODE and st.query_params.get("admin") == "accounts":
     from supabase_accounts import render_account_admin
@@ -33,6 +36,7 @@ html, body, #root, [data-testid="stAppViewContainer"], .stApp {width:100%!import
 [data-testid="stMain"], [data-testid="stMainBlockContainer"] {position:relative!important;width:100vw!important;max-width:100vw!important;height:100dvh!important;min-height:100dvh!important;margin:0!important;padding:0!important}
 [data-testid="stVerticalBlock"] {gap:0!important}
 .st-key-open_findings_from_map {display:none!important}
+.st-key-logout_from_map {display:none!important}
 .st-key-findings_panel {position:fixed!important;z-index:5;right:14px;top:76px;width:min(440px,calc(100vw - 28px))!important;max-height:calc(100dvh - 130px);overflow:auto;overscroll-behavior:contain;background:var(--background-color,#fff);border:1px solid #cbd5e1;border-radius:14px;padding:14px;box-shadow:0 4px 18px #0003}
 @media(max-width:800px){.st-key-findings_panel{top:auto;bottom:54px;max-height:42dvh;right:8px;width:calc(100vw - 16px)!important}}
 [data-testid="stElementContainer"]:has(iframe[title="st.iframe"]) {position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;margin:0!important;padding:0!important;z-index:1!important}
@@ -495,6 +499,7 @@ HTML_TEMPLATE = r"""<!doctype html>
   <button class="review-toggle quick-action" id="review-toggle" type="button">📝 Revisar activos</button>
  <button type="button" class="finding-toggle quick-action" id="finding-toggle">🛠 Crear / revisar hallazgos</button>
   <button class="survey-toggle quick-action" id="survey-toggle" type="button" aria-expanded="false">✚ Crear plano</button>
+  <button class="quick-action" id="logout-toggle" type="button">↪ Cerrar sesión</button>
  </div>
 </div>
 <div class="map-navpad" id="map-navpad" role="button" tabindex="0" aria-label="Mantén y arrastra para mover el mapa" title="Mantén y arrastra para desplazarte por el mapa"></div>
@@ -1036,7 +1041,7 @@ document.addEventListener('pointerup',closeToolPanelFromPointer,true);
 function closeLeafletPopupFromPointer(event){const close=event.target?.closest?.('.leaflet-popup-close-button');if(!close)return;event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();map.closePopup()}
 document.addEventListener('pointerup',closeLeafletPopupFromPointer,true);
 document.addEventListener('click',closeLeafletPopupFromPointer,true);
-function initQuickActions(){const root=document.getElementById('quick-actions'),toggle=document.getElementById('quick-actions-toggle');if(!root||!toggle)return;const setOpen=open=>{root.dataset.open=open?'true':'false';toggle.setAttribute('aria-expanded',open?'true':'false');toggle.setAttribute('aria-label',open?'Cerrar herramientas':'Abrir herramientas');toggle.title=open?'Cerrar herramientas':'Herramientas'};toggle.onclick=()=>setOpen(root.dataset.open!=='true');parentDocument.addEventListener('input',autoFindingLocalityFromInputs,true);document.getElementById('finding-toggle')?.addEventListener('click', () => {
+function initQuickActions(){const root=document.getElementById('quick-actions'),toggle=document.getElementById('quick-actions-toggle');if(!root||!toggle)return;const setOpen=open=>{root.dataset.open=open?'true':'false';toggle.setAttribute('aria-expanded',open?'true':'false');toggle.setAttribute('aria-label',open?'Cerrar herramientas':'Abrir herramientas');toggle.title=open?'Cerrar herramientas':'Herramientas'};toggle.onclick=()=>setOpen(root.dataset.open!=='true');document.getElementById('logout-toggle')?.addEventListener('click',()=>parentDocument.querySelector('.st-key-logout_from_map button')?.click());parentDocument.addEventListener('input',autoFindingLocalityFromInputs,true);document.getElementById('finding-toggle')?.addEventListener('click', () => {
  closeReview();
  closeSurveyPanel();
  closeCreatedFieldPostPanel();
