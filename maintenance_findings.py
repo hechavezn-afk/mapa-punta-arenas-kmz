@@ -628,7 +628,7 @@ def render_findings_panel() -> None:
     if close.button("×", key="close_findings_panel", help="Cerrar hallazgos"):
         st.session_state.pop("show_findings", None)
         st.query_params.pop("findings", None)
-        st.rerun()
+        st.rerun(scope="fragment")
 
     filter_cols = st.columns(2)
     locality = filter_cols[0].selectbox("Localidad", ("Todas",) + LOCALITIES, key="finding_locality")
@@ -690,7 +690,7 @@ def render_findings_panel() -> None:
         if place_col.button("Usar centro de la localidad", key="finding_use_map_center", width="stretch"):
             center_lat, center_lon = LOCALITY_CENTERS.get(locality, LOCALITY_CENTERS["Punta Arenas"])
             st.session_state.finding_location = {"lat": center_lat, "lon": center_lon, "source": "map"}
-            st.rerun()
+            st.rerun(scope="fragment")
         if gps_col.button("◎ Usar mi ubicación GPS", key="finding_use_gps", width="stretch"):
             st.session_state.finding_location = {"source": "gps", "requested_at": time.time()}
         location = st.session_state.get("finding_location", {})
@@ -773,7 +773,7 @@ def render_findings_panel() -> None:
                     st.session_state.pop("finding_location", None)
                     st.html("<script>try{sessionStorage.removeItem('finding-pending-coordinate')}catch(e){}</script>")
                     st.success("Hallazgo compartido guardado.")
-                    st.rerun()
+                    st.rerun(scope="fragment")
                 except FindingsError as exc:
                     st.error(str(exc))
 
@@ -880,7 +880,7 @@ def render_findings_panel() -> None:
                                                   "resolved_at": datetime.now(timezone.utc).isoformat() if new_status in ("Resuelto", "Cerrado") else None},
                                        more_photos, more_documents, str(st.session_state.get("map_login_user", "usuario")), evidence_stage)
                         st.success("Seguimiento actualizado y registrado en el historial.")
-                        st.rerun()
+                        st.rerun(scope="fragment")
                     except FindingsError as exc:
                         st.error(str(exc))
             history = []

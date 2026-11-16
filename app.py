@@ -1204,14 +1204,20 @@ html = build_map_html(
     hashlib.sha256(HTML_TEMPLATE.encode("utf-8")).hexdigest(),
     str(st.session_state.get("map_login_user", "")),
 )
-if st.button("Abrir hallazgos", key="open_findings_from_map"):
-    st.session_state.show_findings = not st.session_state.get("show_findings", False)
-    st.rerun()
-
 components.html(html, height=850, scrolling=False)
 
-if st.query_params.get("findings") == "1" or st.session_state.get("show_findings"):
-    from maintenance_findings import render_findings_panel
 
-    with st.container(key="findings_panel"):
-        render_findings_panel()
+@st.fragment(key="findings_overlay")
+def render_findings_overlay() -> None:
+    """Keep findings interactions from rebuilding the full-screen map iframe."""
+    if st.button("Abrir hallazgos", key="open_findings_from_map"):
+        st.session_state.show_findings = not st.session_state.get("show_findings", False)
+
+    if st.query_params.get("findings") == "1" or st.session_state.get("show_findings"):
+        from maintenance_findings import render_findings_panel
+
+        with st.container(key="findings_panel"):
+            render_findings_panel()
+
+
+render_findings_overlay()
