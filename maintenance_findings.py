@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import base64
 from html import escape
 import json
 import math
@@ -142,14 +143,89 @@ def _upload_category_icon(file, name: str) -> str:
     if mime not in allowed:
         raise FindingsError(f"Formato no permitido para el icono {file.name}; usa PNG, JPG o WEBP.")
     content = file.getvalue()
+    return _store_category_icon(content, name, mime)
+
+
+def _store_category_icon(content: bytes, name: str, mime: str) -> str:
+    mime = str(mime or "").lower().split(";", 1)[0]
+    allowed = {"image/jpeg", "image/png", "image/webp"}
+    if mime not in allowed:
+        raise FindingsError("Usa un icono PNG, JPG o WEBP.")
     if not content or len(content) > 2 * 1024 * 1024:
         raise FindingsError("Cada icono debe pesar menos de 2 MB.")
+    signatures = {
+        "image/png": content.startswith(b"\x89PNG\r\n\x1a\n"),
+        "image/jpeg": content.startswith(b"\xff\xd8\xff"),
+        "image/webp": content.startswith(b"RIFF") and content[8:12] == b"WEBP",
+    }
+    if not signatures[mime]:
+        raise FindingsError("El contenido no coincide con el formato de imagen indicado.")
     extension = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}[mime]
     slug = re.sub(r"[^a-z0-9]+", "-", name.casefold()).strip("-")[:48] or "hallazgo"
     path = f"finding-icons/{slug}/{uuid4().hex}.{extension}"
     _request("POST", f"/storage/v1/object/{BUCKET}/{quote(path, safe='/')}", content,
              content_type=mime, extra_headers={"x-upsert": "true"})
     return path
+
+
+_finding_icon_clipboard = st.components.v2.component(
+    "finding_icon_clipboard",
+    html='<div class="paste-icon" tabindex="0" role="button" aria-label="Pegar imagen de icono"><strong>📋 Haz clic aquí y pega el icono</strong><span>Ctrl+V o menú Pegar · PNG, JPG o WEBP · máximo 2 MB</span><div class="paste-preview"></div></div>',
+    css="""
+      .paste-icon { border: 1px dashed #8ba6c1; border-radius: 10px; padding: 14px; text-align: center; cursor: text; color: #294d70; }
+      .paste-icon:focus { outline: 2px solid #3b82f6; }
+      .paste-icon span { display:block; color:#68798a; font-size:0.85em; margin-top:4px; }
+      .paste-preview img { max-width:64px; max-height:64px; object-fit:contain; margin-top:8px; }
+    """,
+    js="""
+      export default function(component) {
+        const { parentElement, setStateValue } = component;
+        const target = parentElement.querySelector('.paste-icon');
+        if (!target || target.dataset.bound === 'true') return;
+        target.dataset.bound = 'true';
+        target.addEventListener('paste', (event) => {
+          const items = Array.from(event.clipboardData?.items || []);
+          const item = items.find((entry) => entry.type.startsWith('image/'));
+          if (!item) return;
+          event.preventDefault();
+          const file = item.getAsFile();
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = String(reader.result || '');
+            setStateValue('image', dataUrl);
+            setStateValue('mime', file.type || '');
+            const preview = target.querySelector('.paste-preview');
+            if (preview) {
+              const image = document.createElement('img');
+              image.alt = 'Vista previa del icono';
+              image.src = dataUrl;
+              preview.replaceChildren(image);
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+        target.addEventListener('click', () => target.focus());
+      }
+    """,
+)
+
+
+def _decode_pasted_icon(data_url: str, mime: str) -> bytes:
+    if not data_url or "," not in data_url:
+        raise FindingsError("Primero pega una imagen en el recuadro.")
+    data_mime = data_url[5:data_url.find(";")] if data_url.startswith("data:") else ""
+    if data_mime != str(mime or "").lower():
+        raise FindingsError("No pude validar el formato de la imagen pegada. Vuelve a copiarla y pegarla.")
+    try:
+        content = base64.b64decode(data_url.split(",", 1)[1], validate=True)
+    except (ValueError, TypeError):
+        raise FindingsError("No pude leer la imagen pegada. Vuelve a copiarla y pegarla.") from None
+    if str(mime or "").lower() not in {"image/png", "image/jpeg", "image/webp"}:
+        raise FindingsError("El icono pegado debe ser PNG, JPG o WEBP.")
+    if not content or len(content) > 2 * 1024 * 1024:
+        raise FindingsError("Cada icono debe pesar menos de 2 MB.")
+    return content
 
 
 def save_shared_category(name: str, icon: str, *, icon_path: str | None = None,
@@ -190,7 +266,10 @@ def _category_icon_url(category: dict) -> str:
 
 @st.dialog("Configurar iconos de hallazgos", width="large")
 def _finding_icon_dialog(categories: list[dict], catalog_ready: bool) -> None:
-    st.caption("Elige un emoji o carga una imagen PNG, JPG o WEBP. Las imágenes se comparten y aparecen en el mapa.")
+    st.caption("Edita los tipos existentes, añade otros y define su icono con un emoji, un archivo o una imagen pegada. Los cambios se comparten entre usuarios.")
+    if not catalog_ready:
+        st.info("La configuración compartida de tipos todavía no está disponible en Supabase.")
+        return
     icon_values, icon_uploads, clear_images = {}, {}, {}
     with st.form("finding_icon_config_form"):
         for index, category in enumerate(categories):
@@ -217,8 +296,6 @@ def _finding_icon_dialog(categories: list[dict], catalog_ready: bool) -> None:
         save_all = st.form_submit_button("Guardar todos los iconos", type="primary", width="stretch")
     if save_all:
         try:
-            if not catalog_ready:
-                raise FindingsError("La configuración compartida de iconos aún no está disponible en el servidor.")
             changed = 0
             for category in categories:
                 name = str(category["name"])
@@ -233,6 +310,69 @@ def _finding_icon_dialog(categories: list[dict], catalog_ready: bool) -> None:
                 changed += 1
             st.success(f"Se actualizaron {changed} icono(s) para todas las personas usuarias.")
             st.session_state.pop("finding_icon_signed_urls", None)
+            st.rerun()
+        except FindingsError as exc:
+            st.error(str(exc))
+
+    with st.expander("Añadir tipo de hallazgo", expanded=False):
+        with st.form("finding_category_add_form"):
+            new_name = st.text_input("Nombre del nuevo tipo", max_chars=120,
+                                     placeholder="Ej. Poste chocado")
+            new_icon = st.text_input("Emoji del tipo", value="📍", max_chars=16)
+            new_upload = st.file_uploader("Icono del nuevo tipo (opcional)",
+                                          type=["png", "jpg", "jpeg", "webp"],
+                                          key="finding_icon_new_file", max_upload_size=2)
+            add_category = st.form_submit_button("Añadir tipo compartido", type="primary")
+        if add_category:
+            try:
+                if not new_name.strip():
+                    raise FindingsError("Escribe el nombre del tipo de hallazgo.")
+                if any(str(row["name"]).casefold() == new_name.strip().casefold() for row in categories):
+                    raise FindingsError("Ese tipo ya existe en el catálogo compartido.")
+                image_path = _upload_category_icon(new_upload, new_name) if new_upload else None
+                save_shared_category(new_name, new_icon, icon_path=image_path)
+                st.session_state.pop("finding_icon_signed_urls", None)
+                st.success(f"Se añadió ‘{new_name.strip()}’ al catálogo compartido.")
+                st.rerun()
+            except FindingsError as exc:
+                st.error(str(exc))
+
+    st.markdown("#### Pegar un icono desde el portapapeles")
+    category_names = [str(row["name"]) for row in categories]
+    target_options = ["＋ Crear un tipo nuevo…", *category_names]
+    target = st.selectbox("Aplicar el icono a", target_options, key="finding_icon_paste_target")
+    if target == target_options[0]:
+        paste_name = st.text_input("Nombre del nuevo tipo", max_chars=120,
+                                   key="finding_icon_paste_new_name", placeholder="Ej. Poste chocado")
+        paste_emoji = st.text_input("Emoji alternativo", value="📍", max_chars=16,
+                                    key="finding_icon_paste_new_emoji")
+    else:
+        paste_name = target
+        paste_emoji = next((str(row.get("icon") or "📍") for row in categories
+                            if str(row["name"]) == target), "📍")
+        paste_emoji = st.text_input("Emoji alternativo", value=paste_emoji, max_chars=16,
+                                    key="finding_icon_paste_emoji")
+    paste_nonce = int(st.session_state.get("finding_icon_clipboard_nonce", 0))
+    pasted = _finding_icon_clipboard(
+        key=f"finding_icon_clipboard_instance_{paste_nonce}", default={"image": "", "mime": ""},
+        on_image_change=lambda: None, on_mime_change=lambda: None,
+    )
+    pasted_data = str(pasted.image or "")
+    if pasted_data:
+        st.caption("Imagen lista para guardar.")
+    if st.button("Guardar icono pegado", type="primary", key="finding_icon_paste_save"):
+        try:
+            if not paste_name.strip():
+                raise FindingsError("Escribe el nombre del tipo antes de guardar el icono.")
+            if target == target_options[0] and any(
+                    str(row["name"]).casefold() == paste_name.strip().casefold() for row in categories):
+                raise FindingsError("Ese tipo ya existe; selecciónalo en la lista para cambiar su icono.")
+            image_bytes = _decode_pasted_icon(pasted_data, str(pasted.mime or ""))
+            image_path = _store_category_icon(image_bytes, paste_name, str(pasted.mime))
+            save_shared_category(paste_name, paste_emoji, icon_path=image_path)
+            st.session_state.pop("finding_icon_signed_urls", None)
+            st.session_state["finding_icon_clipboard_nonce"] = paste_nonce + 1
+            st.success(f"Icono guardado para ‘{paste_name.strip()}’ y compartido con los usuarios.")
             st.rerun()
         except FindingsError as exc:
             st.error(str(exc))
