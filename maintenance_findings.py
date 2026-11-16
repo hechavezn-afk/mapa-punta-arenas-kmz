@@ -10,6 +10,7 @@ import re
 import time
 import zipfile
 import mimetypes
+from io import BytesIO
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from urllib.error import HTTPError, URLError
@@ -160,7 +161,44 @@ def _store_category_icon(content: bytes, name: str, mime: str) -> str:
     }
     if not signatures[mime]:
         raise FindingsError("El contenido no coincide con el formato de imagen indicado.")
-    extension = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}[mime]
+    # Normalize user supplied artwork into a compact circular map icon. Remove
+    # only near-white pixels connected to the image edge, preserving white details
+    # inside the icon itself, then trim and center the artwork on transparency.
+    try:
+        from PIL import Image, ImageDraw
+        image = Image.open(BytesIO(content)).convert("RGBA")
+        image.thumbnail((512, 512))
+        pixels = image.load()
+        width, height = image.size
+        pending = [(x, y) for x in range(width) for y in (0, height - 1)]
+        pending.extend((x, y) for y in range(1, height - 1) for x in (0, width - 1))
+        seen = set()
+        while pending:
+            x, y = pending.pop()
+            if (x, y) in seen:
+                continue
+            seen.add((x, y))
+            r, g, b, a = pixels[x, y]
+            if a == 0 or min(r, g, b) >= 238 and max(r, g, b) - min(r, g, b) <= 22:
+                pixels[x, y] = (r, g, b, 0)
+                if x: pending.append((x - 1, y))
+                if x + 1 < width: pending.append((x + 1, y))
+                if y: pending.append((x, y - 1))
+                if y + 1 < height: pending.append((x, y + 1))
+        bounds = image.getchannel("A").getbbox()
+        if bounds:
+            image = image.crop(bounds)
+        image.thumbnail((44, 44), Image.Resampling.LANCZOS)
+        canvas = Image.new("RGBA", (48, 48), (0, 0, 0, 0))
+        canvas.alpha_composite(image, ((48 - image.width) // 2, (48 - image.height) // 2))
+        mask = Image.new("L", (48, 48), 0)
+        ImageDraw.Draw(mask).ellipse((1, 1, 46, 46), fill=255)
+        canvas.putalpha(Image.composite(canvas.getchannel("A"), Image.new("L", (48, 48), 0), mask))
+        normalized = BytesIO()
+        canvas.save(normalized, format="PNG", optimize=True)
+        content, mime, extension = normalized.getvalue(), "image/png", "png"
+    except Exception as exc:
+        raise FindingsError("No se pudo procesar el icono. Prueba con una imagen PNG, JPG o WEBP válida.") from exc
     slug = re.sub(r"[^a-z0-9]+", "-", name.casefold()).strip("-")[:48] or "hallazgo"
     path = f"finding-icons/{slug}/{uuid4().hex}.{extension}"
     _request("POST", f"/storage/v1/object/{BUCKET}/{quote(path, safe='/')}", content,
@@ -595,9 +633,10 @@ def render_findings_panel() -> None:
     filter_cols = st.columns(2)
     locality = filter_cols[0].selectbox("Localidad", ("Todas",) + LOCALITIES, key="finding_locality")
     status_filter = filter_cols[1].selectbox("Estado", ("Abiertos", "Todos") + STATUSES, key="finding_status")
-    controls = st.columns(2)
-    show_heat = controls[0].checkbox("Concentración")
-    controls[1].button("Actualizar lista", width="stretch")
+    # Give the checkbox its own row: adjacent full-width Streamlit controls could
+    # overlap their hit areas at browser zoom and accidentally open icon settings.
+    show_heat = st.checkbox("Mostrar concentración del tipo seleccionado", key="finding_show_heat")
+    st.button("Actualizar lista", key="refresh_findings_list", width="stretch")
 
     try:
         rows = list_findings(locality, status_filter)
@@ -611,14 +650,14 @@ def render_findings_panel() -> None:
         return
 
     available_categories = [str(row["name"]) for row in shared_categories]
-    st.caption(f"{len(rows)} hallazgos con los filtros seleccionados")
-    if st.button("🎨 Configurar iconos", key="open_finding_icon_config", width="stretch"):
-        st.session_state["show_finding_icon_config"] = True
-    if st.session_state.get("show_finding_icon_config", False):
-        _finding_icon_dialog(shared_categories, bool(st.session_state.get("finding_category_catalog_ready", True)))
     category_filter = st.selectbox("Tipo de hallazgo", ("Todos",) + tuple(available_categories), key="finding_type_filter")
     if category_filter != "Todos":
         rows = [row for row in rows if row.get("category") == category_filter]
+    st.caption(f"{len(rows)} hallazgos del tipo y filtros seleccionados")
+    if st.button("🎨 Configurar iconos y tipos", key="open_finding_icon_config", width="stretch"):
+        st.session_state["show_finding_icon_config"] = True
+    if st.session_state.get("show_finding_icon_config", False):
+        _finding_icon_dialog(shared_categories, bool(st.session_state.get("finding_category_catalog_ready", True)))
     if rows:
         st.dataframe([{"Aviso": row.get("notice_number") or "", "Solicitante": row.get("requester") or "",
                        "Tipo": f"{_category_icon(row.get('category', ''), shared_categories)} {row.get('category') or ''}",
