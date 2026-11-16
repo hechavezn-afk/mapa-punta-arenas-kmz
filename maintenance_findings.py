@@ -268,7 +268,11 @@ def _category_icon_url(category: dict) -> str:
 
 @st.dialog("Configurar iconos de hallazgos", width="large")
 def _finding_icon_dialog(categories: list[dict], catalog_ready: bool) -> None:
-    st.caption("Edita los tipos existentes, añade otros y define su icono con un emoji, un archivo o una imagen pegada. Los cambios se comparten entre usuarios.")
+    header, close = st.columns((8, 1), vertical_alignment="center")
+    header.caption("Edita los tipos existentes, añade otros y define su icono con un emoji, un archivo o una imagen pegada. Los cambios se comparten entre usuarios.")
+    if close.button("×", key="close_finding_icon_config", help="Cerrar configuración de iconos"):
+        st.session_state["show_finding_icon_config"] = False
+        st.rerun()
     if not catalog_ready:
         st.info("La configuración compartida de tipos todavía no está disponible en Supabase.")
         return
@@ -318,6 +322,7 @@ def _finding_icon_dialog(categories: list[dict], catalog_ready: bool) -> None:
                 changed += 1
             st.success(f"Se actualizaron {changed} icono(s) para todas las personas usuarias.")
             st.session_state.pop("finding_icon_signed_urls", None)
+            st.session_state["show_finding_icon_config"] = False
             st.rerun()
         except FindingsError as exc:
             st.error(str(exc))
@@ -608,6 +613,8 @@ def render_findings_panel() -> None:
     available_categories = [str(row["name"]) for row in shared_categories]
     st.caption(f"{len(rows)} hallazgos con los filtros seleccionados")
     if st.button("🎨 Configurar iconos", key="open_finding_icon_config", width="stretch"):
+        st.session_state["show_finding_icon_config"] = True
+    if st.session_state.get("show_finding_icon_config", False):
         _finding_icon_dialog(shared_categories, bool(st.session_state.get("finding_category_catalog_ready", True)))
     category_filter = st.selectbox("Tipo de hallazgo", ("Todos",) + tuple(available_categories), key="finding_type_filter")
     if category_filter != "Todos":
