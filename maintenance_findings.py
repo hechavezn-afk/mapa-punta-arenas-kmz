@@ -8,6 +8,7 @@ import math
 import re
 import time
 import zipfile
+import mimetypes
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from urllib.error import HTTPError, URLError
@@ -30,6 +31,13 @@ DEFAULT_CATEGORY_ICONS = {
     "Retensado de línea": "🪢", "Tirante o protección": "⚠️", "Cruceta dañada": "🔩",
     "Aislador dañado": "⚡", "Conductor cortado o deteriorado": "🧵",
     "Empalme irregular": "🔧", "Vegetación cercana a la red": "🌿", "Otro": "📍",
+}
+DOCUMENT_MIME_TYPES = {
+    "application/pdf", "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "text/plain", "text/csv",
 }
 BUCKET = "maintenance-finding-photos"
 DATA_DIR = Path(__file__).parent
@@ -136,11 +144,6 @@ def save_shared_category(name: str, icon: str) -> None:
              prefer="resolution=merge-duplicates,return=minimal")
 
 
-def delete_shared_category(name: str) -> None:
-    query = urlencode({"name": f"eq.{name}"})
-    _request("DELETE", f"/rest/v1/maintenance_finding_categories?{query}")
-
-
 def _category_icon(name: str, categories: list[dict]) -> str:
     return next((str(row.get("icon") or "📍") for row in categories if row.get("name") == name),
                 DEFAULT_CATEGORY_ICONS.get(name, "📍"))
@@ -213,34 +216,49 @@ def lookup_asset(locality: str, code: str) -> dict | None:
     return _asset_index().get(locality, {}).get(_normalize_asset_code(code))
 
 
-def _upload_photo(file, finding_id: str) -> dict:
+def _upload_file(file, finding_id: str, *, document: bool = False) -> dict:
     mime = str(file.type or "").lower()
-    if mime not in ("image/jpeg", "image/png", "image/webp"):
-        raise FindingsError(f"Formato no permitido para {file.name}; usa JPG, PNG o WEBP.")
+    allowed = DOCUMENT_MIME_TYPES if document else {"image/jpeg", "image/png", "image/webp"}
+    if mime not in allowed:
+        formats = "PDF, DOC, DOCX, XLS, XLSX, TXT o CSV" if document else "JPG, PNG o WEBP"
+        raise FindingsError(f"Formato no permitido para {file.name}; usa {formats}.")
     content = file.getvalue()
     if len(content) > 10 * 1024 * 1024:
         raise FindingsError(f"{file.name} supera el límite de 10 MB.")
-    suffix = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}[mime]
+    suffix = Path(file.name).suffix.lower().lstrip(".") or mimetypes.guess_extension(mime) or "bin"
     path = f"{finding_id}/{uuid4().hex}.{suffix}"
     _request("POST", f"/storage/v1/object/{BUCKET}/{quote(path, safe='/')}", content,
              content_type=mime, prefer=None)
-    return {"path": path, "name": file.name, "type": mime, "size": len(content)}
+    return {"path": path, "name": file.name, "type": mime, "size": len(content), "document": document}
 
 
-def save_new(payload: dict, photos) -> dict:
+def save_new(payload: dict, photos, documents=None) -> dict:
     finding_id = str(uuid4())
-    metadata = [_upload_photo(file, finding_id) for file in (photos or [])]
-    payload = {**payload, "id": finding_id, "photos": metadata}
+    metadata = [_upload_file(file, finding_id) for file in (photos or [])]
+    document_metadata = [_upload_file(file, finding_id, document=True) for file in (documents or [])]
+    payload = {**payload, "id": finding_id, "photos": metadata, "documents": document_metadata,
+               "reviewed_attachments": [], "resolution_attachments": []}
     result = _request("POST", "/rest/v1/maintenance_findings", payload, prefer="return=representation")
     if isinstance(result, list) and result:
         return result[0]
     return payload
 
 
-def update_finding(finding: dict, patch: dict, photos, actor: str) -> dict:
-    added = [_upload_photo(file, str(finding["id"])) for file in (photos or [])]
+def update_finding(finding: dict, patch: dict, photos, documents, actor: str, evidence_stage: str = "general") -> dict:
+    added = [_upload_file(file, str(finding["id"])) for file in (photos or [])]
+    added.extend(_upload_file(file, str(finding["id"]), document=True) for file in (documents or []))
     existing = list(finding.get("photos") or [])
-    payload = {**patch, "photos": existing + added, "updated_by": actor}
+    existing_documents = list(finding.get("documents") or [])
+    payload = {**patch, "photos": existing, "documents": existing_documents, "updated_by": actor}
+    if evidence_stage == "reviewed":
+        payload["reviewed_attachments"] = list(finding.get("reviewed_attachments") or []) + added
+    elif evidence_stage == "resolution":
+        payload["resolution_attachments"] = list(finding.get("resolution_attachments") or []) + added
+    else:
+        photo_additions = [item for item in added if not item.get("document")]
+        doc_additions = [item for item in added if item.get("document")]
+        payload["photos"] = existing + photo_additions
+        payload["documents"] = existing_documents + doc_additions
     query = urlencode({"id": f"eq.{finding['id']}"})
     result = _request("PATCH", f"/rest/v1/maintenance_findings?{query}", payload,
                       prefer="return=representation")
@@ -274,7 +292,17 @@ def _map_payload(rows, show_heat, focus, categories):
         if row.get("second_latitude") is not None and row.get("second_longitude") is not None:
             end = [float(row["second_latitude"]), float(row["second_longitude"])]
         label = " · ".join(str(row[key]) for key in ("category", "notice_number", "priority", "status") if row.get(key))
-        cases.append({"start": start, "end": end, "label": label, "icon": _category_icon(row.get("category", ""), categories), "color": colors.get(row.get("priority"), "#b06300")})
+        cases.append({"id": str(row.get("id", "")), "start": start, "end": end, "label": label,
+                      "icon": _category_icon(row.get("category", ""), categories),
+                      "category": row.get("category") or "", "notice": row.get("notice_number") or "",
+                      "requester": row.get("requester") or "", "locality": row.get("locality") or "",
+                      "status": row.get("status") or "Pendiente", "priority": row.get("priority") or "Media",
+                      "asset": row.get("asset_code") or "", "second_asset": row.get("second_asset_code") or "",
+                      "description": row.get("description") or "", "reviewed_details": row.get("reviewed_details") or "",
+                      "resolution_details": row.get("resolution_details") or "",
+                      "photos": len(row.get("photos") or []) + sum(not f.get("document") for f in (row.get("reviewed_attachments") or []) + (row.get("resolution_attachments") or [])),
+                      "documents": len(row.get("documents") or []) + sum(bool(f.get("document")) for f in (row.get("reviewed_attachments") or []) + (row.get("resolution_attachments") or [])),
+                      "color": colors.get(row.get("priority"), "#b06300")})
         if show_heat:
             for lat, lon in [start] + ([end] if end else []):
                 key = (round(lat * 1113.2), round(lon * 1113.2 * math.cos(math.radians(lat))))
@@ -332,7 +360,6 @@ def render_findings_panel() -> None:
         rows = list_findings(locality, status_filter)
     except FindingsError as exc:
         st.error(str(exc))
-        st.info("La migración no borra datos ni cambia los permisos globales de Storage. Está en `supabase/migrations/202611120001_shared_maintenance_findings.sql`.")
         return
     try:
         shared_categories = list_shared_categories()
@@ -342,34 +369,33 @@ def render_findings_panel() -> None:
 
     available_categories = [str(row["name"]) for row in shared_categories]
     st.caption(f"{len(rows)} hallazgos con los filtros seleccionados")
-    with st.expander("⚙️ Administrar tipos de hallazgo"):
-        st.caption("Este catálogo es compartido por todas las personas usuarias.")
-        if not st.session_state.get("finding_category_catalog_ready", True):
-            st.info("El catálogo compartido aún necesita la migración `supabase/migrations/202611130001_shared_finding_categories.sql`. Los hallazgos y sus iconos predeterminados siguen disponibles.")
-        else:
-            with st.form("shared_finding_category_form", clear_on_submit=True):
-                cat_col, icon_col = st.columns((3, 1))
-                cat_name = cat_col.text_input("Nombre del tipo", placeholder="Ej. Cable bajo")
-                cat_icon = icon_col.text_input("Icono", value="📍", max_chars=16, help="Usa un emoji, por ejemplo 🌳 para poda")
-                cat_save = st.form_submit_button("Guardar tipo compartido", type="primary", width="stretch")
-            if cat_save:
+    with st.expander("🎨 Configurar iconos"):
+        st.caption("Los iconos se comparten entre usuarios y se muestran en el mapa y en las fichas.")
+        if st.session_state.get("finding_category_catalog_ready", True):
+            category_names = [str(row["name"]) for row in shared_categories]
+            icon_category = st.selectbox("Tipo de hallazgo", category_names, key="finding_icon_category")
+            current_icon = _category_icon(icon_category, shared_categories)
+            icon_value = st.text_input("Icono del mapa", value=current_icon, max_chars=16,
+                                       key=f"finding_icon_value_{icon_category}",
+                                       help="Puedes usar un emoji, por ejemplo 🌳 para poda.")
+            if st.button("Guardar icono", key="save_finding_icon", type="primary", width="stretch"):
                 try:
-                    save_shared_category(cat_name, cat_icon)
-                    st.success("Tipo e icono guardados para todos los usuarios.")
+                    save_shared_category(icon_category, icon_value)
+                    st.success("Icono actualizado para todas las personas usuarias.")
                     st.rerun()
                 except FindingsError as exc:
                     st.error(str(exc))
-            editable = [row for row in shared_categories if row["name"] not in CATEGORIES]
-            if editable:
-                remove_name = st.selectbox("Tipo personalizado para quitar", [row["name"] for row in editable], key="finding_category_delete")
-                if st.button("Eliminar tipo personalizado", key="delete_shared_finding_category"):
-                    try:
-                        delete_shared_category(remove_name)
-                        st.success("Tipo eliminado del catálogo compartido. Los casos históricos se conservan.")
-                        st.rerun()
-                    except FindingsError as exc:
-                        st.error(str(exc))
-    focus = None
+    category_filter = st.selectbox("Tipo de hallazgo", ("Todos",) + tuple(available_categories), key="finding_type_filter")
+    if category_filter != "Todos":
+        rows = [row for row in rows if row.get("category") == category_filter]
+    if rows:
+        st.dataframe([{"Aviso": row.get("notice_number") or "", "Solicitante": row.get("requester") or "",
+                       "Tipo": f"{_category_icon(row.get('category', ''), shared_categories)} {row.get('category') or ''}",
+                       "Localidad": row.get("locality") or "", "Estado": row.get("status") or "",
+                       "Prioridad": row.get("priority") or "", "Activo": row.get("asset_code") or "",
+                       "Latitud": row.get("latitude"), "Longitud": row.get("longitude")} for row in rows],
+                   hide_index=True, width="stretch")
+    focus = st.session_state.pop("finding_focus", None)
     if rows:
         by_id = {row["id"]: row for row in rows}
         def describe(finding_id):
@@ -379,7 +405,7 @@ def render_findings_panel() -> None:
         finding_id = st.selectbox("Caso en el mapa", list(by_id), format_func=describe)
         if st.button("Ubicar en el mapa"):
             row = by_id[finding_id]
-            focus = [float(row["latitude"]), float(row["longitude"])]
+            focus = {"coordinates": [float(row["latitude"]), float(row["longitude"])], "id": str(row["id"])}
     payload = escape(json.dumps(_map_payload(rows, show_heat, focus, shared_categories), ensure_ascii=False), quote=True)
     st.html(f'<span hidden id="findings-map-data" data-rows="{payload}"></span>')
 
@@ -407,13 +433,17 @@ def render_findings_panel() -> None:
         if placing:
             st.info("Modo ubicación activo: toca el mapa para fijar el punto. En computador también puedes usar clic derecho.")
         with st.form("create_shared_finding", clear_on_submit=True):
-            f_locality = st.selectbox("Localidad", LOCALITIES, index=LOCALITIES.index(locality) if locality in LOCALITIES else 0)
+            location = st.session_state.get("finding_location", {})
+            suggested_locality = _detect_locality(location.get("lat"), location.get("lon")) if location.get("lat") is not None else None
+            locality_default = suggested_locality or (locality if locality in LOCALITIES else "Punta Arenas")
+            f_locality = st.selectbox("Localidad", LOCALITIES, index=LOCALITIES.index(locality_default))
             notice = st.text_input("N.º de aviso", placeholder="Número de aviso")
+            requester = st.text_input("Solicitante", placeholder="Nombre o área solicitante")
             category_choice = st.selectbox("Hallazgo", available_categories,
                                            format_func=lambda name: f"{_category_icon(name, shared_categories)}  {name}")
             priority = st.select_slider("Prioridad", options=PRIORITIES, value="Media")
-            asset_code = st.text_input("Poste o activo relacionado", placeholder="Código exacto; se buscará en el inventario")
-            second_asset = st.text_input("Segundo poste / activo (si corresponde)", placeholder="Para un caso entre dos activos")
+            asset_code = st.text_input("Poste o activo relacionado", value=str(location.get("asset_code", "")), placeholder="Código exacto; se buscará en el inventario")
+            second_asset = st.text_input("Segundo poste / activo", placeholder="Para un caso entre dos activos")
             description = st.text_area("Descripción / acción requerida", max_chars=3000)
             st.caption("Si el código existe en el inventario, las coordenadas se completan desde el KMZ. También puedes indicarlas manualmente.")
             lat_col, lon_col = st.columns(2)
@@ -423,10 +453,11 @@ def render_findings_panel() -> None:
             second_latitude = second_lat_col.text_input("Latitud segundo activo", placeholder="Si aplica")
             second_longitude = second_lon_col.text_input("Longitud segundo activo", placeholder="Si aplica")
             photos = st.file_uploader("Fotos (máximo 3)", type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key="finding_create_photos")
+            documents = st.file_uploader("Documentos (máximo 2)", type=["pdf", "doc", "docx", "xls", "xlsx", "txt", "csv"], accept_multiple_files=True, key="finding_create_documents")
             submit = st.form_submit_button("Guardar hallazgo compartido", type="primary", width="stretch")
         if submit:
-            if len(photos or []) > 3:
-                st.error("Puedes adjuntar hasta 3 fotos por hallazgo.")
+            if len(photos or []) > 3 or len(documents or []) > 2:
+                st.error("Puedes adjuntar hasta 3 fotos y 2 documentos por hallazgo.")
             else:
                 actor = str(st.session_state.get("map_login_user", "usuario"))
                 try:
@@ -448,12 +479,20 @@ def render_findings_panel() -> None:
                         # a valid single-coordinate finding.
                         lat2, lon2 = None, None
                     category = category_choice
-                    payload = {"locality": f_locality, "notice_number": notice.strip(), "category": category,
+                    detected_locality = _detect_locality(lat, lon)
+                    # Keep the editable locality selection when it is deliberate; use the
+                    # coordinate-derived locality as the initial value for map/GPS points.
+                    final_locality = f_locality or detected_locality or "Punta Arenas"
+                    payload = {"locality": final_locality, "notice_number": notice.strip(), "requester": requester.strip(), "category": category,
                                "description": description.strip(), "priority": priority, "status": "Pendiente",
                                "asset_code": asset_code.strip() or None, "second_asset_code": second_asset.strip() or None,
                                "latitude": lat, "longitude": lon, "second_latitude": lat2, "second_longitude": lon2,
                                "created_by": actor, "updated_by": actor}
-                    save_new(payload, photos)
+                    saved = save_new(payload, photos, documents)
+                    st.session_state.finding_focus = {"coordinates": [lat, lon], "id": str(saved["id"])}
+                    st.session_state.finding_locality = "Todas"
+                    st.session_state.finding_status = "Abiertos"
+                    st.session_state.finding_type_filter = "Todos"
                     st.session_state.finding_place_mode = False
                     st.session_state.pop("finding_location", None)
                     st.html("<script>try{sessionStorage.removeItem('finding-pending-coordinate')}catch(e){}</script>")
@@ -469,7 +508,14 @@ def render_findings_panel() -> None:
             choices = {f"{('Aviso ' + r.get('notice_number') + ' · ') if r.get('notice_number') else ''}{r.get('category')} · {' ↔ '.join(x for x in (r.get('asset_code'), r.get('second_asset_code')) if x) or 'sin activo'} · {r.get('locality')} · {r.get('status')} · {str(r['id'])[:8]}": r for r in rows}
             label = st.selectbox("Hallazgo", list(choices), key="finding_edit_choice")
             selected = choices[label]
-            existing_photos = selected.get("photos") or []
+            existing_photos = list(selected.get("photos") or []) + [
+                file for file in (selected.get("reviewed_attachments") or []) + (selected.get("resolution_attachments") or [])
+                if not file.get("document")
+            ]
+            existing_documents = list(selected.get("documents") or []) + [
+                file for file in (selected.get("reviewed_attachments") or []) + (selected.get("resolution_attachments") or [])
+                if file.get("document")
+            ]
             if existing_photos:
                 st.caption(f"Fotos del hallazgo ({len(existing_photos)})")
                 photo_cols = st.columns(min(3, len(existing_photos)))
@@ -478,12 +524,24 @@ def render_findings_panel() -> None:
                         photo_cols[index % len(photo_cols)].image(photo_url(photo["path"]), caption=photo.get("name", "Foto"), width="stretch")
                     except (FindingsError, KeyError):
                         photo_cols[index % len(photo_cols)].caption("No se pudo cargar esta foto.")
+            if existing_documents:
+                st.caption("Documentos adjuntos")
+                for document in existing_documents:
+                    try:
+                        st.link_button(f"📎 {document.get('name', 'Abrir documento')}", photo_url(document["path"]), width="stretch")
+                    except (FindingsError, KeyError):
+                        st.caption(f"No se pudo abrir {document.get('name', 'el documento')}.")
+            st.dataframe([{"Aviso": selected.get("notice_number") or "", "Tipo": selected.get("category") or "",
+                           "Localidad": selected.get("locality") or "", "Estado": selected.get("status") or "",
+                           "Prioridad": selected.get("priority") or "", "Activo": selected.get("asset_code") or "",
+                           "Solicitante": selected.get("requester") or ""}], hide_index=True, width="stretch")
             with st.form("edit_shared_finding"):
                 edit_locality = st.selectbox("Localidad", LOCALITIES,
                                              index=LOCALITIES.index(selected.get("locality", LOCALITIES[0])))
                 new_status = st.selectbox("Estado", STATUSES, index=STATUSES.index(selected.get("status", "Pendiente")))
                 new_priority = st.selectbox("Prioridad", PRIORITIES, index=PRIORITIES.index(selected.get("priority", "Media")))
                 new_notice = st.text_input("Aviso", value=selected.get("notice_number", ""))
+                new_requester = st.text_input("Solicitante", value=selected.get("requester", ""))
                 edit_options = list(dict.fromkeys(available_categories + [str(selected.get("category", "Otro"))]))
                 edit_category = st.selectbox("Hallazgo", edit_options,
                                              index=available_categories.index(selected.get("category"))
@@ -498,11 +556,24 @@ def render_findings_panel() -> None:
                 edit_second_latitude = edit_lat2_col.text_input("Latitud del segundo punto", value=str(selected.get("second_latitude") or ""))
                 edit_second_longitude = edit_lon2_col.text_input("Longitud del segundo punto", value=str(selected.get("second_longitude") or ""))
                 new_desc = st.text_area("Descripción", value=selected.get("description", ""), max_chars=3000)
+                observed = st.text_area("Qué se revisó o encontró", value=selected.get("reviewed_details", ""), max_chars=3000,
+                                        help="Se requiere al marcar el caso como Revisado.")
+                resolution = st.text_area("Trabajo realizado para resolver", value=selected.get("resolution_details", ""), max_chars=3000,
+                                          help="Se requiere al marcar el caso como Resuelto.")
+                existing_all_photos = list(selected.get("photos") or []) + [f for f in (selected.get("reviewed_attachments") or []) + (selected.get("resolution_attachments") or []) if not f.get("document")]
+                existing_all_documents = list(selected.get("documents") or []) + [f for f in (selected.get("reviewed_attachments") or []) + (selected.get("resolution_attachments") or []) if f.get("document")]
                 more_photos = st.file_uploader("Agregar fotos (máximo 3 en total)", type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key="finding_edit_photos")
+                more_documents = st.file_uploader("Agregar documentos (máximo 2 en total)", type=["pdf", "doc", "docx", "xls", "xlsx", "txt", "csv"], accept_multiple_files=True, key="finding_edit_documents")
                 save = st.form_submit_button("Guardar seguimiento", type="primary", width="stretch")
             if save:
-                if len(existing_photos) + len(more_photos or []) > 3:
-                    st.error("El hallazgo admite hasta 3 fotos en total.")
+                if len(existing_all_photos) + len(more_photos or []) > 3 or len(existing_all_documents) + len(more_documents or []) > 2:
+                    st.error("El hallazgo admite hasta 3 fotos y 2 documentos en total.")
+                elif new_status == "Cerrado" and selected.get("status") != "Resuelto":
+                    st.error("Para cerrar un hallazgo, primero debe quedar Resuelto y guardarse la descripción del trabajo realizado.")
+                elif new_status in ("Revisado", "Resuelto", "Cerrado") and not observed.strip():
+                    st.error("Describe qué se revisó o encontró antes de avanzar el seguimiento.")
+                elif new_status in ("Resuelto", "Cerrado") and not resolution.strip():
+                    st.error("Describe el trabajo realizado antes de guardar el estado Resuelto o Cerrado.")
                 else:
                     try:
                         matched_asset = lookup_asset(edit_locality, edit_asset) if edit_asset.strip() else None
@@ -518,20 +589,25 @@ def render_findings_panel() -> None:
                             edit_lat2, edit_lon2 = float(matched_second["latitude"]), float(matched_second["longitude"])
                         else:
                             edit_lat2, edit_lon2 = None, None
+                        evidence_stage = "reviewed" if new_status == "Revisado" else "resolution" if new_status in ("Resuelto", "Cerrado") else "general"
                         update_finding(selected, {"status": new_status, "priority": new_priority,
                                                   "locality": edit_locality, "notice_number": new_notice.strip(),
+                                                  "requester": new_requester.strip(),
                                                   "category": edit_category,
                                                   "asset_code": edit_asset.strip() or None,
                                                   "second_asset_code": edit_second_asset.strip() or None,
                                                   "latitude": edit_lat, "longitude": edit_lon,
                                                   "second_latitude": edit_lat2, "second_longitude": edit_lon2,
                                                   "description": new_desc.strip(),
+                                                  "reviewed_details": observed.strip(),
+                                                  "resolution_details": resolution.strip(),
                                                   "resolved_at": datetime.now(timezone.utc).isoformat() if new_status in ("Resuelto", "Cerrado") else None},
-                                       more_photos, str(st.session_state.get("map_login_user", "usuario")))
+                                       more_photos, more_documents, str(st.session_state.get("map_login_user", "usuario")), evidence_stage)
                         st.success("Seguimiento actualizado y registrado en el historial.")
                         st.rerun()
                     except FindingsError as exc:
                         st.error(str(exc))
+            history = []
             try:
                 with st.expander("Historial del caso"):
                     history = finding_history(str(selected["id"]))
@@ -540,10 +616,72 @@ def render_findings_panel() -> None:
                             snapshot = event.get("snapshot") or {}
                             when = str(event.get("changed_at", ""))[:16].replace("T", " ")
                             st.markdown(f"**{event.get('action')} · {when} · {event.get('changed_by', 'usuario')}**")
-                            details = [snapshot.get(key) for key in ("status", "priority", "notice_number", "asset_code") if snapshot.get(key)]
+                            details = [snapshot.get(key) for key in ("status", "priority", "notice_number", "requester", "asset_code", "reviewed_details", "resolution_details") if snapshot.get(key)]
                             if details:
                                 st.caption(" · ".join(str(value) for value in details))
                     else:
                         st.caption("Todavía no hay cambios registrados.")
             except FindingsError as exc:
                 st.caption(f"No se pudo leer el historial: {exc}")
+
+            try:
+                report_history = finding_history(str(selected["id"]))
+            except FindingsError:
+                report_history = history
+            st.download_button("Descargar informe de este hallazgo (.html)",
+                               data=_finding_report_html(selected, report_history),
+                               file_name=f"Hallazgo_{str(selected.get('notice_number') or selected['id'])}.html",
+                               mime="text/html", width="stretch")
+
+
+def _detect_locality(latitude, longitude):
+    try:
+        lat, lon = float(latitude), float(longitude)
+    except (TypeError, ValueError):
+        return None
+    thresholds = {"Punta Arenas": 0.60, "Puerto Natales": 0.48, "Porvenir": 0.40, "Puerto Williams": 0.35}
+    candidates = []
+    for name, (center_lat, center_lon) in LOCALITY_CENTERS.items():
+        distance = math.hypot((lat-center_lat), (lon-center_lon)*math.cos(math.radians(lat)))
+        candidates.append((distance, name))
+    distance, name = min(candidates)
+    return name if distance <= thresholds[name] else None
+
+
+def _finding_report_html(row, history):
+    safe = lambda value: escape(str(value or ""))
+    fields = [("Estado", row.get("status")), ("Prioridad", row.get("priority")), ("Localidad", row.get("locality")),
+              ("Aviso", row.get("notice_number")), ("Solicitante", row.get("requester")),
+              ("Tipo", row.get("category")), ("Activo", row.get("asset_code")),
+              ("Segundo activo", row.get("second_asset_code")), ("Descripción", row.get("description")),
+              ("Revisión", row.get("reviewed_details")), ("Trabajo realizado", row.get("resolution_details")),
+              ("Coordenadas", f"{row.get('latitude')}, {row.get('longitude')}")]
+    map_url = f"https://www.google.com/maps?q={row.get('latitude')},{row.get('longitude')}"
+    items = "".join(f"<tr><th>{safe(label)}</th><td>{safe(value)}</td></tr>" for label, value in fields if value not in (None, ""))
+    events = "".join(f"<li><b>{safe(e.get('action'))}</b> · {safe(e.get('changed_at'))} · {safe(e.get('changed_by'))}</li>" for e in history)
+    general = list(row.get("photos") or []) + list(row.get("documents") or [])
+    reviewed = list(row.get("reviewed_attachments") or [])
+    resolved = list(row.get("resolution_attachments") or [])
+    evidence = [("Registro", item) for item in general] + [("Revisión", item) for item in reviewed] + [("Resolución", item) for item in resolved]
+    attachment_list, photo_sections = [], []
+    for stage, item in evidence:
+        try:
+            url = escape(photo_url(item["path"]), quote=True)
+        except (FindingsError, KeyError):
+            attachment_list.append(f"<li>{safe(item.get('name'))} · {stage} (enlace no disponible)</li>")
+            continue
+        name = safe(item.get("name"))
+        if item.get("document"):
+            attachment_list.append(f"<li><a href=\"{url}\" target=\"_blank\" rel=\"noopener\">{name}</a> · {stage}</li>")
+        else:
+            attachment_list.append(f"<li>{name} · {stage}</li>")
+            photo_sections.append(f"<figure><img src=\"{url}\" alt=\"{name}\"><figcaption>{name} · {stage}</figcaption></figure>")
+    attachment_list = "".join(attachment_list)
+    photos_html = "".join(photo_sections)
+    return ("<!doctype html><meta charset='utf-8'><title>Informe de hallazgo</title>"
+            "<style>body{font:15px Arial,sans-serif;color:#17324d;max-width:900px;margin:36px auto;padding:0 22px}h1{color:#174a75}table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:9px;border-bottom:1px solid #d8e1e8;vertical-align:top}th{width:190px;background:#f2f6f9}a{color:#1769aa}.photos{display:flex;flex-wrap:wrap;justify-content:center;gap:16px}.photos figure{margin:0;max-width:260px;text-align:center}.photos img{max-width:100%;max-height:360px;object-fit:contain}.photos figcaption{font-size:12px;color:#52687b;margin-top:5px}</style>"
+            f"<h1>Informe de hallazgo · {safe(row.get('category'))}</h1><p>{safe(row.get('locality'))} · Actualizado {safe(row.get('updated_at'))}</p>"
+            f"<table>{items}</table><p><a href='{escape(map_url, quote=True)}'>Abrir ubicación en Google Maps</a></p>"
+            f"<h2>Registro fotográfico</h2><div class='photos'>{photos_html or '<p>Sin fotografías adjuntas</p>'}</div>"
+            f"<h2>Archivos adjuntos</h2><ul>{attachment_list or '<li>Sin archivos adjuntos</li>'}</ul>"
+            f"<h2>Seguimiento</h2><ul>{events or '<li>Sin movimientos registrados</li>'}</ul>")
