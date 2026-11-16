@@ -207,6 +207,7 @@ def _finding_icon_dialog(categories: list[dict], catalog_ready: bool) -> None:
             icon_uploads[name] = file_col.file_uploader(
                 "Archivo de icono", type=["png", "jpg", "jpeg", "webp"],
                 key=f"finding_icon_file_{index}", label_visibility="collapsed",
+                max_upload_size=2,
                 help="PNG, JPG o WEBP; máximo 2 MB.",
             )
             clear_images[name] = file_col.checkbox("Usar emoji", key=f"finding_icon_clear_{index}",
