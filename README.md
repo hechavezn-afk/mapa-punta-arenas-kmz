@@ -32,10 +32,9 @@ smtp_host = "smtp.gmail.com"
 smtp_port = 587
 smtp_email = "CUENTA_REMITENTE_CONFIGURADA_EN_AMI"
 smtp_app_password = "CLAVE_DE_APLICACION_DE_ESE_REMITENTE"
-sender_name = "Redes Edelmag Magallanes"
 ```
 
-Las claves privadas solo las usa Python en el servidor. El segundo factor por correo genera un código temporal de un solo uso y lo envía por SMTP, igual que AMI; no depende de la plantilla Magic Link de Supabase. Debes copiar a los Secrets de esta app los mismos parámetros SMTP que ya están configurados en AMI (la contraseña de aplicación no se incluye en el repositorio). Tras desplegar, entra con la cuenta de configuración y abre **Configuración general → Administrar cuentas** para crear las cuentas que falten y descargar el PDF con sus claves iniciales. Para entrar a esa pantalla también se puede usar `?admin=accounts`.
+Las claves privadas solo las usa Python en el servidor. El segundo factor por correo genera un código temporal de un solo uso y lo envía por SMTP, con el mismo remitente **Seguridad AMI Magallanes** y formato bilingüe de AMI; no depende de la plantilla Magic Link de Supabase. Debes copiar a los Secrets de esta app los mismos parámetros SMTP que ya están configurados en AMI, incluyendo la dirección remitente y su contraseña de aplicación (no se incluyen en el repositorio). El asunto y el nombre visible del remitente se configuran en la app. Tras desplegar, entra con la cuenta de configuración y abre **Configuración general → Administrar cuentas** para crear las cuentas que falten y descargar el PDF con sus claves iniciales. Para entrar a esa pantalla también se puede usar `?admin=accounts`.
 
 Los usuarios ingresan con su nombre y apellido juntos, en mayúsculas y sin espacios (por ejemplo, `LUISGARRIDO`), su contraseña de Supabase y luego el segundo factor. También pueden ingresar con su correo. En cada ingreso pueden elegir **Recordar sesión** para restaurarla tras recargar o reabrir el navegador; toda sesión vence tras cinco horas sin actividad.
 

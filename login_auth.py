@@ -314,13 +314,18 @@ def _send_login_code(user_email: str, code: str) -> bool:
     if host != "smtp.gmail.com" or port != 587 or not sender or not password:
         return False
     message = EmailMessage()
-    message["From"] = formataddr((str(config.get("sender_name", MFA_ISSUER)), sender))
+    # Keep the same trusted sender identity as the AMI access-code email.
+    # The SMTP address and app password remain private in Streamlit Secrets.
+    message["From"] = formataddr(("Seguridad AMI Magallanes", sender))
     message["To"] = user_email
-    message["Subject"] = "Código temporal de acceso · Redes Edelmag Magallanes"
+    message["Subject"] = "Código temporal / Temporary code · AMI Magallanes"
     message.set_content(
-        f"Tu código temporal de acceso es: {code}\n\n"
-        "Ingresa este código en la app dentro de los próximos 3 minutos. "
-        "Es de un solo uso. No lo compartas. Si no solicitaste este código, ignora este mensaje."
+        "Código temporal de acceso / Temporary sign-in code: "
+        f"{code}\n\n"
+        "Úsalo una sola vez dentro del tiempo indicado en la app (hasta 3 minutos). "
+        "No lo compartas. Si no lo solicitaste, ignora este mensaje.\n\n"
+        "Use it once before the timer in the app ends (up to 3 minutes). "
+        "Do not share it. If you did not request it, ignore this message."
     )
     try:
         with smtplib.SMTP(host, port, timeout=10) as smtp:
