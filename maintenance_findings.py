@@ -244,8 +244,10 @@ def save_shared_category(name: str, icon: str, *, icon_path: str | None = None,
 
 
 def _category_icon(name: str, categories: list[dict]) -> str:
-    return next((str(row.get("icon") or "📍") for row in categories if row.get("name") == name),
-                DEFAULT_CATEGORY_ICONS.get(name, "📍"))
+    category = next((row for row in categories if row.get("name") == name), None)
+    if category and category.get("icon_path"):
+        return ""
+    return str(category.get("icon") or "📍") if category else DEFAULT_CATEGORY_ICONS.get(name, "📍")
 
 
 def _category_icon_url(category: dict) -> str:
@@ -275,24 +277,30 @@ def _finding_icon_dialog(categories: list[dict], catalog_ready: bool) -> None:
         for index, category in enumerate(categories):
             name = str(category["name"])
             name_col, emoji_col, file_col = st.columns((2, 1, 2), vertical_alignment="center")
-            name_col.markdown(f"**{_category_icon(name, categories)}  {escape(name)}**")
-            current_image = _category_icon_url(category)
-            if current_image:
-                name_col.image(current_image, width=32)
-            icon_values[name] = emoji_col.text_input(
-                "Emoji", value=_category_icon(name, categories), max_chars=16,
-                key=f"finding_icon_edit_{index}", help=f"Emoji alternativo para {name}",
-            )
             icon_uploads[name] = file_col.file_uploader(
-                "Archivo de icono", type=["png", "jpg", "jpeg", "webp"],
+                "Reemplazar icono", type=["png", "jpg", "jpeg", "webp"],
                 key=f"finding_icon_file_{index}", label_visibility="collapsed",
                 max_upload_size=2,
-                help="PNG, JPG o WEBP; máximo 2 MB.",
+                help="Reemplaza el icono actual con un PNG, JPG o WEBP de hasta 2 MB.",
             )
+            name_col.markdown(f"**{escape(name)}**")
+            current_image = _category_icon_url(category)
+            if icon_uploads.get(name) is not None:
+                name_col.image(icon_uploads[name].getvalue(), width=40)
+            elif current_image:
+                name_col.image(current_image, width=40)
+            else:
+                name_col.markdown(f"### {_category_icon(name, categories)}")
+            icon_values[name] = str(category.get("icon") or "📍")
+            if category.get("icon_path"):
+                emoji_col.caption("Imagen activa")
+            else:
+                icon_values[name] = emoji_col.text_input(
+                    "Emoji", value=icon_values[name], max_chars=16,
+                    key=f"finding_icon_edit_{index}", help=f"Icono emoji para {name}",
+                )
             clear_images[name] = file_col.checkbox("Usar emoji", key=f"finding_icon_clear_{index}",
                                                    disabled=not bool(category.get("icon_path")))
-            if icon_uploads[name] is not None:
-                name_col.image(icon_uploads[name].getvalue(), width=32)
         save_all = st.form_submit_button("Guardar todos los iconos", type="primary", width="stretch")
     if save_all:
         try:
@@ -302,7 +310,7 @@ def _finding_icon_dialog(categories: list[dict], catalog_ready: bool) -> None:
                 icon = icon_values[name].strip()
                 uploaded = icon_uploads[name]
                 clear_icon = bool(clear_images[name])
-                changed_icon = icon != _category_icon(name, categories)
+                changed_icon = icon != str(category.get("icon") or "📍")
                 if not (uploaded or clear_icon or changed_icon):
                     continue
                 image_path = _upload_category_icon(uploaded, name) if uploaded else None
