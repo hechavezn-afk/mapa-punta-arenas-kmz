@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import logging
 import smtplib
 import ssl
 import threading
@@ -514,15 +515,26 @@ def _totp_enrollment_error(exc: Exception) -> str:
 
 def _send_login_code(user_email: str, code: str) -> bool:
     """Deliver an app-generated code over the same Gmail SMTP flow as AMI."""
+    logger = logging.getLogger(__name__)
     try:
         config = dict(st.secrets["security"])
         sender = str(config.get("smtp_email", "")).strip()
         host = str(config.get("smtp_host", "")).strip()
         port = int(config.get("smtp_port", 587))
         password = str(config.get("smtp_app_password", ""))
-    except Exception:
+    except Exception as exc:
+        logger.error("Login-code SMTP secrets unavailable (%s).", type(exc).__name__)
         return False
     if host != "smtp.gmail.com" or port != 587 or not sender or not password:
+        missing = [
+            key for key, value in (
+                ("smtp_host", host == "smtp.gmail.com"),
+                ("smtp_port", port == 587),
+                ("smtp_email", bool(sender)),
+                ("smtp_app_password", bool(password)),
+            ) if not value
+        ]
+        logger.error("Login-code SMTP secrets invalid or incomplete (keys: %s).", ", ".join(missing))
         return False
     message = EmailMessage()
     # Keep the same trusted sender identity as the AMI access-code email.
@@ -546,7 +558,20 @@ def _send_login_code(user_email: str, code: str) -> bool:
             smtp.login(sender, password)
             smtp.send_message(message, from_addr=sender, to_addrs=[user_email])
         return True
-    except (OSError, smtplib.SMTPException, ValueError):
+    except smtplib.SMTPAuthenticationError as exc:
+        logger.error("Login-code SMTP authentication rejected (SMTP %s).", exc.smtp_code)
+        return False
+    except smtplib.SMTPRecipientsRefused as exc:
+        codes = sorted({str(reply[0]) for reply in exc.recipients.values() if reply})
+        logger.error("Login-code recipient rejected by SMTP (codes: %s).", ", ".join(codes) or "unknown")
+        return False
+    except (OSError, smtplib.SMTPException, ValueError) as exc:
+        smtp_code = getattr(exc, "smtp_code", None)
+        logger.error(
+            "Login-code SMTP delivery failed (%s%s).",
+            type(exc).__name__,
+            f", SMTP {smtp_code}" if smtp_code else "",
+        )
         return False
 
 
@@ -591,7 +616,8 @@ def _render_email_code(alias: str, email: str, user_id: str) -> None:
                 st.rerun()
             st.error(
                 "No se pudo enviar el código. Configura en esta app el mismo SMTP de AMI "
-                "dentro de [security] en Streamlit Secrets."
+                "dentro de [security] en Streamlit Secrets. El envío es desde el servidor, "
+                "no depende del celular; revisa Manage app → Logs para ver la causa técnica."
             )
     if challenge and challenge[0] == user_id:
         st.info("Código enviado. Revisa tu bandeja de entrada y correo no deseado.")
