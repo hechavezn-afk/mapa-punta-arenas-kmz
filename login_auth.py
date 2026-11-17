@@ -73,7 +73,10 @@ _BROWSER_SESSION = st.components.v2.component(
     export default function ({ data, setStateValue }) {
       const storageKey = "map_login_session_token";
       const rememberKey = storageKey + "_persistent";
+      const deviceKey = "map_login_device_id";
       let token = "";
+      let deviceId = "";
+      let deviceLabel = "Navegador";
 
       try {
         if (data?.clear) {
@@ -93,8 +96,28 @@ _BROWSER_SESSION = st.components.v2.component(
         token = "";
       }
 
+      try {
+        deviceId = localStorage.getItem(deviceKey) || "";
+        if (!deviceId) {
+          deviceId = globalThis.crypto?.randomUUID?.() || (Date.now().toString(36) + Math.random().toString(36).slice(2));
+          localStorage.setItem(deviceKey, deviceId);
+        }
+      } catch (_) {
+        try {
+          deviceId = sessionStorage.getItem(deviceKey) || (Date.now().toString(36) + Math.random().toString(36).slice(2));
+          sessionStorage.setItem(deviceKey, deviceId);
+        } catch (_) { deviceId = "device-" + Date.now().toString(36); }
+      }
+      const ua = navigator.userAgent || "";
+      const platform = navigator.userAgentData?.platform || navigator.platform || "Dispositivo";
+      const browser = /Edg\//.test(ua) ? "Edge" : /Firefox\//.test(ua) ? "Firefox" : /CriOS\//.test(ua) ? "Chrome" : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "Navegador";
+      const os = /Android/i.test(ua) ? "Android" : /iPhone|iPad|iPod/i.test(ua) ? "iOS" : /Windows/i.test(platform + ua) ? "Windows" : /Mac/i.test(platform + ua) ? "Mac" : /Linux/i.test(platform + ua) ? "Linux" : "Dispositivo";
+      deviceLabel = `${os} · ${browser}`;
+
       setStateValue("browser_token", token);
       setStateValue("ready", true);
+      setStateValue("device_id", deviceId);
+      setStateValue("device_label", deviceLabel);
 
       let lastSent = 0;
       const listeners = [];
@@ -184,7 +207,7 @@ def _sessions_for(registry: dict, username: str) -> dict:
     return owner["sessions"]
 
 
-def _claim(username: str, session_id: str, token: str) -> bool:
+def _claim(username: str, session_id: str, token: str, device_id: str = "", device_label: str = "") -> bool:
     registry = _registry()
     now = time.monotonic()
     with registry["guard"]:
@@ -204,6 +227,8 @@ def _claim(username: str, session_id: str, token: str) -> bool:
             "session": session_id,
             "last_activity": now,
             "activity_ms": 0,
+            "device_id": device_id[:96],
+            "device_label": device_label[:64] or "Navegador",
         }
         return True
 
@@ -224,6 +249,12 @@ def _active_sessions(username: str) -> list[tuple[str, dict, float]]:
         return sorted(active, key=lambda item: item[2])
 
 
+def _device_name(owner: dict) -> str:
+    label = str(owner.get("device_label") or "Dispositivo anterior")
+    device_id = str(owner.get("device_id") or "")
+    return f"{label} · {device_id[-5:]}" if device_id else label
+
+
 def _revoke_session(username: str, token: str) -> bool:
     registry = _registry()
     with registry["guard"]:
@@ -236,7 +267,8 @@ def _finish_pending_claim() -> bool:
     if not pending:
         return False
     username = pending["username"]
-    if not _claim(username, pending["session_id"], pending["token"]):
+    if not _claim(username, pending["session_id"], pending["token"],
+                  pending.get("device_id", ""), pending.get("device_label", "Navegador")):
         return False
     st.session_state["map_login_user"] = username
     st.session_state["map_login_role"] = "config" if is_config_user(username) else "user"
@@ -262,10 +294,11 @@ def _render_pending_claim() -> None:
             return
         st.info("No hay sesiones anteriores que cerrar. Vuelve a intentar ingresar.")
     else:
-        for index, (token, _owner, idle) in enumerate(others, start=1):
+        for index, (token, owner, idle) in enumerate(others, start=1):
             minutes = max(1, int(idle // 60))
-            label = "menos de un minuto" if idle < 60 else f"hace {minutes} min"
-            if st.button(f"Cerrar equipo {index} · actividad {label}", key=f"close_login_session_{index}",
+            label = _device_name(owner)
+            activity = "menos de un minuto" if idle < 60 else f"hace {minutes} min"
+            if st.button(f"Cerrar {label} · actividad {activity}", key=f"close_login_session_{index}",
                          use_container_width=True):
                 _revoke_session(username, token)
                 if _finish_pending_claim():
@@ -298,12 +331,16 @@ def _render_session_dialog() -> None:
         return
     st.caption("Puedes desconectar otros equipos. Esta sesión seguirá abierta.")
     others = [(token, owner, idle) for token, owner, idle in active if token != current_token]
+    current = next((owner for token, owner, _idle in active if token == current_token), None)
+    if current:
+        st.caption("Este equipo: " + _device_name(current))
     if not others:
         st.write("Solo está activa esta sesión.")
-    for index, (token, _owner, idle) in enumerate(others, start=1):
+    for index, (token, owner, idle) in enumerate(others, start=1):
         minutes = max(1, int(idle // 60))
-        label = "menos de un minuto" if idle < 60 else f"hace {minutes} min"
-        if st.button(f"Cerrar equipo {index} · actividad {label}", key=f"close_active_session_{index}",
+        label = _device_name(owner)
+        activity = "menos de un minuto" if idle < 60 else f"hace {minutes} min"
+        if st.button(f"Cerrar {label} · actividad {activity}", key=f"close_active_session_{index}",
                      use_container_width=True):
             _revoke_session(username, token)
             st.rerun()
@@ -361,11 +398,13 @@ def _release(username: str | None, session_id: str | None, token: str | None) ->
 def _bridge(token: str | None = None, *, clear: bool = False, remember: bool = True):
     return _BROWSER_SESSION(
         data={"token": token or "", "clear": clear, "remember": remember},
-        default={"browser_token": "", "ready": False, "activity_ms": 0},
+        default={"browser_token": "", "ready": False, "activity_ms": 0, "device_id": "", "device_label": "Navegador"},
         key="map_auth_browser_session",
         on_browser_token_change=lambda: None,
         on_ready_change=lambda: None,
         on_activity_ms_change=lambda: None,
+        on_device_id_change=lambda: None,
+        on_device_label_change=lambda: None,
     )
 
 
@@ -418,9 +457,12 @@ def _supabase_auth_ready() -> bool:
 def _finish_supabase_login(alias: str) -> None:
     session_id = st.session_state.setdefault("map_login_session_id", token_urlsafe(24))
     session_token = token_urlsafe(32)
-    if not _claim(alias, session_id, session_token):
+    device_id = st.session_state.get("map_login_device_id", "")
+    device_label = st.session_state.get("map_login_device_label", "Navegador")
+    if not _claim(alias, session_id, session_token, device_id, device_label):
         st.session_state["map_login_pending_claim"] = {
             "username": alias, "session_id": session_id, "token": session_token,
+            "device_id": device_id, "device_label": device_label,
         }
         # The password and second factor have already been verified. Do not ask for them again
         # while the user chooses which older device to disconnect.
@@ -742,6 +784,12 @@ def require_login() -> None:
 
     browser_token = "" if clear_browser else (getattr(bridge, "browser_token", "") or "")
     activity_ms = int(getattr(bridge, "activity_ms", 0) or 0)
+    device_id = str(getattr(bridge, "device_id", "") or "")
+    device_label = str(getattr(bridge, "device_label", "Navegador") or "Navegador")
+    if device_id:
+        st.session_state["map_login_device_id"] = device_id
+    if device_label:
+        st.session_state["map_login_device_label"] = device_label
 
     if st.session_state.get("map_login_authenticated"):
         username = st.session_state.get("map_login_user", "")
@@ -805,7 +853,9 @@ def require_login() -> None:
         else:
             session_id = st.session_state.setdefault("map_login_session_id", token_urlsafe(24))
             session_token = token_urlsafe(32)
-            if _claim(normalized_username, session_id, session_token):
+            device_id = st.session_state.get("map_login_device_id", "")
+            device_label = st.session_state.get("map_login_device_label", "Navegador")
+            if _claim(normalized_username, session_id, session_token, device_id, device_label):
                 st.session_state["map_login_user"] = normalized_username
                 st.session_state["map_login_role"] = "config" if is_config_user(normalized_username) else "user"
                 st.session_state["map_login_session_token"] = session_token
@@ -814,6 +864,7 @@ def require_login() -> None:
             else:
                 st.session_state["map_login_pending_claim"] = {
                     "username": normalized_username, "session_id": session_id, "token": session_token,
+                    "device_id": device_id, "device_label": device_label,
                 }
                 st.rerun()
     st.stop()
@@ -821,3 +872,9 @@ def require_login() -> None:
 
 def render_session_dialog() -> None:
     _render_session_dialog()
+
+
+@st.fragment
+def render_session_controls() -> None:
+    if st.button("Administrar sesiones", key="manage_sessions_from_map"):
+        _render_session_dialog()
