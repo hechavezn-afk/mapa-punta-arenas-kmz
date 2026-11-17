@@ -208,6 +208,112 @@ def _claim(username: str, session_id: str, token: str) -> bool:
         return True
 
 
+def _active_sessions(username: str) -> list[tuple[str, dict, float]]:
+    """Return active sessions with elapsed idle time, pruning expired entries."""
+    registry = _registry()
+    now = time.monotonic()
+    with registry["guard"]:
+        sessions = _sessions_for(registry, username)
+        active = []
+        for token, owner in list(sessions.items()):
+            idle = now - owner["last_activity"]
+            if idle >= IDLE_TIMEOUT_SECONDS:
+                sessions.pop(token, None)
+            else:
+                active.append((token, dict(owner), idle))
+        return sorted(active, key=lambda item: item[2])
+
+
+def _revoke_session(username: str, token: str) -> bool:
+    registry = _registry()
+    with registry["guard"]:
+        sessions = _sessions_for(registry, username)
+        return sessions.pop(token, None) is not None
+
+
+def _finish_pending_claim() -> bool:
+    pending = st.session_state.get("map_login_pending_claim")
+    if not pending:
+        return False
+    username = pending["username"]
+    if not _claim(username, pending["session_id"], pending["token"]):
+        return False
+    st.session_state["map_login_user"] = username
+    st.session_state["map_login_role"] = "config" if is_config_user(username) else "user"
+    st.session_state["map_login_session_token"] = pending["token"]
+    st.session_state["map_login_authenticated"] = True
+    st.session_state.pop("map_login_pending_claim", None)
+    st.rerun()
+    return True
+
+
+def _render_pending_claim() -> None:
+    pending = st.session_state.get("map_login_pending_claim")
+    if not pending:
+        return
+    username = pending["username"]
+    st.title("Sesiones abiertas")
+    st.caption("Elige qué otro equipo desconectar para continuar en este equipo.")
+    current_token = st.session_state.get("map_login_session_token")
+    others = [(token, owner, idle) for token, owner, idle in _active_sessions(username)
+              if token != current_token]
+    if not others:
+        if _finish_pending_claim():
+            return
+        st.info("No hay sesiones anteriores que cerrar. Vuelve a intentar ingresar.")
+    else:
+        for index, (token, _owner, idle) in enumerate(others, start=1):
+            minutes = max(1, int(idle // 60))
+            label = "menos de un minuto" if idle < 60 else f"hace {minutes} min"
+            if st.button(f"Cerrar equipo {index} · actividad {label}", key=f"close_login_session_{index}",
+                         use_container_width=True):
+                _revoke_session(username, token)
+                if _finish_pending_claim():
+                    return
+                st.rerun()
+        if len(others) > 1 and st.button("Cerrar todas las demás sesiones", key="close_all_login_sessions",
+                                        use_container_width=True):
+            for token, _owner, _idle in others:
+                _revoke_session(username, token)
+            _finish_pending_claim()
+    if st.button("Cancelar ingreso", key="cancel_pending_session_login"):
+        client = st.session_state.get("map_supabase_auth_client")
+        if client:
+            try:
+                client.auth.sign_out()
+            except Exception:
+                pass
+        st.session_state.pop("map_login_pending_claim", None)
+        st.session_state.pop("map_supabase_auth_client", None)
+        st.rerun()
+
+
+@st.dialog("Sesiones activas")
+def _render_session_dialog() -> None:
+    username = st.session_state.get("map_login_user", "")
+    current_token = st.session_state.get("map_login_session_token", "")
+    active = _active_sessions(username)
+    if not active:
+        st.info("No hay sesiones activas.")
+        return
+    st.caption("Puedes desconectar otros equipos. Esta sesión seguirá abierta.")
+    others = [(token, owner, idle) for token, owner, idle in active if token != current_token]
+    if not others:
+        st.write("Solo está activa esta sesión.")
+    for index, (token, _owner, idle) in enumerate(others, start=1):
+        minutes = max(1, int(idle // 60))
+        label = "menos de un minuto" if idle < 60 else f"hace {minutes} min"
+        if st.button(f"Cerrar equipo {index} · actividad {label}", key=f"close_active_session_{index}",
+                     use_container_width=True):
+            _revoke_session(username, token)
+            st.rerun()
+    if len(others) > 1 and st.button("Cerrar todas las otras sesiones", key="close_all_active_sessions",
+                                    use_container_width=True):
+        for token, _owner, _idle in others:
+            _revoke_session(username, token)
+        st.rerun()
+
+
 def _resume(token: str, session_id: str) -> str | None:
     registry = _registry()
     now = time.monotonic()
@@ -275,6 +381,8 @@ def _clear_authentication() -> None:
         "map_login_session_id",
         "map_login_session_token",
         "map_login_role",
+        "map_login_pending_claim",
+        "map_login_show_sessions",
         "map_supabase_auth_client",
         "map_supabase_pending_identity",
         "map_supabase_pending_email",
@@ -311,10 +419,15 @@ def _finish_supabase_login(alias: str) -> None:
     session_id = st.session_state.setdefault("map_login_session_id", token_urlsafe(24))
     session_token = token_urlsafe(32)
     if not _claim(alias, session_id, session_token):
-        if alias.strip().casefold() == "hector":
-            st.error("La cuenta HECTOR ya tiene tres sesiones activas. Cierra sesión en otro equipo e inténtalo nuevamente.")
-        else:
-            st.error("Esta cuenta ya tiene una sesión activa. Ciérrala en el otro equipo e inténtalo nuevamente.")
+        st.session_state["map_login_pending_claim"] = {
+            "username": alias, "session_id": session_id, "token": session_token,
+        }
+        # The password and second factor have already been verified. Do not ask for them again
+        # while the user chooses which older device to disconnect.
+        for key in ("map_supabase_pending_identity", "map_supabase_pending_email", "map_supabase_mfa_enrollment",
+                    "map_email_otp_challenge", "map_email_otp_failures", "map_mfa_deadline"):
+            st.session_state.pop(key, None)
+        st.rerun()
         return
     st.session_state["map_login_user"] = alias
     st.session_state["map_login_role"] = "user"
@@ -656,6 +769,10 @@ def require_login() -> None:
         st.session_state["map_login_clear_browser_session"] = True
         st.rerun()
 
+    if st.session_state.get("map_login_pending_claim"):
+        _render_pending_claim()
+        st.stop()
+
     if st.session_state.get("map_supabase_pending_identity"):
         _supabase_second_factor()
         st.stop()
@@ -695,8 +812,12 @@ def require_login() -> None:
                 st.session_state["map_login_authenticated"] = True
                 st.rerun()
             else:
-                if normalized_username.strip().casefold() == "hector":
-                    st.error("La cuenta HECTOR ya tiene tres sesiones activas. Cierra sesión en otro equipo e inténtalo nuevamente.")
-                else:
-                    st.error("Esta cuenta ya tiene una sesión activa. Ciérrala en el otro equipo e inténtalo nuevamente.")
+                st.session_state["map_login_pending_claim"] = {
+                    "username": normalized_username, "session_id": session_id, "token": session_token,
+                }
+                st.rerun()
     st.stop()
+
+
+def render_session_dialog() -> None:
+    _render_session_dialog()
