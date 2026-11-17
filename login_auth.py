@@ -76,6 +76,7 @@ _BROWSER_SESSION = st.components.v2.component(
       const rememberKey = storageKey + "_persistent";
       const deviceKey = "map_login_device_id";
       let token = "";
+      let remembered = false;
       let deviceId = "";
       let deviceLabel = "Navegador";
 
@@ -85,13 +86,16 @@ _BROWSER_SESSION = st.components.v2.component(
           localStorage.removeItem(rememberKey);
           sessionStorage.removeItem(storageKey);
         } else if (data?.token) {
-          localStorage.setItem(rememberKey, data?.remember ? "1" : "0");
-          if (localStorage.getItem(rememberKey) === "1") localStorage.setItem(storageKey, data.token);
+          remembered = Boolean(data.remember);
+          localStorage.setItem(rememberKey, remembered ? "1" : "0");
+          if (remembered) localStorage.setItem(storageKey, data.token);
           else localStorage.removeItem(storageKey);
           sessionStorage.setItem(storageKey, data.token);
           token = data.token;
         } else {
-          token = localStorage.getItem(storageKey) || sessionStorage.getItem(storageKey) || "";
+          const persistentToken = localStorage.getItem(storageKey);
+          token = persistentToken || sessionStorage.getItem(storageKey) || "";
+          remembered = Boolean(persistentToken);
         }
       } catch (_) {
         token = "";
@@ -115,6 +119,7 @@ _BROWSER_SESSION = st.components.v2.component(
       const os = /Android/i.test(ua) ? "Android" : /iPhone|iPad|iPod/i.test(ua) ? "iOS" : /Windows/i.test(platform + ua) ? "Windows" : /Mac/i.test(platform + ua) ? "Mac" : /Linux/i.test(platform + ua) ? "Linux" : "Dispositivo";
       deviceLabel = `${os} · ${browser}`;
 
+      setStateValue("remembered", remembered);
       setStateValue("browser_token", token);
       setStateValue("ready", true);
       setStateValue("device_id", deviceId);
@@ -139,7 +144,10 @@ _BROWSER_SESSION = st.components.v2.component(
       }
 
       const boundDocuments = new WeakSet();
+      const boundFrames = new WeakSet();
       const bindFrame = (frame) => {
+        if (boundFrames.has(frame)) return;
+        boundFrames.add(frame);
         const attach = () => {
           try {
             const frameDocument = frame.contentDocument;
@@ -399,9 +407,10 @@ def _release(username: str | None, session_id: str | None, token: str | None) ->
 def _bridge(token: str | None = None, *, clear: bool = False, remember: bool = True):
     return _BROWSER_SESSION(
         data={"token": token or "", "clear": clear, "remember": remember},
-        default={"browser_token": "", "ready": False, "activity_ms": 0, "device_id": "", "device_label": "Navegador"},
+        default={"browser_token": "", "remembered": False, "ready": False, "activity_ms": 0, "device_id": "", "device_label": "Navegador"},
         key="map_auth_browser_session",
         on_browser_token_change=lambda: None,
+        on_remembered_change=lambda: None,
         on_ready_change=lambda: None,
         on_activity_ms_change=lambda: None,
         on_device_id_change=lambda: None,
@@ -513,7 +522,7 @@ def _totp_enrollment_error(exc: Exception) -> str:
     return f"No se pudo configurar Authenticator. Detalle de Supabase: {safe_message}"
 
 
-def _send_login_code(user_email: str, code: str) -> bool:
+def _send_login_code(user_email: str, code: str) -> str | None:
     """Deliver an app-generated code over the same Gmail SMTP flow as AMI."""
     logger = logging.getLogger(__name__)
     try:
@@ -521,10 +530,10 @@ def _send_login_code(user_email: str, code: str) -> bool:
         sender = str(config.get("smtp_email", "")).strip()
         host = str(config.get("smtp_host", "")).strip()
         port = int(config.get("smtp_port", 587))
-        password = str(config.get("smtp_app_password", ""))
+        password = "".join(str(config.get("smtp_app_password", "")).split())
     except Exception as exc:
         logger.error("Login-code SMTP secrets unavailable (%s).", type(exc).__name__)
-        return False
+        return "configuration"
     if host != "smtp.gmail.com" or port != 587 or not sender or not password:
         missing = [
             key for key, value in (
@@ -535,7 +544,7 @@ def _send_login_code(user_email: str, code: str) -> bool:
             ) if not value
         ]
         logger.error("Login-code SMTP secrets invalid or incomplete (keys: %s).", ", ".join(missing))
-        return False
+        return "configuration"
     message = EmailMessage()
     # Keep the same trusted sender identity as the AMI access-code email.
     # The SMTP address and app password remain private in Streamlit Secrets.
@@ -557,14 +566,14 @@ def _send_login_code(user_email: str, code: str) -> bool:
             smtp.ehlo()
             smtp.login(sender, password)
             smtp.send_message(message, from_addr=sender, to_addrs=[user_email])
-        return True
+        return None
     except smtplib.SMTPAuthenticationError as exc:
         logger.error("Login-code SMTP authentication rejected (SMTP %s).", exc.smtp_code)
-        return False
+        return "authentication"
     except smtplib.SMTPRecipientsRefused as exc:
         codes = sorted({str(reply[0]) for reply in exc.recipients.values() if reply})
         logger.error("Login-code recipient rejected by SMTP (codes: %s).", ", ".join(codes) or "unknown")
-        return False
+        return "recipient"
     except (OSError, smtplib.SMTPException, ValueError) as exc:
         smtp_code = getattr(exc, "smtp_code", None)
         logger.error(
@@ -572,7 +581,7 @@ def _send_login_code(user_email: str, code: str) -> bool:
             type(exc).__name__,
             f", SMTP {smtp_code}" if smtp_code else "",
         )
-        return False
+        return "delivery"
 
 
 @st.cache_resource
@@ -594,11 +603,8 @@ def _reserve_email_send(email: str) -> bool:
 
 
 def _render_email_code(alias: str, email: str, user_id: str) -> None:
-    deadline = st.session_state.get("map_mfa_deadline")
-    if not deadline:
-        deadline = time.time() + MFA_ENTRY_WINDOW_SECONDS
-        st.session_state["map_mfa_deadline"] = deadline
-    if time.time() >= float(deadline):
+    deadline = float(st.session_state.get("map_mfa_deadline") or 0)
+    if deadline and time.time() >= deadline:
         st.session_state.pop("map_email_otp_challenge", None)
         st.error("El código venció. Vuelve a iniciar sesión para solicitar otro.")
         return
@@ -610,15 +616,19 @@ def _render_email_code(alias: str, email: str, user_id: str) -> None:
         else:
             code = f"{randbelow(1_000_000):06d}"
             secret = token_bytes(32)
-            if _send_login_code(email, code):
+            error = _send_login_code(email, code)
+            if error is None:
                 digest = hmac.digest(secret, code.encode("ascii"), "sha256")
                 st.session_state["map_email_otp_challenge"] = (user_id, secret, digest)
+                st.session_state["map_mfa_deadline"] = time.time() + MFA_ENTRY_WINDOW_SECONDS
                 st.rerun()
-            st.error(
-                "No se pudo enviar el código. Configura en esta app el mismo SMTP de AMI "
-                "dentro de [security] en Streamlit Secrets. El envío es desde el servidor, "
-                "no depende del celular; revisa Manage app → Logs para ver la causa técnica."
-            )
+            messages = {
+                "configuration": "El servidor tiene incompleta la configuración de correo.",
+                "authentication": "El servicio de correo rechazó el acceso del remitente.",
+                "recipient": "El servicio de correo rechazó el destinatario de esta cuenta.",
+                "delivery": "El servicio de correo no pudo enviar el código. Intenta de nuevo en un minuto.",
+            }
+            st.error(messages[error])
     if challenge and challenge[0] == user_id:
         st.info("Código enviado. Revisa tu bandeja de entrada y correo no deseado.")
         with st.form("map_email_otp_form", clear_on_submit=True):
@@ -665,20 +675,32 @@ def _supabase_second_factor() -> None:
         return
     st.subheader("Verificación en dos pasos")
     st.caption(f"Cuenta {alias} · correo asociado: {email}")
+    options = ["Aplicación Authenticator", "Código temporal por correo"]
+    method = st.radio("Elige cómo verificar este ingreso", options, horizontal=True, key="map_mfa_method")
+    if st.button("Cancelar e iniciar con otra cuenta", key="map_mfa_cancel"):
+        try:
+            client.auth.sign_out()
+        except Exception:
+            pass
+        _clear_authentication()
+        st.rerun()
+    if method == "Código temporal por correo":
+        try:
+            user_response = client.auth.get_user()
+            user = user_response.user if user_response else None
+        except Exception:
+            user = None
+        if user and str(user.email).casefold() == email.casefold():
+            _render_email_code(alias, email, str(user.id))
+        else:
+            st.error("No se pudo validar la cuenta. Vuelve a iniciar sesión para pedir el código.")
+        return
+
     try:
         factors = client.auth.mfa.list_factors()
         verified = [f for f in (getattr(factors, "totp", None) or []) if getattr(f, "status", "") == "verified"]
     except Exception:
         st.error("No se pudo consultar el segundo factor de Supabase. Intenta recargar la página.")
-        return
-
-    options = ["Aplicación Authenticator", "Código temporal por correo"]
-    method = st.radio("Elige cómo verificar este ingreso", options, horizontal=True, key="map_mfa_method")
-    if method == "Código temporal por correo":
-        user_response = client.auth.get_user()
-        user_id = str(user_response.user.id) if user_response and user_response.user else ""
-        if user_id:
-            _render_email_code(alias, email, user_id)
         return
 
     if verified:
@@ -746,15 +768,6 @@ def _supabase_second_factor() -> None:
                 st.error("El código no es válido o ya venció. Revisa la hora automática del teléfono e inténtalo de nuevo.")
             else:
                 st.error("Supabase no pudo validar el factor Authenticator. Cierra sesión, vuelve a entrar y revisa que TOTP esté habilitado en Authentication → Multi-factor Authentication.")
-    if st.button("Cancelar e iniciar con otra cuenta", key="map_mfa_cancel"):
-        try:
-            client.auth.sign_out()
-        except Exception:
-            pass
-        _clear_authentication()
-        st.rerun()
-
-
 def _try_supabase_login(identity: str, password: str) -> bool:
     """Start password verification for the explicitly configured roster only."""
     from supabase_accounts import account_for_identity, auth_config
@@ -834,6 +847,7 @@ def require_login() -> None:
     if browser_token and not clear_browser:
         username = _resume(browser_token, st.session_state.setdefault("map_login_session_id", token_urlsafe(24)))
         if username:
+            st.session_state["map_login_remember"] = bool(getattr(bridge, "remembered", False))
             st.session_state["map_login_user"] = username
             st.session_state["map_login_role"] = "config" if is_config_user(username) else "user"
             st.session_state["map_login_session_token"] = browser_token

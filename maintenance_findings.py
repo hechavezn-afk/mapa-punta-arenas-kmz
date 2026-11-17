@@ -521,7 +521,7 @@ def save_new(payload: dict, photos, documents=None) -> dict:
     result = _request("POST", "/rest/v1/maintenance_findings", payload, prefer="return=representation")
     if isinstance(result, list) and result:
         return result[0]
-    return payload
+    raise FindingsError("Supabase no confirmó que se guardara el hallazgo. Actualiza la lista antes de reintentar.")
 
 
 def update_finding(finding: dict, patch: dict, photos, documents, actor: str, evidence_stage: str = "general") -> dict:
@@ -544,7 +544,7 @@ def update_finding(finding: dict, patch: dict, photos, documents, actor: str, ev
                       prefer="return=representation")
     if isinstance(result, list) and result:
         return result[0]
-    return {**finding, **payload}
+    raise FindingsError("Supabase no confirmó la actualización del hallazgo. Actualiza la lista antes de reintentar.")
 
 
 def photo_url(path: str, *, expires_in: int = 3600) -> str:
@@ -844,7 +844,7 @@ def render_findings_panel() -> None:
             if save:
                 if len(existing_all_photos) + len(more_photos or []) > 3 or len(existing_all_documents) + len(more_documents or []) > 2:
                     st.error("El hallazgo admite hasta 3 fotos y 2 documentos en total.")
-                elif new_status == "Cerrado" and selected.get("status") != "Resuelto":
+                elif new_status == "Cerrado" and selected.get("status") not in ("Resuelto", "Cerrado"):
                     st.error("Para cerrar un hallazgo, primero debe quedar Resuelto y guardarse la descripción del trabajo realizado.")
                 elif new_status in ("Revisado", "Resuelto", "Cerrado") and not observed.strip():
                     st.error("Describe qué se revisó o encontró antes de avanzar el seguimiento.")
@@ -866,6 +866,9 @@ def render_findings_panel() -> None:
                         else:
                             edit_lat2, edit_lon2 = None, None
                         evidence_stage = "reviewed" if new_status == "Revisado" else "resolution" if new_status in ("Resuelto", "Cerrado") else "general"
+                        resolved_at = None
+                        if new_status in ("Resuelto", "Cerrado"):
+                            resolved_at = selected.get("resolved_at") or datetime.now(timezone.utc).isoformat()
                         update_finding(selected, {"status": new_status, "priority": new_priority,
                                                   "locality": edit_locality, "notice_number": new_notice.strip(),
                                                   "requester": new_requester.strip(),
@@ -877,7 +880,7 @@ def render_findings_panel() -> None:
                                                   "description": new_desc.strip(),
                                                   "reviewed_details": observed.strip(),
                                                   "resolution_details": resolution.strip(),
-                                                  "resolved_at": datetime.now(timezone.utc).isoformat() if new_status in ("Resuelto", "Cerrado") else None},
+                                                  "resolved_at": resolved_at},
                                        more_photos, more_documents, str(st.session_state.get("map_login_user", "usuario")), evidence_stage)
                         st.success("Seguimiento actualizado y registrado en el historial.")
                         st.rerun(scope="fragment")
