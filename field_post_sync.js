@@ -3,6 +3,11 @@ let fieldSyncState = {}, fieldSyncPending = null, fieldSyncApplied = '';
 try { fieldSyncState = JSON.parse(localStorage.getItem(fieldSyncKey) || '{}'); } catch {}
 function fieldSyncSignature(post) { return JSON.stringify(post); }
 function fieldSyncSaveState() { localStorage.setItem(fieldSyncKey, JSON.stringify(fieldSyncState)); }
+function fieldPostMarkDeleted(post) {
+  const known = fieldSyncState[post.id] || {revision:0};
+  fieldSyncState[post.id] = {...known, deletePending:true, deleted:true, signature:''};
+  fieldSyncSaveState();
+}
 async function fieldPostSyncExchange(reply) {
   const target = document.getElementById('fieldpost-share-user');
   if (target && !target.options.length) {
@@ -14,9 +19,11 @@ async function fieldPostSyncExchange(reply) {
   if (reply.id && reply.id !== fieldSyncApplied) {
     fieldSyncApplied = reply.id;
     for (const ack of reply.acks || []) {
-      fieldSyncState[ack.id] = {revision: ack.revision, signature: ack.signature, deleted: ack.deleted};
+      const deletePending = fieldSyncState[ack.id]?.deletePending && !ack.deleted;
+      fieldSyncState[ack.id] = {revision: ack.revision, signature: ack.signature, deleted: ack.deleted, deletePending};
     }
     for (const id of reply.conflicts || []) {
+      if (fieldSyncState[id]?.deletePending || reply.rows?.some(row => row.id === id && row.deleted)) continue;
       const local = createdFieldPosts.find(p => p.id === id);
       if (local) {
         // Preserve this device's version separately before applying the newer cloud version.
@@ -32,13 +39,14 @@ async function fieldPostSyncExchange(reply) {
       const index = createdFieldPosts.findIndex(p => p.id === row.id);
       const local = index >= 0 ? createdFieldPosts[index] : null;
       const known = fieldSyncState[row.id];
-      const dirty = local && (!known || fieldSyncSignature(local) !== known.signature);
-      if (dirty) continue;
       if (row.deleted) {
         if (index >= 0) createdFieldPosts.splice(index, 1);
         fieldSyncState[row.id] = {revision:row.revision, deleted:true, signature:''};
         continue;
       }
+      if (known?.deletePending || known?.deleted) continue;
+      const dirty = local && (!known || fieldSyncSignature(local) !== known.signature);
+      if (dirty) continue;
       const post = row.data;
       for (const attachment of post.syncPhotos || []) {
         const blob = await (await fetch(attachment.data)).blob();
@@ -72,6 +80,7 @@ async function fieldPostSyncExchange(reply) {
   const operations = [];
   for (const post of createdFieldPosts) {
     const known = fieldSyncState[post.id];
+    if (known?.deleted || known?.deletePending) continue;
     const signature = fieldSyncSignature(post);
     if (known?.signature === signature) continue;
     const photos = [];
@@ -89,7 +98,7 @@ async function fieldPostSyncExchange(reply) {
     operations.push({post:{...post, syncPhotos:photos}, signature, revision:known?.revision || 0});
   }
   for (const [id, known] of Object.entries(fieldSyncState)) {
-    if (!known.deleted && !createdFieldPosts.some(p => p.id === id)) {
+    if (known.deletePending || (!known.deleted && !createdFieldPosts.some(p => p.id === id))) {
       operations.push({post:{id,visibility:'private'}, revision:known.revision, deleted:true, signature:''});
     }
   }
