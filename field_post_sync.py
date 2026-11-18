@@ -68,6 +68,8 @@ def render_field_post_sync():
                 if not (math.isfinite(latitude) and math.isfinite(longitude)
                         and -90 <= latitude <= 90 and -180 <= longitude <= 180):
                     raise FindingsError('Las coordenadas del poste están fuera de rango.')
+                if post.get('kind') != 'style' and not (-56.5 <= latitude <= -48 and -76 <= longitude <= -65):
+                    raise FindingsError('Corrige la ubicación del poste: está fuera de Magallanes.')
             try:
                 saved = _request('POST', '/rest/v1/rpc/sync_field_post', {
                     'actor': actor, 'post_id': str(post['id']),
@@ -75,6 +77,9 @@ def render_field_post_sync():
                     'post_data': post, 'remove_post': bool(op.get('deleted')),
                 })
             except FindingsError as exc:
+                if 'Codigo repetido:' in str(exc):
+                    response['error'] = 'Ese código ya existe. Revisa los postes señalados como repetidos.'
+                    continue
                 if 'Conflicto:' not in str(exc):
                     raise
                 response.setdefault('conflicts', []).append(post['id'])

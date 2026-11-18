@@ -1,3 +1,20 @@
+function fieldPostValidLocation(latitude, longitude) {
+  const lat = Number(latitude), lon = Number(longitude);
+  return Number.isFinite(lat) && Number.isFinite(lon) && lat >= -56.5 && lat <= -48 && lon >= -76 && lon <= -65;
+}
+function fieldPostCode(post) {
+  return String(post.number || '').replace(/\s+/g, '').toUpperCase();
+}
+function fieldPostDuplicates(post) {
+  const code = fieldPostCode(post);
+  return code ? createdFieldPosts.filter(other => other.kind !== 'style' && fieldPostCode(other) === code) : [];
+}
+function fieldPostWarnings(post) {
+  const warnings = [];
+  if (!fieldPostValidLocation(post.lat, post.lon)) warnings.push('Coordenadas fuera de Magallanes');
+  if (fieldPostDuplicates(post).length > 1) warnings.push('Código repetido');
+  return warnings;
+}
 function polePhases(point) {
   if (point.phases === '') return '';
   const attrs = point.attrs || point.attributes || point;
@@ -13,10 +30,16 @@ function poleNetworkLabel(point) {
   return [point.red || '', polePhases(point)].filter(Boolean).join(' ');
 }
 function fieldPostIcon(point = {}) {
+  const duplicate = point.id && fieldPostDuplicates(point).length > 1;
   const general = createdFieldPosts.find(p => p.kind === 'style' && p.id === 'global-field-post-icon');
   const icon = point.icon || general?.icon;
-  if (!icon || !/^data:image\/(png|jpeg|webp);base64,/.test(icon)) return surveyIcon('poste');
-  return L.divIcon({className:'survey-div-icon', html:'<img alt="Poste" src="'+esc(icon)+'" style="width:30px;height:30px;object-fit:contain">', iconSize:[30,30], iconAnchor:[15,15]});
+  if (!icon || !/^data:image\/(png|jpeg|webp);base64,/.test(icon)) {
+    const fallback = surveyIcon('poste');
+    if (!duplicate) return fallback;
+    return L.divIcon({...fallback.options, html:'<div style="outline:3px solid #c62828;border-radius:50%">'+fallback.options.html+'</div>'});
+  }
+  const border = duplicate ? 'outline:3px solid #c62828;border-radius:50%;' : '';
+  return L.divIcon({className:'survey-div-icon', html:'<img alt="Poste" src="'+esc(icon)+'" style="'+border+'width:30px;height:30px;object-fit:contain">', iconSize:[30,30], iconAnchor:[15,15]});
 }
 function showFieldPostPhoto(blob) {
   const dialog = document.createElement('dialog');

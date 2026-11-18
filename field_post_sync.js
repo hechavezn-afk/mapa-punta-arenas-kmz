@@ -26,12 +26,9 @@ async function fieldPostSyncExchange(reply) {
       if (fieldSyncState[id]?.deletePending || reply.rows?.some(row => row.id === id && row.deleted)) continue;
       const local = createdFieldPosts.find(p => p.id === id);
       if (local) {
-        // Preserve this device's version separately before applying the newer cloud version.
+        // Retain an offline backup without creating another active/shared post.
         localStorage.setItem(fieldSyncKey + ':conflict:' + id, JSON.stringify(local));
-        const copy = {...local, id:crypto.randomUUID(), visibility:'private', sharedWith:'', owner:LOGIN_USER};
-        copy.notes = [copy.notes, 'Copia conservada por cambios simultáneos en otro equipo'].filter(Boolean).join(' · ');
         createdFieldPosts.splice(createdFieldPosts.indexOf(local), 1);
-        createdFieldPosts.push(copy);
       }
       delete fieldSyncState[id];
     }
@@ -72,7 +69,7 @@ async function fieldPostSyncExchange(reply) {
     }
     fieldPostPersist();
     renderCreatedFieldPosts();
-    document.getElementById('fieldpost-sync-status').textContent = reply.error || (reply.conflicts?.length ? 'Había cambios simultáneos. Conservamos tu versión como copia privada y cargamos la versión compartida.' : 'Postes sincronizados entre equipos');
+    document.getElementById('fieldpost-sync-status').textContent = reply.error || (reply.conflicts?.length ? 'Se cargó la versión actualizada del otro equipo. Tu cambio anterior quedó respaldado en este navegador.' : 'Postes sincronizados entre equipos');
     fieldSyncPending = null;
     return null;
   }
@@ -81,6 +78,8 @@ async function fieldPostSyncExchange(reply) {
   for (const post of createdFieldPosts) {
     const known = fieldSyncState[post.id];
     if (known?.deleted || known?.deletePending) continue;
+    if (post.kind !== 'style' && !fieldPostValidLocation(post.lat, post.lon)) continue;
+    if (!known?.revision && post.kind !== 'style' && fieldPostDuplicates(post).length > 1) continue;
     const signature = fieldSyncSignature(post);
     if (known?.signature === signature) continue;
     const photos = [];
