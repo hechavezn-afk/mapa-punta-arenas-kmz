@@ -35,13 +35,25 @@ DEFAULT_CATEGORY_ICONS = {
     "Aislador dañado": "⚡", "Conductor cortado o deteriorado": "🧵",
     "Empalme irregular": "🔧", "Vegetación cercana a la red": "🌿", "Otro": "📍",
 }
-DOCUMENT_MIME_TYPES = {
-    "application/pdf", "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "text/plain", "text/csv",
+DOCUMENT_MIME_BY_EXTENSION = {
+    ".pdf": "application/pdf",
+    ".doc": "application/msword",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".xls": "application/vnd.ms-excel",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".ppt": "application/vnd.ms-powerpoint",
+    ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ".odt": "application/vnd.oasis.opendocument.text",
+    ".ods": "application/vnd.oasis.opendocument.spreadsheet",
+    ".odp": "application/vnd.oasis.opendocument.presentation",
+    ".rtf": "application/rtf",
+    ".txt": "text/plain",
+    ".csv": "text/csv",
 }
+DOCUMENT_EXTENSIONS = tuple(extension.lstrip(".") for extension in DOCUMENT_MIME_BY_EXTENSION)
+DOCUMENT_MIME_TYPES = set(DOCUMENT_MIME_BY_EXTENSION.values())
+FINDING_BUCKET_MIME_TYPES = sorted({"image/jpeg", "image/png", "image/webp", *DOCUMENT_MIME_TYPES})
+FINDING_BUCKET_FILE_SIZE_LIMIT = 10 * 1024 * 1024
 BUCKET = "maintenance-finding-photos"
 DATA_DIR = Path(__file__).parent
 ASSET_KMZ = {
@@ -498,19 +510,59 @@ def lookup_asset(locality: str, code: str) -> dict | None:
 
 
 def _upload_file(file, finding_id: str, *, document: bool = False) -> dict:
-    mime = str(file.type or "").lower()
-    allowed = DOCUMENT_MIME_TYPES if document else {"image/jpeg", "image/png", "image/webp"}
-    if mime not in allowed:
-        formats = "PDF, DOC, DOCX, XLS, XLSX, TXT o CSV" if document else "JPG, PNG o WEBP"
-        raise FindingsError(f"Formato no permitido para {file.name}; usa {formats}.")
+    suffix = Path(file.name).suffix.lower()
+    if document:
+        mime = DOCUMENT_MIME_BY_EXTENSION.get(suffix)
+        if not mime:
+            formats = ", ".join(extension.lstrip(".").upper() for extension in DOCUMENT_MIME_BY_EXTENSION)
+            raise FindingsError(f"Formato no permitido para {file.name}; usa {formats}.")
+        _ensure_finding_bucket_document_types()
+    else:
+        mime = str(file.type or "").lower()
+        if mime not in {"image/jpeg", "image/png", "image/webp"}:
+            raise FindingsError(f"Formato no permitido para {file.name}; usa JPG, PNG o WEBP.")
     content = file.getvalue()
-    if len(content) > 10 * 1024 * 1024:
+    if len(content) > FINDING_BUCKET_FILE_SIZE_LIMIT:
         raise FindingsError(f"{file.name} supera el límite de 10 MB.")
-    suffix = Path(file.name).suffix.lower().lstrip(".") or mimetypes.guess_extension(mime) or "bin"
-    path = f"{finding_id}/{uuid4().hex}.{suffix}"
+    extension = suffix.lstrip(".") or mimetypes.guess_extension(mime) or "bin"
+    path = f"{finding_id}/{uuid4().hex}.{extension}"
     _request("POST", f"/storage/v1/object/{BUCKET}/{quote(path, safe='/')}", content,
              content_type=mime, prefer=None)
     return {"path": path, "name": file.name, "type": mime, "size": len(content), "document": document}
+
+
+@st.cache_resource(show_spinner=False)
+def _ensure_finding_bucket_document_types() -> None:
+    """Align the private bucket's live MIME allow-list before the first document upload."""
+    _request("PUT", f"/storage/v1/bucket/{BUCKET}", {
+        "public": False,
+        "fileSizeLimit": FINDING_BUCKET_FILE_SIZE_LIMIT,
+        "allowedMimeTypes": FINDING_BUCKET_MIME_TYPES,
+    })
+
+
+def delete_finding_attachment(finding: dict, path: str, actor: str) -> None:
+    finding_id = str(finding.get("id") or "")
+    if not finding_id or not path.startswith(f"{finding_id}/"):
+        raise FindingsError("El archivo no pertenece a este hallazgo.")
+    collection_names = ("photos", "documents", "reviewed_attachments", "resolution_attachments")
+    patch, found = {}, False
+    for collection in collection_names:
+        items = list(finding.get(collection) or [])
+        remaining = [item for item in items if str(item.get("path") or "") != path]
+        if len(remaining) != len(items):
+            patch[collection] = remaining
+            found = True
+    if not found:
+        raise FindingsError("No encontré ese archivo en los adjuntos del hallazgo. Actualiza la lista e inténtalo otra vez.")
+
+    _request("DELETE", f"/storage/v1/object/{BUCKET}/{quote(path, safe='/')}")
+    patch["updated_by"] = actor
+    query = urlencode({"id": f"eq.{finding_id}"})
+    result = _request("PATCH", f"/rest/v1/maintenance_findings?{query}", patch,
+                      prefer="return=representation")
+    if not isinstance(result, list) or not result:
+        raise FindingsError("El archivo se quitó del almacenamiento, pero Supabase no confirmó la actualización del hallazgo. Actualiza la lista y vuelve a intentarlo.")
 
 
 def save_new(payload: dict, photos, documents=None) -> dict:
@@ -808,7 +860,7 @@ def render_findings_panel() -> None:
             second_latitude = second_lat_col.text_input("Latitud segundo activo", placeholder="Si aplica")
             second_longitude = second_lon_col.text_input("Longitud segundo activo", placeholder="Si aplica")
             photos = st.file_uploader("Fotos (máximo 3)", type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key="finding_create_photos")
-            documents = st.file_uploader("Documentos (máximo 2)", type=["pdf", "doc", "docx", "xls", "xlsx", "txt", "csv"], accept_multiple_files=True, key="finding_create_documents")
+            documents = st.file_uploader("Documentos (máximo 2, 10 MB cada uno)", type=list(DOCUMENT_EXTENSIONS), accept_multiple_files=True, key="finding_create_documents", max_upload_size=10)
             submit = st.form_submit_button("Guardar hallazgo compartido", type="primary", width="stretch")
         if submit:
             if len(photos or []) > 3 or len(documents or []) > 2:
@@ -872,19 +924,37 @@ def render_findings_panel() -> None:
                 st.caption(f"Fotos del hallazgo ({len(existing_photos)})")
                 photo_cols = st.columns(min(3, len(existing_photos)))
                 for index, (photo, stage) in enumerate(existing_photos):
+                    photo_col = photo_cols[index % len(photo_cols)]
                     try:
                         image_url = photo_url(photo["path"])
-                        photo_cols[index % len(photo_cols)].image(image_url, caption=f"{stage} · {photo.get('name', 'Foto')}", width="stretch")
-                        photo_cols[index % len(photo_cols)].link_button("Abrir foto", image_url, width="stretch")
+                        photo_col.image(image_url, caption=f"{stage} · {photo.get('name', 'Foto')}", width="stretch")
+                        photo_col.link_button("Abrir foto", image_url, width="stretch")
                     except (FindingsError, KeyError) as exc:
-                        photo_cols[index % len(photo_cols)].warning(f"No se pudo cargar esta foto: {exc}")
+                        photo_col.warning(f"No se pudo cargar esta foto: {exc}")
+                    if photo_col.button("🗑 Eliminar foto", key=f"delete_finding_photo_{selected['id']}_{index}",
+                                        help="Borra el archivo de Supabase y su referencia en este hallazgo.", width="stretch"):
+                        try:
+                            delete_finding_attachment(selected, photo["path"], str(st.session_state.get("map_login_user", "usuario")))
+                            st.session_state.pop("finding_report_bundle", None)
+                            st.rerun(scope="fragment")
+                        except (FindingsError, KeyError) as exc:
+                            photo_col.error(str(exc))
             if existing_documents:
                 st.caption("Documentos adjuntos")
-                for document, stage in existing_documents:
+                for index, (document, stage) in enumerate(existing_documents):
+                    document_col, delete_col = st.columns((5, 1), vertical_alignment="center")
                     try:
-                        st.link_button(f"📎 {stage} · {document.get('name', 'Abrir documento')}", photo_url(document["path"]), width="stretch")
+                        document_col.link_button(f"📎 {stage} · {document.get('name', 'Abrir documento')}", photo_url(document["path"]), width="stretch")
                     except (FindingsError, KeyError) as exc:
-                        st.warning(f"No se pudo abrir {document.get('name', 'el documento')}: {exc}")
+                        document_col.warning(f"No se pudo abrir {document.get('name', 'el documento')}: {exc}")
+                    if delete_col.button("🗑", key=f"delete_finding_document_{selected['id']}_{index}",
+                                         help=f"Eliminar {document.get('name', 'documento')} del almacenamiento y del hallazgo."):
+                        try:
+                            delete_finding_attachment(selected, document["path"], str(st.session_state.get("map_login_user", "usuario")))
+                            st.session_state.pop("finding_report_bundle", None)
+                            st.rerun(scope="fragment")
+                        except (FindingsError, KeyError) as exc:
+                            document_col.error(str(exc))
             st.dataframe([{"Aviso": selected.get("notice_number") or "", "Tipo": selected.get("category") or "",
                            "Localidad": selected.get("locality") or "", "Estado": selected.get("status") or "",
                            "Prioridad": selected.get("priority") or "", "Activo": selected.get("asset_code") or "",
@@ -917,7 +987,7 @@ def render_findings_panel() -> None:
                 existing_all_photos = list(selected.get("photos") or []) + [f for f in (selected.get("reviewed_attachments") or []) + (selected.get("resolution_attachments") or []) if not f.get("document")]
                 existing_all_documents = list(selected.get("documents") or []) + [f for f in (selected.get("reviewed_attachments") or []) + (selected.get("resolution_attachments") or []) if f.get("document")]
                 more_photos = st.file_uploader("Agregar fotos (máximo 3 en total)", type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key="finding_edit_photos")
-                more_documents = st.file_uploader("Agregar documentos (máximo 2 en total)", type=["pdf", "doc", "docx", "xls", "xlsx", "txt", "csv"], accept_multiple_files=True, key="finding_edit_documents")
+                more_documents = st.file_uploader("Agregar documentos (máximo 2 en total, 10 MB cada uno)", type=list(DOCUMENT_EXTENSIONS), accept_multiple_files=True, key="finding_edit_documents", max_upload_size=10)
                 save = st.form_submit_button("Guardar seguimiento", type="primary", width="stretch")
             if save:
                 if len(existing_all_photos) + len(more_photos or []) > 3 or len(existing_all_documents) + len(more_documents or []) > 2:
