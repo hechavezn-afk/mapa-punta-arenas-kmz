@@ -8,6 +8,72 @@ import streamlit as st
 from maintenance_findings import FindingsError, _request
 from supabase_accounts import account_roster
 
+SYNC_BATCH_SIZE = 20
+
+
+def _preserve_post_photos(actor: str, post: dict, revision: int) -> dict:
+    """Keep existing image bytes if this device only downloaded the post metadata."""
+    incoming = {photo['id']: photo for photo in post.get('syncPhotos', [])}
+    photo_ids = post.get('photos') or []
+    missing = set(photo_ids) - incoming.keys()
+    if missing and revision:
+        query = urlencode({'select': 'photos:data->syncPhotos', 'id': f"eq.{post['id']}",
+                           'or': f'(owner_name.eq.{actor},visibility.eq.global,and(visibility.eq.user,shared_with.eq.{actor}))'})
+        rows = _request('GET', '/rest/v1/created_field_posts?' + query) or []
+        existing = {photo['id']: photo for photo in ((rows[0].get('photos') or []) if rows else [])}
+        for photo_id in missing:
+            if photo_id in existing:
+                incoming[photo_id] = existing[photo_id]
+    if set(photo_ids) - incoming.keys():
+        raise FindingsError('Faltan fotos del poste en este equipo. Sincroniza antes de guardar sus cambios.')
+    return {**post, 'syncPhotos': [incoming[photo_id] for photo_id in photo_ids]}
+
+
+def _read_post_changes(actor: str, revisions: dict, conflicts: list[str]) -> dict:
+    """Poll revisions cheaply and transfer a bounded batch of changed records."""
+    access = f'(owner_name.eq.{actor},visibility.eq.global,and(visibility.eq.user,shared_with.eq.{actor}))'
+    query = urlencode({'select': 'id,revision,deleted,owner_name', 'or': access, 'order': 'id.asc'})
+    metadata = []
+    offset = 0
+    while True:
+        page = _request('GET', '/rest/v1/created_field_posts?' + query + f'&limit=500&offset={offset}') or []
+        metadata.extend(page)
+        if len(page) < 500:
+            break
+        offset += len(page)
+    rows = [row for row in metadata if row['deleted']]
+    changed = [row for row in metadata if not row['deleted'] and (
+        str(revisions.get(row['id'], '')) != str(row['revision']) or row['id'] in conflicts
+    )]
+    # Resolve conflicts before ordinary downloads so a partial batch cannot lose local edits.
+    changed.sort(key=lambda row: row['id'] not in conflicts)
+    selected = changed[:SYNC_BATCH_SIZE]
+    if selected:
+        identifiers = ','.join('"' + row['id'].replace('"', '') + '"' for row in selected)
+        detail_query = urlencode({'select': '*', 'id': f'in.({identifiers})', 'or': access, 'order': 'id.asc'})
+        try:
+            details = _request('GET', '/rest/v1/created_field_posts_sync?' + detail_query) or []
+        except FindingsError as exc:
+            if 'tablas o el bucket' not in str(exc):
+                raise
+            # Older deployments can sync before the optional projection view is installed.
+            details = _request('GET', '/rest/v1/created_field_posts?' + detail_query) or []
+        for detail in details:
+            post = detail['data']
+            valid = post.get('kind') == 'style' or (
+                -56.5 <= float(post.get('lat', 0)) <= -48 and -76 <= float(post.get('lon', 0)) <= -65
+            )
+            if valid and post.get('photos') and 'syncPhotos' not in post:
+                photos_query = urlencode({'select': 'photos:data->syncPhotos', 'id': f"eq.{detail['id']}", 'or': access})
+                photos = _request('GET', '/rest/v1/created_field_posts?' + photos_query) or []
+                post['syncPhotos'] = (photos[0].get('photos') or []) if photos else []
+            if not valid:
+                post.pop('syncPhotos', None)
+                detail['photosDeferred'] = bool(post.get('photos'))
+            rows.append(detail)
+    return {'rows': rows, 'visibleIds': [row['id'] for row in metadata],
+            'remaining': max(0, len(changed) - len(selected))}
+
 
 _bridge = st.components.v2.component(
     'field_post_sync', html='<span></span>',
@@ -25,6 +91,8 @@ _bridge = st.components.v2.component(
           if (!frame) return;
           const batch = await frame.contentWindow.fieldPostSyncExchange(data);
           if (batch && !stopped) setStateValue('request', batch);
+        } catch (error) {
+          console.warn('No se pudo completar la sincronización de postes. Se reintentará.', error);
         } finally { busy = false; }
       };
       tick();
@@ -49,7 +117,7 @@ def render_field_post_sync():
         return
     response = {'id': request.get('id'), 'acks': [], 'rows': [], 'error': ''}
     try:
-        for op in request.get('operations', [])[:100]:
+        for op in request.get('operations', [])[:SYNC_BATCH_SIZE]:
             post = op['post']
             visibility = post.get('visibility', 'private')
             if visibility not in ('private', 'user', 'global'):
@@ -58,11 +126,6 @@ def render_field_post_sync():
                 raise FindingsError('Selecciona el usuario con quien compartir.')
             if len(json.dumps(post)) > 8 * 1024 * 1024:
                 raise FindingsError('Las fotos del poste superan el tamaño permitido para sincronizar.')
-            visibility = post.get('visibility', 'private')
-            if visibility not in ('private', 'user', 'global'):
-                raise FindingsError('Selecciona una opción válida para compartir.')
-            if visibility == 'user' and post.get('sharedWith') not in account_roster():
-                raise FindingsError('Selecciona un usuario registrado para compartir el poste.')
             if not op.get('deleted'):
                 latitude, longitude = float(post['lat']), float(post['lon'])
                 if not (math.isfinite(latitude) and math.isfinite(longitude)
@@ -70,6 +133,7 @@ def render_field_post_sync():
                     raise FindingsError('Las coordenadas del poste están fuera de rango.')
                 if post.get('kind') != 'style' and not (-56.5 <= latitude <= -48 and -76 <= longitude <= -65):
                     raise FindingsError('Corrige la ubicación del poste: está fuera de Magallanes.')
+                post = _preserve_post_photos(actor, post, int(op.get('revision', 0)))
             try:
                 saved = _request('POST', '/rest/v1/rpc/sync_field_post', {
                     'actor': actor, 'post_id': str(post['id']),
@@ -86,15 +150,13 @@ def render_field_post_sync():
                 continue
             response['acks'].append({'id': post['id'], 'revision': saved['revision'],
                                      'signature': op['signature'], 'deleted': bool(op.get('deleted'))})
-        query = urlencode({'select': '*', 'or': f'(owner_name.eq.{actor},visibility.eq.global,and(visibility.eq.user,shared_with.eq.{actor}))', 'order': 'updated_at.asc'})
-        response['rows'] = []
-        offset = 0
-        while True:
-            page = _request('GET', '/rest/v1/created_field_posts?' + query + f'&limit=500&offset={offset}') or []
-            response['rows'].extend(page)
-            if len(page) < 500:
-                break
-            offset += len(page)
+        # Acknowledged local writes need no immediate download of the same photos.
+        revisions = dict(request.get('revisions') or {})
+        for ack in response['acks']:
+            revisions[ack['id']] = ack['revision']
+        for post_id in request.get('photosNeeded') or []:
+            revisions.pop(post_id, None)
+        response.update(_read_post_changes(actor, revisions, response.get('conflicts', [])))
     except (FindingsError, ValueError, KeyError, TypeError) as exc:
         response['error'] = str(exc)
     st.session_state.field_post_sync_reply = response

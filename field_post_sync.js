@@ -17,10 +17,11 @@ async function fieldPostSyncExchange(reply) {
     }
   }
   if (reply.id && reply.id !== fieldSyncApplied) {
-    fieldSyncApplied = reply.id;
+    let changed = false;
     for (const ack of reply.acks || []) {
       const deletePending = fieldSyncState[ack.id]?.deletePending && !ack.deleted;
-      fieldSyncState[ack.id] = {revision: ack.revision, signature: ack.signature, deleted: ack.deleted, deletePending};
+      const photosDeferred = fieldSyncState[ack.id]?.photosDeferred || false;
+      fieldSyncState[ack.id] = {revision: ack.revision, signature: ack.signature, deleted: ack.deleted, deletePending, photosDeferred};
     }
     for (const id of reply.conflicts || []) {
       if (fieldSyncState[id]?.deletePending || reply.rows?.some(row => row.id === id && row.deleted)) continue;
@@ -29,6 +30,7 @@ async function fieldPostSyncExchange(reply) {
         // Retain an offline backup without creating another active/shared post.
         localStorage.setItem(fieldSyncKey + ':conflict:' + id, JSON.stringify(local));
         createdFieldPosts.splice(createdFieldPosts.indexOf(local), 1);
+        changed = true;
       }
       delete fieldSyncState[id];
     }
@@ -37,13 +39,18 @@ async function fieldPostSyncExchange(reply) {
       const local = index >= 0 ? createdFieldPosts[index] : null;
       const known = fieldSyncState[row.id];
       if (row.deleted) {
-        if (index >= 0) createdFieldPosts.splice(index, 1);
+        if (index >= 0) { createdFieldPosts.splice(index, 1); changed = true; }
         fieldSyncState[row.id] = {revision:row.revision, deleted:true, signature:''};
         continue;
       }
       if (known?.deletePending || known?.deleted) continue;
       const dirty = local && (!known || fieldSyncSignature(local) !== known.signature);
-      if (dirty) continue;
+      if (dirty) {
+        if (!known && !fieldPostValidLocation(local.lat, local.lon)) {
+          fieldSyncState[row.id] = {revision:row.revision, signature:fieldSyncSignature(local), deleted:false, photosDeferred:Boolean(row.photosDeferred)};
+        }
+        continue;
+      }
       const post = row.data;
       for (const attachment of post.syncPhotos || []) {
         const blob = await (await fetch(attachment.data)).blob();
@@ -53,29 +60,45 @@ async function fieldPostSyncExchange(reply) {
       post.owner = row.owner_name;
       if (index >= 0) createdFieldPosts[index] = post;
       else if (!known || !known.deleted) createdFieldPosts.push(post);
-      fieldSyncState[row.id] = {revision:row.revision, signature:fieldSyncSignature(post), deleted:false};
+      changed = true;
+      fieldSyncState[row.id] = {revision:row.revision, signature:fieldSyncSignature(post), deleted:false, photosDeferred:Boolean(row.photosDeferred)};
     }
     fieldSyncSaveState();
     if (!reply.error) {
-      const visibleIds = new Set((reply.rows || []).map(row => row.id));
+      const visibleIds = new Set(reply.visibleIds || (reply.rows || []).map(row => row.id));
       createdFieldPosts = createdFieldPosts.filter(post => {
         if (post.owner && post.owner !== LOGIN_USER && fieldSyncState[post.id] && !visibleIds.has(post.id)) {
           delete fieldSyncState[post.id];
+          changed = true;
           return false;
         }
         return true;
       });
       fieldSyncSaveState();
     }
-    fieldPostPersist();
-    renderCreatedFieldPosts();
-    document.getElementById('fieldpost-sync-status').textContent = reply.error || (reply.conflicts?.length ? 'Se cargó la versión actualizada del otro equipo. Tu cambio anterior quedó respaldado en este navegador.' : 'Postes sincronizados entre equipos');
+    if (changed) {
+      fieldPostPersist();
+      renderCreatedFieldPosts();
+    }
+    document.getElementById('fieldpost-sync-status').textContent = reply.error || (reply.remaining
+      ? 'Sincronizando · quedan '+reply.remaining+' postes'
+      : reply.conflicts?.length ? 'Se cargó la versión actualizada del otro equipo. Tu cambio anterior quedó respaldado en este navegador.' : 'Postes sincronizados entre equipos');
+    fieldSyncApplied = reply.id;
     fieldSyncPending = null;
     return null;
   }
   if (fieldSyncPending) return null;
   const operations = [];
+  const postIds = new Set(createdFieldPosts.map(post => post.id));
+  for (const [id, known] of Object.entries(fieldSyncState)) {
+    if (operations.length >= 20) break;
+    if (known.deletePending || (!known.deleted && !postIds.has(id))) {
+      operations.push({post:{id,visibility:'private'}, revision:known.revision, deleted:true, signature:''});
+    }
+  }
+  let payloadSize = 0;
   for (const post of createdFieldPosts) {
+    if (operations.length >= 20) break;
     const known = fieldSyncState[post.id];
     if (known?.deleted || known?.deletePending) continue;
     if (post.kind !== 'style' && !fieldPostValidLocation(post.lat, post.lon)) continue;
@@ -94,14 +117,15 @@ async function fieldPostSyncExchange(reply) {
       });
       photos.push({id, name:stored.name, data});
     }
-    operations.push({post:{...post, syncPhotos:photos}, signature, revision:known?.revision || 0});
+    const operation = {post:{...post, syncPhotos:photos}, signature, revision:known?.revision || 0};
+    const size = JSON.stringify(operation).length;
+    if (operations.length && payloadSize + size > 8 * 1024 * 1024) break;
+    operations.push(operation);
+    payloadSize += size;
   }
-  for (const [id, known] of Object.entries(fieldSyncState)) {
-    if (known.deletePending || (!known.deleted && !createdFieldPosts.some(p => p.id === id))) {
-      operations.push({post:{id,visibility:'private'}, revision:known.revision, deleted:true, signature:''});
-    }
-  }
-  fieldSyncPending = {id:crypto.randomUUID(), operations};
+  const revisions = Object.fromEntries(Object.entries(fieldSyncState).map(([id, known]) => [id, known.revision]));
+  const photosNeeded = createdFieldPosts.filter(post => fieldSyncState[post.id]?.photosDeferred && fieldPostValidLocation(post.lat, post.lon)).map(post => post.id);
+  fieldSyncPending = {id:crypto.randomUUID(), operations, revisions, photosNeeded};
   document.getElementById('fieldpost-sync-status').textContent = 'Sincronizando postes…';
   return fieldSyncPending;
 }
