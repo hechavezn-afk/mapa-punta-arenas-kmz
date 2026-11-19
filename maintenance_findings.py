@@ -536,9 +536,16 @@ def _ensure_finding_bucket_document_types() -> None:
     """Align the private bucket's live MIME allow-list before the first document upload."""
     _request("PUT", f"/storage/v1/bucket/{BUCKET}", {
         "public": False,
-        "fileSizeLimit": FINDING_BUCKET_FILE_SIZE_LIMIT,
-        "allowedMimeTypes": FINDING_BUCKET_MIME_TYPES,
+        "file_size_limit": FINDING_BUCKET_FILE_SIZE_LIMIT,
+        "allowed_mime_types": FINDING_BUCKET_MIME_TYPES,
     })
+    bucket = _request("GET", f"/storage/v1/bucket/{BUCKET}") or {}
+    allowed_types = bucket.get("allowed_mime_types")
+    if allowed_types is not None and not DOCUMENT_MIME_TYPES.issubset(set(allowed_types)):
+        raise FindingsError(
+            "Supabase no confirmó los formatos documentales del bucket. "
+            "Revisa la clave de servicio configurada en Streamlit Secrets y vuelve a intentar."
+        )
 
 
 def delete_finding_attachment(finding: dict, path: str, actor: str) -> None:
