@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import base64
+import csv
 from html import escape
 import json
 import math
@@ -10,7 +11,7 @@ import re
 import time
 import zipfile
 import mimetypes
-from io import BytesIO
+from io import BytesIO, StringIO
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from urllib.error import HTTPError, URLError
@@ -551,10 +552,43 @@ def photo_url(path: str, *, expires_in: int = 3600) -> str:
     data = _request("POST", f"/storage/v1/object/sign/{BUCKET}/{quote(path, safe='/')}",
                     {"expiresIn": expires_in})
     value = (data or {}).get("signedURL", "")
+    if not value:
+        raise FindingsError(f"Supabase no devolvió un enlace para {Path(path).name}.")
     base, _, _ = auth_config()
     if value.startswith("/object/"):
         return base + "/storage/v1" + value
     return base + value if value.startswith("/") else value
+
+
+def _download_file(path: str) -> bytes:
+    """Download one private Storage object with the server key; never expose it to the browser."""
+    try:
+        base, _, key = auth_config()
+    except SupabaseSetupError as exc:
+        raise FindingsError(str(exc)) from None
+    url = base + f"/storage/v1/object/{BUCKET}/{quote(path, safe='/')}"
+    request = Request(url, headers={"apikey": key, "Authorization": f"Bearer {key}"}, method="GET")
+    try:
+        with urlopen(request, timeout=45) as response:
+            return response.read()
+    except (HTTPError, URLError, TimeoutError, OSError) as exc:
+        raise FindingsError(f"No se pudo descargar {Path(path).name} desde el almacenamiento compartido.") from exc
+
+
+def _finding_attachments(row: dict) -> list[tuple[str, dict]]:
+    attachments = []
+    for collection, stage, document in (
+        (row.get("photos") or [], "Registro", False),
+        (row.get("documents") or [], "Registro", True),
+        (row.get("reviewed_attachments") or [], "Revisión", None),
+        (row.get("resolution_attachments") or [], "Resolución", None),
+    ):
+        for item in collection:
+            metadata = dict(item)
+            if document is not None:
+                metadata["document"] = document
+            attachments.append((stage, metadata))
+    return attachments
 
 
 def finding_history(finding_id: str) -> list[dict]:
@@ -563,7 +597,7 @@ def finding_history(finding_id: str) -> list[dict]:
     return _request("GET", "/rest/v1/maintenance_finding_history?" + query) or []
 
 
-def _map_payload(rows, show_heat, focus, categories):
+def _map_payload(rows, show_heat, focus, categories, evidence_focus_id=None):
     cases, cells = [], {}
     colors = {"Baja": "#1976a3", "Media": "#b06300", "Alta": "#c53427", "Urgente": "#89152e"}
     for row in rows:
@@ -572,7 +606,20 @@ def _map_payload(rows, show_heat, focus, categories):
         if row.get("second_latitude") is not None and row.get("second_longitude") is not None:
             end = [float(row["second_latitude"]), float(row["second_longitude"])]
         label = " · ".join(str(row[key]) for key in ("category", "notice_number", "priority", "status") if row.get(key))
-        cases.append({"id": str(row.get("id", "")), "start": start, "end": end, "label": label,
+        case_id = str(row.get("id", ""))
+        evidence = []
+        if evidence_focus_id and case_id == str(evidence_focus_id):
+            for stage, attachment in _finding_attachments(row):
+                if not attachment.get("path"):
+                    continue
+                try:
+                    signed_url = photo_url(attachment["path"], expires_in=3600)
+                except FindingsError:
+                    signed_url = ""
+                evidence.append({"name": attachment.get("name") or Path(attachment["path"]).name,
+                                 "document": bool(attachment.get("document")), "stage": stage,
+                                 "url": signed_url})
+        cases.append({"id": case_id, "start": start, "end": end, "label": label,
                       "icon": _category_icon(row.get("category", ""), categories),
                       "icon_url": _category_icon_url(next((item for item in categories if item.get("name") == row.get("category")), {})),
                       "category": row.get("category") or "", "notice": row.get("notice_number") or "",
@@ -583,6 +630,7 @@ def _map_payload(rows, show_heat, focus, categories):
                       "resolution_details": row.get("resolution_details") or "",
                       "photos": len(row.get("photos") or []) + sum(not f.get("document") for f in (row.get("reviewed_attachments") or []) + (row.get("resolution_attachments") or [])),
                       "documents": len(row.get("documents") or []) + sum(bool(f.get("document")) for f in (row.get("reviewed_attachments") or []) + (row.get("resolution_attachments") or [])),
+                      "evidence": evidence,
                       "color": colors.get(row.get("priority"), "#b06300")})
         if show_heat:
             for lat, lon in [start] + ([end] if end else []):
@@ -623,12 +671,16 @@ def _edited_coordinate(raw: str, original, asset: dict | None, axis: str, label:
 
 
 def render_findings_panel() -> None:
+    map_selected_id = str(st.session_state.pop("finding_map_selected_id", "") or "")
     heading, close = st.columns((5, 1), vertical_alignment="center")
     heading.subheader("Hallazgos de mantenimiento")
     if close.button("×", key="close_findings_panel", help="Cerrar hallazgos"):
         st.session_state.pop("show_findings", None)
         st.query_params.pop("findings", None)
         st.rerun(scope="fragment")
+
+    st.html("<style>.st-key-finding_map_selected_id{display:none!important}</style>")
+    st.text_input("Caso seleccionado desde el mapa", key="finding_map_selected_id", label_visibility="collapsed")
 
     filter_cols = st.columns(2)
     locality = filter_cols[0].selectbox("Localidad", ("Todas",) + LOCALITIES, key="finding_locality")
@@ -653,7 +705,24 @@ def render_findings_panel() -> None:
     category_filter = st.selectbox("Tipo de hallazgo", ("Todos",) + tuple(available_categories), key="finding_type_filter")
     if category_filter != "Todos":
         rows = [row for row in rows if row.get("category") == category_filter]
+    edit_choices = {
+        f"{('Aviso ' + str(row.get('notice_number')) + ' · ') if row.get('notice_number') else ''}{row.get('category')} · {' ↔ '.join(str(value) for value in (row.get('asset_code'), row.get('second_asset_code')) if value) or 'sin activo'} · {row.get('locality')} · {row.get('status')} · {str(row['id'])[:8]}": row
+        for row in rows
+    }
     st.caption(f"{len(rows)} hallazgos del tipo y filtros seleccionados")
+    if rows:
+        text_buffer = StringIO()
+        writer = csv.DictWriter(text_buffer, fieldnames=["Aviso", "Solicitante", "Tipo", "Localidad", "Estado", "Prioridad", "Activo", "Latitud", "Longitud", "Fotos", "Documentos"])
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({"Aviso": row.get("notice_number") or "", "Solicitante": row.get("requester") or "",
+                             "Tipo": row.get("category") or "", "Localidad": row.get("locality") or "",
+                             "Estado": row.get("status") or "", "Prioridad": row.get("priority") or "",
+                             "Activo": row.get("asset_code") or "", "Latitud": row.get("latitude"), "Longitud": row.get("longitude"),
+                             "Fotos": sum(not file.get("document") for _, file in _finding_attachments(row)),
+                             "Documentos": sum(bool(file.get("document")) for _, file in _finding_attachments(row))})
+        st.download_button("Exportar informe de la lista filtrada (.csv)", data="\ufeff" + text_buffer.getvalue(),
+                           file_name="Hallazgos_filtrados.csv", mime="text/csv", width="stretch")
     if st.button("🎨 Configurar iconos y tipos", key="open_finding_icon_config", width="stretch"):
         st.session_state["show_finding_icon_config"] = True
     if st.session_state.get("show_finding_icon_config", False):
@@ -666,17 +735,27 @@ def render_findings_panel() -> None:
                        "Latitud": row.get("latitude"), "Longitud": row.get("longitude")} for row in rows],
                    hide_index=True, width="stretch")
     focus = st.session_state.pop("finding_focus", None)
+    evidence_focus_id = None
     if rows:
-        by_id = {row["id"]: row for row in rows}
+        by_id = {str(row["id"]): row for row in rows}
         def describe(finding_id):
             row = by_id[finding_id]
             return " · ".join(str(row[key]) for key in ("category", "notice_number", "asset_code", "status") if row.get(key))
 
         finding_id = st.selectbox("Caso en el mapa", list(by_id), format_func=describe)
+        if map_selected_id and map_selected_id in by_id:
+            selected_row = by_id[map_selected_id]
+            selected_label = next((label for label, row in edit_choices.items()
+                                   if str(row["id"]) == map_selected_id), None)
+            if selected_label:
+                st.session_state["finding_edit_choice"] = selected_label
+            evidence_focus_id = map_selected_id
+            focus = {"coordinates": [float(selected_row["latitude"]), float(selected_row["longitude"])],
+                     "id": map_selected_id}
         if st.button("Ubicar en el mapa"):
             row = by_id[finding_id]
             focus = {"coordinates": [float(row["latitude"]), float(row["longitude"])], "id": str(row["id"])}
-    payload = escape(json.dumps(_map_payload(rows, show_heat, focus, shared_categories), ensure_ascii=False), quote=True)
+    payload = escape(json.dumps(_map_payload(rows, show_heat, focus, shared_categories, evidence_focus_id), ensure_ascii=False), quote=True)
     st.html(f'<span hidden id="findings-map-data" data-rows="{payload}"></span>')
 
     create_tab, follow_tab = st.tabs(("Crear hallazgo", "Seguimiento"))
@@ -781,32 +860,31 @@ def render_findings_panel() -> None:
         if not rows:
             st.caption("Agrega o filtra hallazgos para iniciar el seguimiento.")
         else:
-            choices = {f"{('Aviso ' + r.get('notice_number') + ' · ') if r.get('notice_number') else ''}{r.get('category')} · {' ↔ '.join(x for x in (r.get('asset_code'), r.get('second_asset_code')) if x) or 'sin activo'} · {r.get('locality')} · {r.get('status')} · {str(r['id'])[:8]}": r for r in rows}
-            label = st.selectbox("Hallazgo", list(choices), key="finding_edit_choice")
-            selected = choices[label]
-            existing_photos = list(selected.get("photos") or []) + [
-                file for file in (selected.get("reviewed_attachments") or []) + (selected.get("resolution_attachments") or [])
-                if not file.get("document")
-            ]
-            existing_documents = list(selected.get("documents") or []) + [
-                file for file in (selected.get("reviewed_attachments") or []) + (selected.get("resolution_attachments") or [])
-                if file.get("document")
-            ]
+            label = st.selectbox("Hallazgo", list(edit_choices), key="finding_edit_choice")
+            selected = edit_choices[label]
+            existing_photos = [(file, "Registro") for file in (selected.get("photos") or [])]
+            existing_photos += [(file, "Revisión") for file in (selected.get("reviewed_attachments") or []) if not file.get("document")]
+            existing_photos += [(file, "Resolución") for file in (selected.get("resolution_attachments") or []) if not file.get("document")]
+            existing_documents = [(file, "Registro") for file in (selected.get("documents") or [])]
+            existing_documents += [(file, "Revisión") for file in (selected.get("reviewed_attachments") or []) if file.get("document")]
+            existing_documents += [(file, "Resolución") for file in (selected.get("resolution_attachments") or []) if file.get("document")]
             if existing_photos:
                 st.caption(f"Fotos del hallazgo ({len(existing_photos)})")
                 photo_cols = st.columns(min(3, len(existing_photos)))
-                for index, photo in enumerate(existing_photos):
+                for index, (photo, stage) in enumerate(existing_photos):
                     try:
-                        photo_cols[index % len(photo_cols)].image(photo_url(photo["path"]), caption=photo.get("name", "Foto"), width="stretch")
-                    except (FindingsError, KeyError):
-                        photo_cols[index % len(photo_cols)].caption("No se pudo cargar esta foto.")
+                        image_url = photo_url(photo["path"])
+                        photo_cols[index % len(photo_cols)].image(image_url, caption=f"{stage} · {photo.get('name', 'Foto')}", width="stretch")
+                        photo_cols[index % len(photo_cols)].link_button("Abrir foto", image_url, width="stretch")
+                    except (FindingsError, KeyError) as exc:
+                        photo_cols[index % len(photo_cols)].warning(f"No se pudo cargar esta foto: {exc}")
             if existing_documents:
                 st.caption("Documentos adjuntos")
-                for document in existing_documents:
+                for document, stage in existing_documents:
                     try:
-                        st.link_button(f"📎 {document.get('name', 'Abrir documento')}", photo_url(document["path"]), width="stretch")
-                    except (FindingsError, KeyError):
-                        st.caption(f"No se pudo abrir {document.get('name', 'el documento')}.")
+                        st.link_button(f"📎 {stage} · {document.get('name', 'Abrir documento')}", photo_url(document["path"]), width="stretch")
+                    except (FindingsError, KeyError) as exc:
+                        st.warning(f"No se pudo abrir {document.get('name', 'el documento')}: {exc}")
             st.dataframe([{"Aviso": selected.get("notice_number") or "", "Tipo": selected.get("category") or "",
                            "Localidad": selected.get("locality") or "", "Estado": selected.get("status") or "",
                            "Prioridad": selected.get("priority") or "", "Activo": selected.get("asset_code") or "",
@@ -907,11 +985,22 @@ def render_findings_panel() -> None:
                 report_history = finding_history(str(selected["id"]))
             except FindingsError:
                 report_history = history
-            st.download_button("Descargar informe de este hallazgo (.html)",
-                               data=_finding_report_html(selected, report_history),
-                               file_name=f"Hallazgo_{str(selected.get('notice_number') or selected['id'])}.html",
-                               mime="text/html", width="stretch")
-
+            report_name = re.sub(r"[^A-Za-z0-9_-]+", "_", str(selected.get("notice_number") or selected["id"])).strip("_")
+            report_col, bundle_col = st.columns(2)
+            report_col.download_button("Informe HTML", data=_finding_report_html(selected, report_history),
+                                       file_name=f"Hallazgo_{report_name}.html", mime="text/html", width="stretch",
+                                       help="Incluye el seguimiento y enlaces temporales a los archivos compartidos.")
+            if bundle_col.button("Preparar informe con archivos", key="prepare_finding_report_bundle", width="stretch"):
+                try:
+                    bundle = _finding_report_bundle(selected, report_history)
+                    st.session_state["finding_report_bundle"] = {"id": str(selected["id"]), "data": bundle}
+                except FindingsError as exc:
+                    st.error(str(exc))
+            bundle_state = st.session_state.get("finding_report_bundle") or {}
+            if bundle_state.get("id") == str(selected["id"]):
+                st.download_button("Descargar informe completo (.zip)", data=bundle_state["data"],
+                                   file_name=f"Hallazgo_{report_name}_completo.zip", mime="application/zip",
+                                   key="download_finding_report_bundle", width="stretch")
 
 def _detect_locality(latitude, longitude):
     try:
@@ -927,7 +1016,7 @@ def _detect_locality(latitude, longitude):
     return name if distance <= thresholds[name] else None
 
 
-def _finding_report_html(row, history):
+def _finding_report_html(row, history, attachment_links=None):
     safe = lambda value: escape(str(value or ""))
     fields = [("Estado", row.get("status")), ("Prioridad", row.get("priority")), ("Localidad", row.get("locality")),
               ("Aviso", row.get("notice_number")), ("Solicitante", row.get("requester")),
@@ -938,14 +1027,12 @@ def _finding_report_html(row, history):
     map_url = f"https://www.google.com/maps?q={row.get('latitude')},{row.get('longitude')}"
     items = "".join(f"<tr><th>{safe(label)}</th><td>{safe(value)}</td></tr>" for label, value in fields if value not in (None, ""))
     events = "".join(f"<li><b>{safe(e.get('action'))}</b> · {safe(e.get('changed_at'))} · {safe(e.get('changed_by'))}</li>" for e in history)
-    general = list(row.get("photos") or []) + list(row.get("documents") or [])
-    reviewed = list(row.get("reviewed_attachments") or [])
-    resolved = list(row.get("resolution_attachments") or [])
-    evidence = [("Registro", item) for item in general] + [("Revisión", item) for item in reviewed] + [("Resolución", item) for item in resolved]
+    evidence = _finding_attachments(row)
+    attachment_links = attachment_links or {}
     attachment_list, photo_sections = [], []
     for stage, item in evidence:
         try:
-            url = escape(photo_url(item["path"]), quote=True)
+            url = escape(attachment_links.get(item["path"]) or photo_url(item["path"]), quote=True)
         except (FindingsError, KeyError):
             attachment_list.append(f"<li>{safe(item.get('name'))} · {stage} (enlace no disponible)</li>")
             continue
@@ -964,3 +1051,23 @@ def _finding_report_html(row, history):
             f"<h2>Registro fotográfico</h2><div class='photos'>{photos_html or '<p>Sin fotografías adjuntas</p>'}</div>"
             f"<h2>Archivos adjuntos</h2><ul>{attachment_list or '<li>Sin archivos adjuntos</li>'}</ul>"
             f"<h2>Seguimiento</h2><ul>{events or '<li>Sin movimientos registrados</li>'}</ul>")
+
+
+def _finding_report_bundle(row: dict, history: list[dict]) -> bytes:
+    archive_buffer = BytesIO()
+    attachment_links, used_names = {}, set()
+    with zipfile.ZipFile(archive_buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for index, (_, item) in enumerate(_finding_attachments(row), 1):
+            path = str(item.get("path") or "")
+            if not path:
+                continue
+            original_name = Path(str(item.get("name") or Path(path).name)).name
+            safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", original_name).strip("._") or f"archivo_{index}"
+            target = f"archivos/{index:02d}_{safe_name}"
+            while target.casefold() in used_names:
+                target = f"archivos/{index:02d}_{uuid4().hex[:6]}_{safe_name}"
+            used_names.add(target.casefold())
+            archive.writestr(target, _download_file(path))
+            attachment_links[path] = target
+        archive.writestr("Informe.html", _finding_report_html(row, history, attachment_links))
+    return archive_buffer.getvalue()
