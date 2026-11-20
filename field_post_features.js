@@ -6,6 +6,9 @@ function fieldPostValidLocation(latitude, longitude) {
 function fieldPostCode(post) {
   return String(post.number || '').replace(/\s+/g, '').toUpperCase();
 }
+function fieldPostRetiredCode(post, actor = LOGIN_USER) {
+  return String(actor).toUpperCase() === 'HECTOR' && fieldPostCode(post) === '1-0390-043';
+}
 function fieldPostDuplicates(post) {
   const code = fieldPostCode(post);
   return code ? createdFieldPosts.filter(other => other.kind !== 'style' && fieldPostCode(other) === code) : [];
@@ -13,6 +16,7 @@ function fieldPostDuplicates(post) {
 function fieldPostNumberError(number, editingId = '') {
   const code = fieldPostCode({number});
   if (!code) return 'Ingresa el número del poste.';
+  if (fieldPostRetiredCode({number})) return 'El número 1-0390-043 fue retirado. Ingresa otro número.';
   if (fieldPostDuplicates({number}).some(post => post.id !== editingId)) {
     return 'El número ' + number.trim() + ' ya existe en Postes creados. Abre ese poste para modificarlo.';
   }
@@ -26,7 +30,7 @@ function fieldPostWarnings(post) {
 }
 function cleanLegacyFieldPosts(posts, actor) {
   const owned = posts.filter(post => post.kind !== 'style' && (!post.owner || post.owner === actor));
-  const removed = new Set(owned.filter(post => !fieldPostValidLocation(post.lat, post.lon)));
+  const removed = new Set(owned.filter(post => fieldPostRetiredCode(post, actor) || !fieldPostValidLocation(post.lat, post.lon)));
   const groups = new Map();
   for (const post of owned) {
     const code = fieldPostCode(post);

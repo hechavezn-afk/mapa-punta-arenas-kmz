@@ -32,7 +32,10 @@ def _preserve_post_photos(actor: str, post: dict, revision: int) -> dict:
 def _read_post_changes(actor: str, revisions: dict, conflicts: list[str]) -> dict:
     """Poll revisions cheaply and transfer a bounded batch of changed records."""
     access = f'(owner_name.eq.{actor},visibility.eq.global,and(visibility.eq.user,shared_with.eq.{actor}))'
-    query = urlencode({'select': 'id,revision,deleted,owner_name', 'or': access, 'order': 'id.asc'})
+    columns = 'id,revision,deleted,owner_name'
+    if actor == 'HECTOR':
+        columns += ',number:data->>number'
+    query = urlencode({'select': columns, 'or': access, 'order': 'id.asc'})
     metadata = []
     offset = 0
     while True:
@@ -41,6 +44,15 @@ def _read_post_changes(actor: str, revisions: dict, conflicts: list[str]) -> dic
         if len(page) < 500:
             break
         offset += len(page)
+    if actor == 'HECTOR':
+        for row in metadata:
+            if row['deleted'] or row['owner_name'] != actor or ''.join((row.get('number') or '').split()).upper() != '1-0390-043':
+                continue
+            deleted = _request('POST', '/rest/v1/rpc/sync_field_post', {
+                'actor': actor, 'post_id': row['id'], 'expected_revision': row['revision'],
+                'post_data': {}, 'remove_post': True,
+            })
+            row.update(deleted=True, revision=deleted['revision'])
     rows = [row for row in metadata if row['deleted']]
     changed = [row for row in metadata if not row['deleted'] and (
         str(revisions.get(row['id'], '')) != str(row['revision']) or row['id'] in conflicts
@@ -131,6 +143,10 @@ def render_field_post_sync():
             if len(json.dumps(post)) > 8 * 1024 * 1024:
                 raise FindingsError('Las fotos del poste superan el tamaño permitido para sincronizar.')
             if not op.get('deleted'):
+                number = ''.join(str(post.get('number') or '').split()).upper()
+                if actor == 'HECTOR' and number == '1-0390-043' and post.get('kind') != 'style':
+                    response['error'] = 'El número 1-0390-043 fue retirado.'
+                    continue
                 if post.get('kind') != 'style' and not str(post.get('number') or '').strip():
                     raise FindingsError('Ingresa el número del poste.')
                 latitude, longitude = float(post['lat']), float(post['lon'])
