@@ -366,7 +366,7 @@ HTML_TEMPLATE = r"""<!doctype html>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
 <style>
-*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:Arial,sans-serif;color:#202124}#map{position:absolute;inset:0;background:#dbe5e5}#map .leaflet-tile{width:258px!important;height:258px!important;max-width:none!important;outline:1px solid transparent}
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:Arial,sans-serif;color:#202124}#map{position:absolute;inset:0;background:#dbe5e5}
 .panel{position:absolute;z-index:1000;top:12px;left:12px;width:min(340px,calc(100vw - 24px));max-height:calc(100% - 24px);overflow:auto;background:#fff;border-radius:12px;box-shadow:0 2px 12px #0003;padding:14px;transition:opacity .16s ease,transform .16s ease}
 .panel.is-hidden{display:none}.panel-head{position:sticky;top:-14px;z-index:4;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:2px 0 6px;background:#fff}.panel-head-main{min-width:0}.panel-close,.panel-open{border:0;background:#f1f3f4;color:#3c4043;border-radius:9px;font-size:20px;line-height:1;cursor:pointer;touch-action:manipulation}.panel-close{flex:none;width:32px;height:32px;margin:-3px -3px 0 0}.panel-open{position:absolute;z-index:1002;top:12px;left:12px;padding:9px 12px;background:rgba(31,78,121,.78);color:#fff;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.55);box-shadow:0 2px 10px #0003;font-size:14px;font-weight:700;min-height:42px;min-width:44px}.panel-open[hidden]{display:none}
 .leaflet-top.leaflet-left{top:auto;bottom:12px;left:12px}
