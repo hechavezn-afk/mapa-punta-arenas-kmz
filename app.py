@@ -641,8 +641,6 @@ function initAdminConfig(){applyMapConfigUI();if(!CONFIG_MODE)return;const toggl
 
 // Evita líneas claras en las juntas de mosaicos al aplicar transformaciones fraccionarias.
 // Workaround recomendado en Leaflet issue #3575: https://github.com/Leaflet/Leaflet/issues/3575
-const initGridTile=L.GridLayer.prototype._initTile;
-L.GridLayer.include({_initTile:function(tile){initGridTile.call(this,tile);const size=this.getTileSize();tile.style.width=(size.x+1)+'px';tile.style.height=(size.y+1)+'px'}});
 const osmUrl='https://tile.openstreetmap.org/{z}/{x}/{y}.png',osm=L.tileLayer(osmUrl,{maxZoom:19,attribution:'© OpenStreetMap'});
 const satellite=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:17,maxZoom:19,attribution:'Tiles © Esri'});
 const MAP_UI_STATE_KEY='redes-edelmag-map-ui-v1:'+String(LOGIN_USER||'').toLowerCase();
