@@ -116,7 +116,7 @@ async function fieldPostSyncExchange(reply) {
     if (operations.length >= 20) break;
     const known = fieldSyncState[post.id];
     if (known?.deleted || known?.deletePending) continue;
-    if (post.kind !== 'style' && !fieldPostValidLocation(post.lat, post.lon)) continue;
+    if (post.kind !== 'style' && (!fieldPostCode(post) || !fieldPostValidLocation(post.lat, post.lon))) continue;
     if (!known?.revision && post.kind !== 'style' && fieldPostDuplicates(post).length > 1) continue;
     const signature = fieldSyncSignature(post);
     if (known?.signature === signature) continue;

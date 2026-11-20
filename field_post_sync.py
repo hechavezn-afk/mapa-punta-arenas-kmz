@@ -131,6 +131,8 @@ def render_field_post_sync():
             if len(json.dumps(post)) > 8 * 1024 * 1024:
                 raise FindingsError('Las fotos del poste superan el tamaño permitido para sincronizar.')
             if not op.get('deleted'):
+                if post.get('kind') != 'style' and not str(post.get('number') or '').strip():
+                    raise FindingsError('Ingresa el número del poste.')
                 latitude, longitude = float(post['lat']), float(post['lon'])
                 if not (math.isfinite(latitude) and math.isfinite(longitude)
                         and -90 <= latitude <= 90 and -180 <= longitude <= 180):
@@ -147,6 +149,8 @@ def render_field_post_sync():
             except FindingsError as exc:
                 if 'Codigo repetido:' in str(exc):
                     response['error'] = 'Ese código ya existe. Revisa los postes señalados como repetidos.'
+                    if not op.get('revision'):
+                        response.setdefault('conflicts', []).append(post['id'])
                     continue
                 if 'Conflicto:' not in str(exc):
                     raise

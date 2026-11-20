@@ -10,6 +10,14 @@ function fieldPostDuplicates(post) {
   const code = fieldPostCode(post);
   return code ? createdFieldPosts.filter(other => other.kind !== 'style' && fieldPostCode(other) === code) : [];
 }
+function fieldPostNumberError(number, editingId = '') {
+  const code = fieldPostCode({number});
+  if (!code) return 'Ingresa el número del poste.';
+  if (fieldPostDuplicates({number}).some(post => post.id !== editingId)) {
+    return 'El número ' + number.trim() + ' ya existe en Postes creados. Abre ese poste para modificarlo.';
+  }
+  return '';
+}
 function fieldPostWarnings(post) {
   const warnings = [];
   if (!fieldPostValidLocation(post.lat, post.lon)) warnings.push('Coordenadas fuera de Magallanes');
@@ -108,7 +116,13 @@ async function setFieldPostIcon(file, global) {
   }
 }
 function initFieldPostExtras() {
-  document.getElementById('fieldpost-number').addEventListener('change', event => {
+  const numberInput = document.getElementById('fieldpost-number');
+  numberInput.addEventListener('input', () => {
+    const warning = document.getElementById('fieldpost-number-warning');
+    warning.textContent = numberInput.value.trim() ? fieldPostNumberError(numberInput.value, fieldPostEditingId) : '';
+    numberInput.setAttribute('aria-invalid', String(Boolean(warning.textContent)));
+  });
+  numberInput.addEventListener('change', event => {
     const code = event.target.value.trim().toUpperCase();
     if (!code || document.getElementById('fieldpost-phases').value) return;
     const matches = pointAssets.filter(asset => [asset.attrs?.IDENTIFICADOR_VNR, asset.attrs?.POSTE_ID, asset.name]
