@@ -77,7 +77,15 @@ def extract_notice_pdf(file_bytes: bytes) -> dict:
 
     locality_raw = _capture(text, r"Comuna\s*:\s*(.+?)\s+(?:Subestaci[oó�]n|$)")
     locality_normalized = unicodedata.normalize("NFKD", locality_raw).encode("ascii", "ignore").decode().upper()
-    locality = "Puerto Natales" if "NATALES" in locality_normalized else None
+    locality = next(
+        (name for pattern, name in (
+            (r"\bPUNTA\s+ARENAS\b", "Punta Arenas"),
+            (r"\b(?:PUERTO\s+)?NATALES\b", "Puerto Natales"),
+            (r"\bPORVENIR\b", "Porvenir"),
+            (r"\b(?:PUERTO\s+WILLIAMS|CABO\s+DE\s+HORNOS)\b", "Puerto Williams"),
+        ) if re.search(pattern, locality_normalized)),
+        None,
+    )
 
     narrative = ""
     # These forms visually letter-space the section title in their text layer.
