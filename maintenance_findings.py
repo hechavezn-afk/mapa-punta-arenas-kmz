@@ -16,6 +16,11 @@ import mimetypes
 from io import BytesIO, StringIO
 from pathlib import Path
 from xml.etree import ElementTree as ET
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import mm
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
@@ -34,6 +39,7 @@ PRIORITIES = ("Baja", "Media baja", "Media", "Media alta", "Alta", "Urgente")
 CATEGORIES = DEFAULT_FINDING_CATEGORIES
 DEFAULT_CATEGORY_ICONS = {
     "Poda preventiva": "🌳", "Poste desaplomado": "🪵", "Estructura dañada": "🛠️",
+    "Poste quemado": "🔥",
     "Retensado de línea": "🪢", "Tirante o protección": "⚠️", "Cruceta dañada": "🔩",
     "Aislador dañado": "⚡", "Conductor cortado o deteriorado": "🧵",
     "Empalme irregular": "🔧", "Vegetación cercana a la red": "🌿", "Otro": "📍",
@@ -145,12 +151,16 @@ def list_shared_categories() -> list[dict]:
             raise
         st.session_state.finding_category_catalog_ready = False
         return [{"name": name, "icon": DEFAULT_CATEGORY_ICONS.get(name, "📍"), "icon_path": None} for name in CATEGORIES]
-    if not rows:
-        # Seed existing/default categories once; keeps current installations backward-compatible.
-        rows = [{"name": name, "icon": DEFAULT_CATEGORY_ICONS.get(name, "📍"), "icon_path": None} for name in CATEGORIES]
-        for row in rows:
-            _request("POST", "/rest/v1/maintenance_finding_categories", row, prefer="resolution=ignore-duplicates")
-        rows = _request("GET", "/rest/v1/maintenance_finding_categories?" + query) or rows
+    # Add newly introduced defaults to existing catalogs without overwriting
+    # icon choices already configured by the team.
+    existing_names = {str(row.get("name") or "") for row in rows}
+    missing = [{"name": name, "icon": DEFAULT_CATEGORY_ICONS.get(name, "📍"), "icon_path": None}
+               for name in CATEGORIES if name not in existing_names]
+    for row in missing:
+        _request("POST", "/rest/v1/maintenance_finding_categories", row,
+                 prefer="resolution=ignore-duplicates")
+    if missing:
+        rows = _request("GET", "/rest/v1/maintenance_finding_categories?" + query) or [*rows, *missing]
     return rows
 
 
@@ -302,6 +312,37 @@ def _category_icon(name: str, categories: list[dict]) -> str:
     if category and category.get("icon_path"):
         return ""
     return str(category.get("icon") or "📍") if category else DEFAULT_CATEGORY_ICONS.get(name, "📍")
+
+
+FINDING_CATEGORY_SEPARATOR = " / "
+
+
+def _finding_categories(value) -> list[str]:
+    """Return the individual types stored in a finding's display category."""
+    if isinstance(value, (list, tuple)):
+        values = [str(item).strip() for item in value]
+    else:
+        values = [part.strip() for part in str(value or "").split(FINDING_CATEGORY_SEPARATOR)]
+    return list(dict.fromkeys(item for item in values if item))
+
+
+def _finding_category_value(values) -> str:
+    return FINDING_CATEGORY_SEPARATOR.join(_finding_categories(values))
+
+
+def _add_finding_category_row(count_key: str) -> None:
+    st.session_state[count_key] = min(10, int(st.session_state.get(count_key, 1)) + 1)
+
+
+def _create_finding_widget_key(name: str) -> str:
+    epoch = int(st.session_state.get("finding_create_form_epoch", 0))
+    return f"finding_create_{name}_{epoch}"
+
+
+def _remove_finding_category_row(count_key: str, widget_key: str) -> None:
+    if int(st.session_state.get(count_key, 1)) > 1:
+        st.session_state.pop(widget_key, None)
+        st.session_state[count_key] -= 1
 
 
 def _category_icon_url(category: dict) -> str:
@@ -655,6 +696,10 @@ def update_finding(finding: dict, patch: dict, photos, documents, actor: str, ev
 
 
 def photo_url(path: str, *, expires_in: int = 3600) -> str:
+    cache = st.session_state.setdefault("finding_signed_file_urls", {})
+    cached = cache.get(path)
+    if cached and cached[0] > time.time() + 45:
+        return cached[1]
     data = _request("POST", f"/storage/v1/object/sign/{BUCKET}/{quote(path, safe='/')}",
                     {"expiresIn": expires_in})
     value = (data or {}).get("signedURL", "")
@@ -662,8 +707,11 @@ def photo_url(path: str, *, expires_in: int = 3600) -> str:
         raise FindingsError(f"Supabase no devolvió un enlace para {Path(path).name}.")
     base, _, _ = auth_config()
     if value.startswith("/object/"):
-        return base + "/storage/v1" + value
-    return base + value if value.startswith("/") else value
+        url = base + "/storage/v1" + value
+    else:
+        url = base + value if value.startswith("/") else value
+    cache[path] = (time.time() + max(60, expires_in - 60), url)
+    return url
 
 
 def _download_file(path: str) -> bytes:
@@ -712,6 +760,8 @@ def _map_payload(rows, show_heat, focus, categories, evidence_focus_id=None):
         end = None
         if row.get("second_latitude") is not None and row.get("second_longitude") is not None:
             end = [float(row["second_latitude"]), float(row["second_longitude"])]
+        finding_categories = _finding_categories(row.get("category"))
+        primary_category = finding_categories[0] if finding_categories else ""
         label = " · ".join(str(row[key]) for key in ("category", "notice_number", "priority", "status") if row.get(key))
         case_id = str(row.get("id", ""))
         evidence = []
@@ -727,8 +777,8 @@ def _map_payload(rows, show_heat, focus, categories, evidence_focus_id=None):
                                  "document": bool(attachment.get("document")), "stage": stage,
                                  "url": signed_url})
         cases.append({"id": case_id, "start": start, "end": end, "label": label,
-                      "icon": _category_icon(row.get("category", ""), categories),
-                      "icon_url": _category_icon_url(next((item for item in categories if item.get("name") == row.get("category")), {})),
+                      "icon": _category_icon(primary_category, categories),
+                      "icon_url": _category_icon_url(next((item for item in categories if item.get("name") == primary_category), {})),
                       "category": row.get("category") or "", "notice": row.get("notice_number") or "",
                       "requester": row.get("requester") or "", "locality": row.get("locality") or "",
                       "status": row.get("status") or "Pendiente", "priority": row.get("priority") or "Media",
@@ -883,7 +933,7 @@ def render_findings_panel() -> None:
     available_categories = [str(row["name"]) for row in shared_categories]
     category_filter = st.selectbox("Tipo de hallazgo", ("Todos",) + tuple(available_categories), key="finding_type_filter")
     if category_filter != "Todos":
-        rows = [row for row in rows if row.get("category") == category_filter]
+        rows = [row for row in rows if category_filter in _finding_categories(row.get("category"))]
     edit_choices = {
         f"{('Aviso ' + str(row.get('notice_number')) + ' · ') if row.get('notice_number') else ''}{row.get('category')} · {' ↔ '.join(str(value) for value in (row.get('asset_code'), row.get('second_asset_code')) if value) or 'sin activo'} · {row.get('locality')} · {row.get('status')} · {str(row['id'])[:8]}": row
         for row in rows
@@ -909,7 +959,7 @@ def render_findings_panel() -> None:
     if rows:
         st.caption("Selecciona o haz doble clic en una fila para abrir ese aviso en el mapa y en su seguimiento.")
         table_rows = [{"Aviso": row.get("notice_number") or "", "Solicitante": row.get("requester") or "",
-                       "Tipo": f"{_category_icon(row.get('category', ''), shared_categories)} {row.get('category') or ''}",
+                       "Tipo": f"{_category_icon((_finding_categories(row.get('category')) or [''])[0], shared_categories)} {row.get('category') or ''}",
                        "Localidad": row.get("locality") or "", "Estado": row.get("status") or "",
                        "Prioridad": row.get("priority") or "", "Activo": row.get("asset_code") or "",
                        "Latitud": row.get("latitude"), "Longitud": row.get("longitude")} for row in rows]
@@ -996,13 +1046,13 @@ def render_findings_panel() -> None:
                                           available_categories[0])
                     st.session_state["finding_notice_import_fingerprint"] = fingerprint
                     st.session_state["finding_notice_import_data"] = imported
-                    st.session_state["finding_create_locality"] = imported_locality if imported_locality in LOCALITIES else "Punta Arenas"
-                    st.session_state["finding_create_notice"] = imported.get("notice_number") or ""
-                    st.session_state["finding_create_requester"] = imported.get("contact_name") or ""
-                    st.session_state["finding_create_category"] = category_value
-                    st.session_state["finding_create_priority"] = imported.get("priority") or "Media"
-                    st.session_state["finding_create_asset_code"] = imported_code if asset_match else ""
-                    st.session_state["finding_create_description"] = narrative[:3000]
+                    st.session_state[_create_finding_widget_key("locality")] = imported_locality if imported_locality in LOCALITIES else "Punta Arenas"
+                    st.session_state[_create_finding_widget_key("notice")] = imported.get("notice_number") or ""
+                    st.session_state[_create_finding_widget_key("requester")] = imported.get("contact_name") or ""
+                    st.session_state[_create_finding_widget_key("category")] = category_value
+                    st.session_state[_create_finding_widget_key("priority")] = imported.get("priority") or "Media"
+                    st.session_state[_create_finding_widget_key("asset_code")] = imported_code if asset_match else ""
+                    st.session_state[_create_finding_widget_key("description")] = narrative[:3000]
                     st.session_state["finding_locate_asset_code"] = imported_code or next(
                         (item["code"] for item in candidate_codes), "")
                     st.session_state["finding_locate_address_source"] = (
@@ -1016,8 +1066,8 @@ def render_findings_panel() -> None:
                     # Resolve coordinates from the editable asset code at
                     # submission time, so changing the code cannot retain a
                     # stale point from the imported notice.
-                    st.session_state["finding_create_latitude"] = ""
-                    st.session_state["finding_create_longitude"] = ""
+                    st.session_state[_create_finding_widget_key("latitude")] = ""
+                    st.session_state[_create_finding_widget_key("longitude")] = ""
                 except NoticePdfError as exc:
                     st.session_state["finding_notice_import_fingerprint"] = fingerprint
                     st.session_state["finding_notice_import_data"] = {"error": str(exc)}
@@ -1192,43 +1242,80 @@ def render_findings_panel() -> None:
         }
         st.html('<span hidden id="finding-category-icons" data-icons="{}"></span>'.format(
             escape(json.dumps(category_icons, ensure_ascii=False), quote=True)))
-        with st.form("create_shared_finding", clear_on_submit=True):
+        create_category_rows_key = "finding_create_category_rows"
+        st.session_state.setdefault(create_category_rows_key, 1)
+        create_form_epoch = int(st.session_state.get("finding_create_form_epoch", 0))
+        create_widget_key = _create_finding_widget_key
+        with st.form("create_shared_finding", clear_on_submit=False):
             location = st.session_state.get("finding_location", {})
             suggested_locality = _detect_locality(location.get("lat"), location.get("lon")) if location.get("lat") is not None else None
             locality_default = suggested_locality or (locality if locality in LOCALITIES else "Punta Arenas")
-            if "finding_create_locality" not in st.session_state:
-                st.session_state["finding_create_locality"] = locality_default
-            if st.session_state.get("finding_create_locality") not in LOCALITIES:
-                st.session_state["finding_create_locality"] = locality_default
-            if st.session_state.get("finding_create_category") not in available_categories:
-                st.session_state["finding_create_category"] = available_categories[0]
-            if st.session_state.get("finding_create_priority") not in PRIORITIES:
-                st.session_state["finding_create_priority"] = "Media"
-            f_locality = st.selectbox("Localidad", LOCALITIES, key="finding_create_locality")
-            notice = st.text_input("N.º de aviso", placeholder="Número de aviso", key="finding_create_notice")
-            requester = st.text_input("Solicitante", placeholder="Nombre o área solicitante", key="finding_create_requester")
-            category_choice = st.selectbox("Hallazgo", available_categories, key="finding_create_category",
-                                           format_func=lambda name: f"{_category_icon(name, shared_categories)}  {name}")
-            priority = st.select_slider("Prioridad", options=PRIORITIES, key="finding_create_priority")
+            locality_key, category_key, priority_key = (create_widget_key(name) for name in ("locality", "category", "priority"))
+            if locality_key not in st.session_state:
+                st.session_state[locality_key] = st.session_state.get("finding_create_locality", locality_default)
+            if st.session_state.get(locality_key) not in LOCALITIES:
+                st.session_state[locality_key] = locality_default
+            if category_key not in st.session_state:
+                legacy_category = st.session_state.get("finding_create_category")
+                st.session_state[category_key] = legacy_category if legacy_category in available_categories else available_categories[0]
+            if st.session_state.get(category_key) not in available_categories:
+                st.session_state[category_key] = available_categories[0]
+            if priority_key not in st.session_state:
+                st.session_state[priority_key] = st.session_state.get("finding_create_priority", "Media")
+            if st.session_state.get(priority_key) not in PRIORITIES:
+                st.session_state[priority_key] = "Media"
+            f_locality = st.selectbox("Localidad", LOCALITIES, key=locality_key)
+            notice = st.text_input("N.º de aviso", placeholder="Número de aviso", key=create_widget_key("notice"))
+            requester = st.text_input("Solicitante", placeholder="Nombre o área solicitante", key=create_widget_key("requester"))
+            selected_categories = []
+            category_row_count = min(10, max(1, int(st.session_state.get(create_category_rows_key, 1))))
+            for category_index in range(category_row_count):
+                category_cols = st.columns((0.84, 0.08, 0.08), gap="small", vertical_alignment="bottom")
+                if category_index == 0:
+                    category_value = category_cols[0].selectbox(
+                        "Hallazgo", available_categories, key=category_key,
+                        format_func=lambda name: f"{_category_icon(name, shared_categories)}  {name}")
+                    selected_categories.append(category_value)
+                else:
+                    extra_key = create_widget_key(f"category_extra_{category_index}")
+                    extra_options = ["", *available_categories]
+                    extra_value = category_cols[0].selectbox(
+                        "Hallazgo adicional", extra_options, key=extra_key,
+                        format_func=lambda name: (f"{_category_icon(name, shared_categories)}  {name}") if name else "Seleccionar otro tipo…")
+                    if extra_value:
+                        selected_categories.append(extra_value)
+                if category_index == category_row_count - 1:
+                    category_cols[1].form_submit_button(
+                        "+", key="finding_create_category_add", help="Agregar otro tipo al mismo hallazgo",
+                        on_click=_add_finding_category_row, args=(create_category_rows_key,),
+                        disabled=category_row_count >= 10)
+                    if category_row_count > 1:
+                        category_cols[2].form_submit_button(
+                            "−", key="finding_create_category_remove", help="Quitar el último tipo",
+                            on_click=_remove_finding_category_row,
+                            args=(create_category_rows_key, extra_key))
+            priority = st.select_slider("Prioridad", options=PRIORITIES, key=priority_key)
             asset_default = str(location.get("asset_code", ""))
-            if "finding_create_asset_code" not in st.session_state:
-                st.session_state["finding_create_asset_code"] = asset_default
-            asset_code = st.text_input("Poste o activo relacionado", key="finding_create_asset_code", placeholder="Código exacto; se buscará en el inventario")
-            second_asset = st.text_input("Segundo poste / activo", placeholder="Para un caso entre dos activos")
-            description = st.text_area("Descripción / acción requerida", max_chars=3000, key="finding_create_description")
+            asset_code_key = create_widget_key("asset_code")
+            if asset_code_key not in st.session_state:
+                st.session_state[asset_code_key] = st.session_state.get("finding_create_asset_code", asset_default)
+            asset_code = st.text_input("Poste o activo relacionado", key=asset_code_key, placeholder="Código exacto; se buscará en el inventario")
+            second_asset = st.text_input("Segundo poste / activo", key=create_widget_key("second_asset"), placeholder="Para un caso entre dos activos")
+            description = st.text_area("Descripción / acción requerida", max_chars=3000, key=create_widget_key("description"))
             st.caption("Si el código existe en el inventario, las coordenadas se completan desde el KMZ. También puedes indicarlas manualmente.")
             lat_col, lon_col = st.columns(2)
-            if "finding_create_latitude" not in st.session_state:
-                st.session_state["finding_create_latitude"] = str(location.get("lat", ""))
-            if "finding_create_longitude" not in st.session_state:
-                st.session_state["finding_create_longitude"] = str(location.get("lon", ""))
-            latitude = lat_col.text_input("Latitud", key="finding_create_latitude", placeholder="Se completa desde el activo")
-            longitude = lon_col.text_input("Longitud", key="finding_create_longitude", placeholder="Se completa desde el activo")
+            latitude_key, longitude_key = create_widget_key("latitude"), create_widget_key("longitude")
+            if latitude_key not in st.session_state:
+                st.session_state[latitude_key] = str(location.get("lat", ""))
+            if longitude_key not in st.session_state:
+                st.session_state[longitude_key] = str(location.get("lon", ""))
+            latitude = lat_col.text_input("Latitud", key=latitude_key, placeholder="Se completa desde el activo")
+            longitude = lon_col.text_input("Longitud", key=longitude_key, placeholder="Se completa desde el activo")
             second_lat_col, second_lon_col = st.columns(2)
-            second_latitude = second_lat_col.text_input("Latitud segundo activo", placeholder="Si aplica")
-            second_longitude = second_lon_col.text_input("Longitud segundo activo", placeholder="Si aplica")
-            photos = st.file_uploader("Fotos (máximo 3)", type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key="finding_create_photos")
-            documents = st.file_uploader("Documentos (máximo 2, 10 MB cada uno; el PDF del aviso cuenta como uno)", type=list(DOCUMENT_EXTENSIONS), accept_multiple_files=True, key="finding_create_documents", max_upload_size=10)
+            second_latitude = second_lat_col.text_input("Latitud segundo activo", key=create_widget_key("second_latitude"), placeholder="Si aplica")
+            second_longitude = second_lon_col.text_input("Longitud segundo activo", key=create_widget_key("second_longitude"), placeholder="Si aplica")
+            photos = st.file_uploader("Fotos (máximo 3)", type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key=create_widget_key("photos"))
+            documents = st.file_uploader("Documentos (máximo 2, 10 MB cada uno; el PDF del aviso cuenta como uno)", type=list(DOCUMENT_EXTENSIONS), accept_multiple_files=True, key=create_widget_key("documents"), max_upload_size=10)
             submit = st.form_submit_button("Guardar hallazgo compartido", type="primary", width="stretch")
         if submit:
             source_document = source_pdf
@@ -1255,7 +1342,7 @@ def render_findings_panel() -> None:
                         # Ignore an incomplete optional pair rather than blocking
                         # a valid single-coordinate finding.
                         lat2, lon2 = None, None
-                    category = category_choice
+                    category = _finding_category_value(selected_categories)
                     detected_locality = _detect_locality(lat, lon)
                     # Keep the editable locality selection when it is deliberate; use the
                     # coordinate-derived locality as the initial value for map/GPS points.
@@ -1285,6 +1372,8 @@ def render_findings_panel() -> None:
                     st.session_state.pop("finding_notice_import_data", None)
                     st.session_state.pop("finding_notice_import_fingerprint", None)
                     st.session_state["finding_notice_import_nonce"] = pdf_nonce + 1
+                    st.session_state[create_category_rows_key] = 1
+                    st.session_state["finding_create_form_epoch"] = create_form_epoch + 1
                     st.html("<script>try{sessionStorage.removeItem('finding-pending-coordinate')}catch(e){}</script>")
                     st.success("Hallazgo compartido guardado.")
                     st.rerun(scope="fragment")
@@ -1388,6 +1477,12 @@ def render_findings_panel() -> None:
                            "Localidad": selected.get("locality") or "", "Estado": selected.get("status") or "",
                            "Prioridad": selected.get("priority") or "", "Activo": selected.get("asset_code") or "",
                            "Solicitante": selected.get("requester") or ""}], hide_index=True, width="stretch")
+            stored_categories = _finding_categories(selected.get("category")) or [available_categories[0]]
+            edit_category_rows_key = f"finding_edit_category_rows_{selected['id']}"
+            st.session_state.setdefault(edit_category_rows_key, len(stored_categories))
+            edit_category_row_count = min(10, max(1, int(st.session_state.get(edit_category_rows_key, 1))))
+            edit_category_options = list(dict.fromkeys(available_categories + stored_categories))
+            edited_categories = []
             with st.form("edit_shared_finding"):
                 edit_locality = st.selectbox("Localidad", LOCALITIES,
                                              index=LOCALITIES.index(selected.get("locality", LOCALITIES[0])))
@@ -1395,11 +1490,32 @@ def render_findings_panel() -> None:
                 new_priority = st.selectbox("Prioridad", PRIORITIES, index=PRIORITIES.index(selected.get("priority", "Media")))
                 new_notice = st.text_input("Aviso", value=selected.get("notice_number", ""))
                 new_requester = st.text_input("Solicitante", value=selected.get("requester", ""))
-                edit_options = list(dict.fromkeys(available_categories + [str(selected.get("category", "Otro"))]))
-                edit_category = st.selectbox("Hallazgo", edit_options,
-                                             index=available_categories.index(selected.get("category"))
-                                             if selected.get("category") in available_categories else 0,
-                                             format_func=lambda name: f"{_category_icon(name, shared_categories)}  {name}" if name in available_categories else f"📍  {name} (histórico)")
+                for category_index in range(edit_category_row_count):
+                    category_cols = st.columns((0.84, 0.08, 0.08), gap="small", vertical_alignment="bottom")
+                    widget_key = f"finding_edit_category_{selected['id']}_{category_index}"
+                    default_category = stored_categories[category_index] if category_index < len(stored_categories) else ""
+                    st.session_state.setdefault(widget_key, default_category)
+                    if category_index == 0:
+                        current_category = category_cols[0].selectbox(
+                            "Hallazgo", edit_category_options, key=widget_key,
+                            format_func=lambda name: f"{_category_icon(name, shared_categories)}  {name}" if name in available_categories else f"📍  {name} (histórico)")
+                    else:
+                        extra_options = ["", *edit_category_options]
+                        current_category = category_cols[0].selectbox(
+                            "Hallazgo adicional", extra_options, key=widget_key,
+                            format_func=lambda name: (f"{_category_icon(name, shared_categories)}  {name}") if name in available_categories else (f"📍  {name} (histórico)" if name else "Seleccionar otro tipo…"))
+                    if current_category:
+                        edited_categories.append(current_category)
+                    if category_index == edit_category_row_count - 1:
+                        category_cols[1].form_submit_button(
+                            "+", key=f"finding_edit_category_add_{selected['id']}",
+                            help="Agregar otro tipo al mismo hallazgo", on_click=_add_finding_category_row,
+                            args=(edit_category_rows_key,), disabled=edit_category_row_count >= 10)
+                        if edit_category_row_count > 1:
+                            category_cols[2].form_submit_button(
+                                "−", key=f"finding_edit_category_remove_{selected['id']}",
+                                help="Quitar el último tipo", on_click=_remove_finding_category_row,
+                                args=(edit_category_rows_key, widget_key))
                 edit_asset = st.text_input("Activo relacionado", value=selected.get("asset_code") or "")
                 edit_second_asset = st.text_input("Segundo activo", value=selected.get("second_asset_code") or "")
                 edit_lat_col, edit_lon_col = st.columns(2)
@@ -1449,7 +1565,7 @@ def render_findings_panel() -> None:
                         update_finding(selected, {"status": new_status, "priority": new_priority,
                                                   "locality": edit_locality, "notice_number": new_notice.strip(),
                                                   "requester": new_requester.strip(),
-                                                  "category": edit_category,
+                                                  "category": _finding_category_value(edited_categories),
                                                   "asset_code": edit_asset.strip() or None,
                                                   "second_asset_code": edit_second_asset.strip() or None,
                                                   "latitude": edit_lat, "longitude": edit_lon,
@@ -1485,7 +1601,11 @@ def render_findings_panel() -> None:
             except FindingsError:
                 report_history = history
             report_name = re.sub(r"[^A-Za-z0-9_-]+", "_", str(selected.get("notice_number") or selected["id"])).strip("_")
-            report_col, bundle_col = st.columns(2)
+            pdf_col, report_col, bundle_col = st.columns(3)
+            pdf_col.download_button("PDF resumido", data=_finding_report_pdf(selected, report_history),
+                                    file_name=f"Hallazgo_{report_name}_resumen.pdf", mime="application/pdf",
+                                    key=f"download_finding_report_pdf_{selected['id']}", width="stretch",
+                                    help="Resumen del aviso, ubicación, estado y últimos movimientos.")
             report_col.download_button("Informe HTML", data=_finding_report_html(selected, report_history),
                                        file_name=f"Hallazgo_{report_name}.html", mime="text/html", width="stretch",
                                        help="Incluye el seguimiento y enlaces temporales a los archivos compartidos.")
@@ -1513,6 +1633,66 @@ def _detect_locality(latitude, longitude):
         candidates.append((distance, name))
     distance, name = min(candidates)
     return name if distance <= thresholds[name] else None
+
+
+def _finding_report_pdf(row: dict, history: list[dict]) -> bytes:
+    """Build a compact, printable PDF summary for one shared finding."""
+    output = BytesIO()
+    doc = SimpleDocTemplate(output, pagesize=letter, rightMargin=18 * mm, leftMargin=18 * mm,
+                            topMargin=17 * mm, bottomMargin=17 * mm, title="Resumen de hallazgo")
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name="FindingTitle", parent=styles["Title"], textColor=colors.HexColor("#174a75"),
+                              alignment=0, fontSize=17, leading=21, spaceAfter=5 * mm))
+    styles.add(ParagraphStyle(name="FindingBody", parent=styles["BodyText"], fontSize=9, leading=12))
+    styles.add(ParagraphStyle(name="FindingSmall", parent=styles["BodyText"], fontSize=8, leading=10,
+                              textColor=colors.HexColor("#52687b")))
+    safe = lambda value: escape(str(value or "")).replace("\n", "<br/>")
+    story = [Paragraph("Resumen de hallazgo", styles["FindingTitle"]),
+             Paragraph(f"{safe(row.get('category') or 'Hallazgo')} · Aviso {safe(row.get('notice_number') or 'sin número')}", styles["Heading2"]),
+             Paragraph(f"Generado {datetime.now().astimezone().strftime('%d-%m-%Y %H:%M')}", styles["FindingSmall"]),
+             Spacer(1, 4 * mm)]
+    fields = [("Estado", row.get("status")), ("Prioridad", row.get("priority")),
+              ("Localidad", row.get("locality")), ("Solicitante", row.get("requester")),
+              ("Activo relacionado", row.get("asset_code")), ("Segundo activo", row.get("second_asset_code")),
+              ("Coordenadas", f"{row.get('latitude')}, {row.get('longitude')}"),
+              ("Descripción", row.get("description")), ("Qué se revisó", row.get("reviewed_details")),
+              ("Trabajo realizado", row.get("resolution_details"))]
+    source_data = row.get("source_data") or {}
+    for label, key in (("Dirección", "service_address"), ("Teléfono", "contact_phone"),
+                       ("N.º de instalación", "installation_number")):
+        if source_data.get(key):
+            fields.append((label, source_data[key]))
+    table_data = [[Paragraph(f"<b>{safe(label)}</b>", styles["FindingBody"]),
+                   Paragraph(safe(value), styles["FindingBody"])]
+                  for label, value in fields if value not in (None, "")]
+    if table_data:
+        table = Table(table_data, colWidths=[42 * mm, 132 * mm], hAlign="LEFT")
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#eef3f7")),
+            ("GRID", (0, 0), (-1, -1), .35, colors.HexColor("#d6e0e8")),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 6), ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ]))
+        story.extend([table, Spacer(1, 5 * mm)])
+    attachments = _finding_attachments(row)
+    story.append(Paragraph("Adjuntos", styles["Heading3"]))
+    story.append(Paragraph(" · ".join(f"{safe(item.get('label') or item.get('name'))} ({safe(stage)})" for stage, item in attachments)
+                            or "Sin archivos adjuntos", styles["FindingBody"]))
+    story.append(Spacer(1, 4 * mm))
+    story.append(Paragraph("Últimos movimientos", styles["Heading3"]))
+    recent_events = history[:5]
+    if recent_events:
+        story.extend(Paragraph(f"• <b>{safe(event.get('action'))}</b> · {safe(str(event.get('changed_at', ''))[:16].replace('T', ' '))} · {safe(event.get('changed_by'))}", styles["FindingBody"])
+                      for event in recent_events)
+    else:
+        story.append(Paragraph("Sin movimientos registrados.", styles["FindingBody"]))
+    lat, lon = row.get("latitude"), row.get("longitude")
+    if lat is not None and lon is not None:
+        story.extend([Spacer(1, 4 * mm), Paragraph(
+            f"Ubicación: https://www.google.com/maps?q={safe(lat)},{safe(lon)}", styles["FindingSmall"])])
+    doc.build(story)
+    return output.getvalue()
 
 
 def _finding_report_html(row, history, attachment_links=None):

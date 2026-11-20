@@ -3,6 +3,7 @@
 DEFAULT_FINDING_CATEGORIES = (
     "Poda preventiva",
     "Poste desaplomado",
+    "Poste quemado",
     "Estructura dañada",
     "Retensado de línea",
     "Tirante o protección",
