@@ -904,8 +904,7 @@ def render_findings_panel() -> None:
     minimized = bool(st.session_state.get("finding_panel_minimized", False))
     with st.container(key="finding_controls_bar"):
         filter_col, minimize_col, close_col = st.columns([86, 38, 48], gap="small")
-        filter_col.toggle("Capas", key="finding_nearby_layers_enabled", value=False,
-                          help="Activa o desactiva las capas de activos cercanas a la zona visible del mapa")
+        filter_col.toggle("Capas", key="finding_nearby_layers_enabled", value=False)
         if minimize_col.button("□" if minimized else "−", key="minimize_findings_panel",
                                help="Restaurar ventana" if minimized else "Minimizar ventana", width="stretch"):
             st.session_state["finding_panel_minimized"] = not minimized
