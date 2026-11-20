@@ -970,7 +970,7 @@ def require_login() -> None:
         st.caption("Inicia sesión para continuar")
         username = st.text_input("Usuario", help="Nombre y apellido juntos, en mayúsculas. También puedes usar tu correo.")
         password = st.text_input("Contraseña", type="password")
-        remember_session = st.checkbox("Recordar sesión (máximo 5 horas sin actividad; HECTOR hasta medianoche)")
+        remember_session = st.checkbox("Recordar sesión (máximo 5 horas sin actividad)")
         submitted = st.form_submit_button("Ingresar", use_container_width=True)
 
     if submitted:
