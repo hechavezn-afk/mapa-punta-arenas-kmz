@@ -901,16 +901,17 @@ def _edited_coordinate(raw: str, original, asset: dict | None, axis: str, label:
 
 def render_findings_panel() -> None:
     map_selected_id = str(st.session_state.pop("finding_map_selected_id", "") or "")
-    controls, minimize, close = st.columns((1, 0.18, 0.18), vertical_alignment="center")
-    filters_visible = controls.toggle("Filtros", key="finding_controls_visible", value=True)
     minimized = bool(st.session_state.get("finding_panel_minimized", False))
-    if minimize.button("□" if minimized else "−", key="minimize_findings_panel", help="Restaurar ventana" if minimized else "Minimizar ventana"):
-        st.session_state["finding_panel_minimized"] = not minimized
-        st.rerun(scope="fragment")
-    if close.button("×", key="close_findings_panel", help="Cerrar hallazgos"):
-        st.session_state.pop("show_findings", None)
-        st.query_params.pop("findings", None)
-        st.rerun(scope="fragment")
+    with st.container(key="finding_controls_bar"):
+        controls, minimize, close = st.columns((1, 0.18, 0.18), vertical_alignment="center")
+        filters_visible = controls.toggle("Filtros", key="finding_controls_visible", value=True)
+        if minimize.button("□" if minimized else "−", key="minimize_findings_panel", help="Restaurar ventana" if minimized else "Minimizar ventana"):
+            st.session_state["finding_panel_minimized"] = not minimized
+            st.rerun(scope="fragment")
+        if close.button("×", key="close_findings_panel", help="Cerrar hallazgos"):
+            st.session_state.pop("show_findings", None)
+            st.query_params.pop("findings", None)
+            st.rerun(scope="fragment")
     if minimized:
         st.html('<span class="finding-minimized-state" style="display:none"></span>')
     else:
