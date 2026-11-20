@@ -901,18 +901,25 @@ def _edited_coordinate(raw: str, original, asset: dict | None, axis: str, label:
 
 def render_findings_panel() -> None:
     map_selected_id = str(st.session_state.pop("finding_map_selected_id", "") or "")
-    controls, close = st.columns((1.4, 0.7), vertical_alignment="center")
+    controls, minimize, close = st.columns((1, 0.18, 0.18), vertical_alignment="center")
     filters_visible = controls.toggle("Filtros", key="finding_controls_visible", value=True)
+    minimized = bool(st.session_state.get("finding_panel_minimized", False))
+    if minimize.button("□" if minimized else "−", key="minimize_findings_panel", help="Restaurar ventana" if minimized else "Minimizar ventana"):
+        st.session_state["finding_panel_minimized"] = not minimized
+        st.rerun(scope="fragment")
     if close.button("×", key="close_findings_panel", help="Cerrar hallazgos"):
         st.session_state.pop("show_findings", None)
         st.query_params.pop("findings", None)
         st.rerun(scope="fragment")
-    heading = st.container()
-    heading.subheader("Hallazgos de mantenimiento")
+    if minimized:
+        st.html('<span class="finding-minimized-state" style="display:none"></span>')
+    else:
+        heading = st.container(key="findings_heading")
+        heading.subheader("Hallazgos de mantenimiento")
 
     st.html("<style>.st-key-finding_map_selected_id{display:none!important}</style>")
     st.text_input("Caso seleccionado desde el mapa", key="finding_map_selected_id", label_visibility="collapsed")
-    if not filters_visible:
+    if minimized or not filters_visible:
         return
 
     filter_cols = st.columns(2)
