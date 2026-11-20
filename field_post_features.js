@@ -9,6 +9,9 @@ function fieldPostCode(post) {
 function fieldPostRetiredCode(post, actor = LOGIN_USER) {
   return String(actor).toUpperCase() === 'HECTOR' && fieldPostCode(post) === '1-0390-043';
 }
+function fieldPostVisibleRecord(post) {
+  return post.kind !== 'style' && !fieldPostRetiredCode(post) && !fieldPostRetiredCode(post, post.owner || '');
+}
 function fieldPostDuplicates(post) {
   const code = fieldPostCode(post);
   return code ? createdFieldPosts.filter(other => other.kind !== 'style' && fieldPostCode(other) === code) : [];

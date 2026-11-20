@@ -44,6 +44,7 @@ async function fieldPostSyncExchange(reply) {
         continue;
       }
       if (known?.deletePending || known?.deleted) continue;
+      if (fieldPostRetiredCode(row.data || {}) || fieldPostRetiredCode(row.data || {}, row.owner_name || '')) continue;
       const dirty = local && (!known || fieldSyncSignature(local) !== known.signature);
       if (dirty) {
         if (!known && !fieldPostValidLocation(local.lat, local.lon)) {
@@ -141,6 +142,6 @@ async function fieldPostSyncExchange(reply) {
   const revisions = Object.fromEntries(Object.entries(fieldSyncState).map(([id, known]) => [id, known.revision]));
   const photosNeeded = createdFieldPosts.filter(post => fieldSyncState[post.id]?.photosDeferred && fieldPostValidLocation(post.lat, post.lon)).map(post => post.id);
   fieldSyncPending = {id:crypto.randomUUID(), operations, revisions, photosNeeded};
-  document.getElementById('fieldpost-sync-status').textContent = 'Sincronizando postes…';
+  if (operations.length) document.getElementById('fieldpost-sync-status').textContent = 'Sincronizando cambios de postes…';
   return fieldSyncPending;
 }
