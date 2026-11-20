@@ -904,7 +904,7 @@ def render_findings_panel() -> None:
     minimized = bool(st.session_state.get("finding_panel_minimized", False))
     with st.container(key="finding_controls_bar"):
         controls, minimize, close = st.columns((1, 0.18, 0.18), vertical_alignment="center")
-        filters_visible = controls.toggle("Filtros", key="finding_controls_visible", value=True)
+        controls.toggle("Capas", key="finding_nearby_layers_enabled", value=False, help="Activa o desactiva las capas de activos cercanas a la zona visible del mapa")
         if minimize.button("□" if minimized else "−", key="minimize_findings_panel", help="Restaurar ventana" if minimized else "Minimizar ventana"):
             st.session_state["finding_panel_minimized"] = not minimized
             st.rerun(scope="fragment")
@@ -920,7 +920,7 @@ def render_findings_panel() -> None:
 
     st.html("<style>.st-key-finding_map_selected_id{display:none!important}</style>")
     st.text_input("Caso seleccionado desde el mapa", key="finding_map_selected_id", label_visibility="collapsed")
-    if minimized or not filters_visible:
+    if minimized:
         return
 
     filter_cols = st.columns(2)
