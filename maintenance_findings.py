@@ -901,8 +901,12 @@ def _edited_coordinate(raw: str, original, asset: dict | None, axis: str, label:
 
 def render_findings_panel() -> None:
     map_selected_id = str(st.session_state.pop("finding_map_selected_id", "") or "")
-    heading, close = st.columns((5, 1), vertical_alignment="center")
+    heading, controls, close = st.columns((5, 1, 0.8), vertical_alignment="center")
     heading.subheader("Hallazgos de mantenimiento")
+    collapsed = bool(st.session_state.get("finding_controls_collapsed", False))
+    if controls.button("☷", key="toggle_finding_controls", help="Mostrar filtros y controles" if collapsed else "Ocultar filtros y controles"):
+        st.session_state["finding_controls_collapsed"] = not collapsed
+        st.rerun(scope="fragment")
     if close.button("×", key="close_findings_panel", help="Cerrar hallazgos"):
         st.session_state.pop("show_findings", None)
         st.query_params.pop("findings", None)
@@ -910,6 +914,8 @@ def render_findings_panel() -> None:
 
     st.html("<style>.st-key-finding_map_selected_id{display:none!important}</style>")
     st.text_input("Caso seleccionado desde el mapa", key="finding_map_selected_id", label_visibility="collapsed")
+    if collapsed:
+        return
 
     filter_cols = st.columns(2)
     locality = filter_cols[0].selectbox("Localidad", ("Todas",) + LOCALITIES, key="finding_locality")
