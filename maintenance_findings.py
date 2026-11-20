@@ -771,6 +771,77 @@ def _coordinate(raw: str, asset: dict | None, axis: str, label: str, optional: b
     raise FindingsError(f"Escribe la {label} o indica un código que exista en el inventario.")
 
 
+def _geocode_notice_address(address: str, locality: str) -> list[dict]:
+    """Resolve an address through the same Photon service used by the map search."""
+    address = re.sub(r"\s+", " ", str(address or "")).strip()
+    center = LOCALITY_CENTERS.get(locality)
+    if not address or not center:
+        raise FindingsError("Indica una dirección y localidad válidas para buscarla.")
+    query = address if locality.casefold() in address.casefold() else f"{address}, {locality}, Chile"
+    params = urlencode({"q": query, "lat": center[0], "lon": center[1], "zoom": "12",
+                        "location_bias_scale": "0.6", "countrycode": "CL", "limit": "8"})
+    request = Request("https://photon.komoot.io/api/?" + params,
+                      headers={"Accept": "application/geo+json", "User-Agent": "RedesEdelmag/1.0"})
+    features = []
+    try:
+        with urlopen(request, timeout=12) as response:
+            features = json.loads(response.read().decode("utf-8")).get("features", [])
+    except (HTTPError, URLError, TimeoutError, UnicodeDecodeError, json.JSONDecodeError):
+        pass
+    results, seen = [], set()
+    for feature in features:
+        coords = (feature.get("geometry") or {}).get("coordinates") or []
+        if len(coords) != 2:
+            continue
+        lon, lat = float(coords[0]), float(coords[1])
+        if not (-56.5 <= lat <= -48 and -76 <= lon <= -65):
+            continue
+        props = feature.get("properties") or {}
+        street = props.get("street") or props.get("name") or props.get("housenumber") or "Dirección"
+        main = " ".join(part for part in (str(street), str(props.get("housenumber") or "")) if part and part not in ("None", "Dirección"))
+        area = props.get("district") or props.get("city") or props.get("locality") or locality
+        label = f"{main or 'Dirección'}, {area} · {lat:.6f}, {lon:.6f}"
+        key = (round(lat, 6), round(lon, 6))
+        if key in seen:
+            continue
+        seen.add(key)
+        results.append({"label": label, "latitude": lat, "longitude": lon,
+                        "address": main or address, "locality": locality})
+    if results:
+        return results
+
+    # Use the same Esri geocoder the map uses when Photon has no match.
+    esri_params = urlencode({"SingleLine": query, "f": "json",
+                             "outFields": "Match_addr,Addr_type,PlaceName,City",
+                             "countryCode": "CHL", "location": f"{center[1]},{center[0]}",
+                             "maxLocations": "8"})
+    esri_request = Request(
+        "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?" + esri_params,
+        headers={"Accept": "application/json", "User-Agent": "RedesEdelmag/1.0"})
+    try:
+        with urlopen(esri_request, timeout=12) as response:
+            candidates = json.loads(response.read().decode("utf-8")).get("candidates", [])
+    except (HTTPError, URLError, TimeoutError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise FindingsError("No se pudo consultar el buscador de direcciones. Inténtalo nuevamente.") from exc
+    for candidate in candidates:
+        if float(candidate.get("score") or 0) < 70:
+            continue
+        point = candidate.get("location") or {}
+        lat, lon = float(point.get("y") or 0), float(point.get("x") or 0)
+        if not (-56.5 <= lat <= -48 and -76 <= lon <= -65):
+            continue
+        key = (round(lat, 6), round(lon, 6))
+        if key in seen:
+            continue
+        seen.add(key)
+        attrs = candidate.get("attributes") or {}
+        label = f"{attrs.get('Match_addr') or candidate.get('address') or address} · {lat:.6f}, {lon:.6f}"
+        results.append({"label": label, "latitude": lat, "longitude": lon,
+                        "address": attrs.get("Match_addr") or candidate.get("address") or address,
+                        "locality": locality})
+    return results
+
+
 def _edited_coordinate(raw: str, original, asset: dict | None, axis: str, label: str, optional: bool = False):
     """Use inventory coordinates when the code/locality changed but position did not."""
     if asset and (not str(raw or "").strip() or str(raw).strip() == str(original)):
@@ -932,6 +1003,16 @@ def render_findings_panel() -> None:
                     st.session_state["finding_create_priority"] = imported.get("priority") or "Media"
                     st.session_state["finding_create_asset_code"] = imported_code if asset_match else ""
                     st.session_state["finding_create_description"] = narrative[:3000]
+                    st.session_state["finding_locate_asset_code"] = imported_code or next(
+                        (item["code"] for item in candidate_codes), "")
+                    st.session_state["finding_locate_address_source"] = (
+                        "Dirección de servicio" if imported.get("service_address") else "Dirección del relato")
+                    st.session_state.pop("finding_locate_address_source_loaded", None)
+                    st.session_state["finding_locate_address"] = imported.get("service_address") or imported.get("narrative_address") or ""
+                    st.session_state.pop("finding_location_address_candidates", None)
+                    st.session_state.pop("finding_locate_address_candidate", None)
+                    st.session_state["finding_locate_latitude"] = ""
+                    st.session_state["finding_locate_longitude"] = ""
                     # Resolve coordinates from the editable asset code at
                     # submission time, so changing the code cannot retain a
                     # stale point from the imported notice.
@@ -987,13 +1068,113 @@ def render_findings_panel() -> None:
                 if imported.get("measure_options_printed"):
                     st.caption("El formulario trae medidas impresas, pero no aparecen marcadas; no se registran como acciones seleccionadas: "
                                + ", ".join(imported["measure_options_printed"]))
-        if st.button("📍 Añadir ubicación en el mapa", key="finding_place_on_map", width="stretch"):
-            st.session_state.finding_place_mode = not st.session_state.get("finding_place_mode", False)
+        if st.button("📍 Ubicar en el mapa", key="finding_place_on_map", width="stretch"):
+            st.session_state["finding_place_options"] = not st.session_state.get("finding_place_options", False)
+            st.session_state["finding_place_mode"] = False
         placing = bool(st.session_state.get("finding_place_mode", False))
-        st.caption("Clic derecho en el mapa para colocar el hallazgo. En celular o tablet, activa este botón y toca el lugar. El marcador se puede arrastrar para corregirlo.")
+        if st.session_state.get("finding_place_options", False):
+            st.caption("Elige cómo quieres encontrar el punto del aviso.")
+            locate_method = st.radio("Buscar punto por", ("Poste", "Dirección del aviso", "Coordenadas manuales"),
+                                     horizontal=True, key="finding_location_method")
+            imported = st.session_state.get("finding_notice_import_data") or {}
+            locality_for_lookup = st.session_state.get("finding_create_locality") or imported.get("locality") or "Punta Arenas"
+            if locate_method == "Poste":
+                if "finding_locate_asset_code" not in st.session_state:
+                    st.session_state["finding_locate_asset_code"] = str(st.session_state.get("finding_create_asset_code") or "")
+                locate_code = st.text_input("Código del poste", key="finding_locate_asset_code",
+                                            placeholder="Ej.: 2-0095-005")
+                if st.button("Ir al poste", key="finding_locate_asset_go", width="stretch"):
+                    found = lookup_asset(locality_for_lookup, locate_code)
+                    if not found:
+                        st.warning("No encontré ese código en el inventario de " + locality_for_lookup + ". Revisa el código o prueba con coordenadas.")
+                    else:
+                        st.session_state["finding_create_asset_code"] = locate_code.strip()
+                        st.session_state["finding_create_latitude"] = str(found["latitude"])
+                        st.session_state["finding_create_longitude"] = str(found["longitude"])
+                        st.session_state["finding_location"] = {
+                            "lat": float(found["latitude"]), "lon": float(found["longitude"]),
+                            "source": "poste", "requested_at": str(time.time()),
+                            "asset_code": locate_code.strip()}
+                        st.session_state["finding_place_options"] = False
+                        st.rerun(scope="fragment")
+            elif locate_method == "Dirección del aviso":
+                address_sources = []
+                if imported.get("service_address"):
+                    address_sources.append(("Dirección de servicio", imported["service_address"]))
+                if imported.get("narrative_address"):
+                    address_sources.append(("Dirección del relato", imported["narrative_address"]))
+                if address_sources:
+                    source_names = [name for name, _ in address_sources]
+                    if st.session_state.get("finding_locate_address_source") not in source_names:
+                        st.session_state["finding_locate_address_source"] = source_names[0]
+                    selected_source = st.selectbox("Dirección extraída", source_names,
+                                                   key="finding_locate_address_source")
+                    default_address = dict(address_sources)[selected_source]
+                    if st.session_state.get("finding_locate_address_source_loaded") != selected_source:
+                        st.session_state["finding_locate_address"] = default_address
+                        st.session_state["finding_locate_address_source_loaded"] = selected_source
+                if "finding_locate_address" not in st.session_state:
+                    st.session_state["finding_locate_address"] = ""
+                address_query = st.text_input("Dirección para buscar", key="finding_locate_address",
+                                              placeholder="Calle, número o referencia del aviso")
+                if st.button("Buscar dirección", key="finding_locate_address_search", width="stretch"):
+                    try:
+                        candidates = _geocode_notice_address(address_query, locality_for_lookup)
+                        st.session_state["finding_location_address_candidates"] = {
+                            "query": address_query.strip(), "items": candidates}
+                        if not candidates:
+                            st.warning("No encontré la dirección en " + locality_for_lookup + ". Corrígela o usa poste/coordenadas.")
+                    except FindingsError as exc:
+                        st.error(str(exc))
+                candidates_state = st.session_state.get("finding_location_address_candidates") or {}
+                candidates = candidates_state.get("items", []) if candidates_state.get("query") == address_query.strip() else []
+                if candidates:
+                    labels = [item["label"] for item in candidates]
+                    chosen_label = st.selectbox("Confirma el punto encontrado", labels, key="finding_locate_address_candidate")
+                    if st.button("Ir a esta dirección", key="finding_locate_address_go", width="stretch"):
+                        chosen = candidates[labels.index(chosen_label)]
+                        st.session_state["finding_create_latitude"] = str(chosen["latitude"])
+                        st.session_state["finding_create_longitude"] = str(chosen["longitude"])
+                        st.session_state["finding_location"] = {
+                            "lat": chosen["latitude"], "lon": chosen["longitude"],
+                            "source": "direccion", "requested_at": str(time.time())}
+                        st.session_state["finding_place_options"] = False
+                        st.rerun(scope="fragment")
+            else:
+                coord_cols = st.columns(2)
+                if "finding_locate_latitude" not in st.session_state:
+                    st.session_state["finding_locate_latitude"] = str(st.session_state.get("finding_create_latitude") or "")
+                if "finding_locate_longitude" not in st.session_state:
+                    st.session_state["finding_locate_longitude"] = str(st.session_state.get("finding_create_longitude") or "")
+                locate_lat = coord_cols[0].text_input("Latitud manual", key="finding_locate_latitude", placeholder="-51.728562")
+                locate_lon = coord_cols[1].text_input("Longitud manual", key="finding_locate_longitude", placeholder="-72.512378")
+                if st.button("Ir a las coordenadas", key="finding_locate_coordinates_go", width="stretch"):
+                    try:
+                        lat = _coordinate(locate_lat, None, "latitude", "latitud")
+                        lon = _coordinate(locate_lon, None, "longitude", "longitud")
+                        if not (-56.5 <= lat <= -48 and -76 <= lon <= -65):
+                            raise FindingsError("Las coordenadas deben estar dentro de la Región de Magallanes.")
+                        st.session_state["finding_create_latitude"] = str(lat)
+                        st.session_state["finding_create_longitude"] = str(lon)
+                        st.session_state["finding_location"] = {
+                            "lat": lat, "lon": lon, "source": "coordenadas", "requested_at": str(time.time())}
+                        st.session_state["finding_place_options"] = False
+                        st.rerun(scope="fragment")
+                    except FindingsError as exc:
+                        st.error(str(exc))
+            if st.button("Elegir punto tocando el mapa", key="finding_place_by_map", width="stretch"):
+                st.session_state["finding_place_mode"] = not st.session_state.get("finding_place_mode", False)
+                st.rerun(scope="fragment")
+        st.html("<style>.st-key-finding_map_location_applied{display:none!important}</style>")
+        if st.button("Ubicación fijada", key="finding_map_location_applied"):
+            st.session_state["finding_place_mode"] = False
+        if placing:
+            st.info("Toca el mapa (o haz clic derecho en computador) para fijar el punto. Puedes arrastrar el marcador para corregirlo.")
         place_col, gps_col = st.columns(2)
-        if place_col.button("Usar centro de la localidad", key="finding_use_map_center", width="stretch"):
-            center_lat, center_lon = LOCALITY_CENTERS.get(locality, LOCALITY_CENTERS["Punta Arenas"])
+        if place_col.button("Centro de la localidad", key="finding_use_map_center", width="stretch"):
+            center_lat, center_lon = LOCALITY_CENTERS.get(st.session_state.get("finding_create_locality") or locality, LOCALITY_CENTERS["Punta Arenas"])
+            st.session_state["finding_create_latitude"] = str(center_lat)
+            st.session_state["finding_create_longitude"] = str(center_lon)
             st.session_state.finding_location = {"lat": center_lat, "lon": center_lon, "source": "map"}
             st.rerun(scope="fragment")
         if gps_col.button("◎ Usar mi ubicación GPS", key="finding_use_gps", width="stretch"):
@@ -1011,8 +1192,6 @@ def render_findings_panel() -> None:
         }
         st.html('<span hidden id="finding-category-icons" data-icons="{}"></span>'.format(
             escape(json.dumps(category_icons, ensure_ascii=False), quote=True)))
-        if placing:
-            st.info("Modo ubicación activo: toca el mapa para fijar el punto. En computador también puedes usar clic derecho.")
         with st.form("create_shared_finding", clear_on_submit=True):
             location = st.session_state.get("finding_location", {})
             suggested_locality = _detect_locality(location.get("lat"), location.get("lon")) if location.get("lat") is not None else None
