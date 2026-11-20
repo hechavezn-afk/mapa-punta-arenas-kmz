@@ -410,13 +410,19 @@ def _render_pending_claim() -> None:
         st.rerun()
 
 
-@st.dialog("Sesiones activas")
+@st.dialog("Cerrar sesión")
 def _render_session_dialog() -> None:
     username = st.session_state.get("map_login_user", "")
     current_token = st.session_state.get("map_login_session_token", "")
     active = _active_sessions(username)
+    current_col, all_col = st.columns(2)
+    if current_col.button("Cerrar esta sesión", key="logout_current", width="stretch"):
+        logout()
+        st.rerun()
+    if all_col.button("Cerrar todas las sesiones", key="logout_all", width="stretch"):
+        logout(all_sessions=True)
+        st.rerun()
     if not active:
-        st.info("No hay sesiones activas.")
         return
     st.caption("Puedes desconectar otros equipos. Esta sesión seguirá abierta.")
     others = [(token, owner, idle) for token, owner, idle in active if token != current_token]
@@ -433,11 +439,6 @@ def _render_session_dialog() -> None:
                      use_container_width=True):
             _revoke_session(username, token)
             st.rerun()
-    if len(others) > 1 and st.button("Cerrar todas las otras sesiones", key="close_all_active_sessions",
-                                    use_container_width=True):
-        for token, _owner, _idle in others:
-            _revoke_session(username, token)
-        st.rerun()
 
 
 def _resume(token: str, session_id: str, device_id: str = "", device_label: str = "") -> str | None:
@@ -446,9 +447,9 @@ def _resume(token: str, session_id: str, device_id: str = "", device_label: str 
     persistent_username = _verified_hector_token(token) if str(token).startswith("h1.") else None
     if str(token).startswith("h1.") and not persistent_username:
         return None
-    if token in _registry().get("revoked_tokens", set()):
-        return None
     with registry["guard"]:
+        if token in registry.get("revoked_tokens", set()):
+            return None
         for username, owner_group in list(registry["owners"].items()):
             sessions = _sessions_for(registry, username)
             for active_token, owner in list(sessions.items()):
@@ -536,11 +537,23 @@ def _clear_authentication() -> None:
         st.session_state.pop(key, None)
 
 
-def logout() -> None:
+def logout(*, all_sessions: bool = False) -> None:
+    username = st.session_state.get("map_login_user")
+    token = st.session_state.get("map_login_session_token")
+    if username:
+        registry = _registry()
+        with registry["guard"]:
+            sessions = _sessions_for(registry, username)
+            revoked = registry.setdefault("revoked_tokens", set())
+            if token:
+                revoked.add(token)
+            if all_sessions:
+                revoked.update(sessions)
+                sessions.clear()
     client = st.session_state.get("map_supabase_auth_client")
     if client:
         try:
-            client.auth.sign_out()
+            client.auth.sign_out({"scope": "global" if all_sessions else "local"})
         except Exception:
             pass
     _clear_authentication()
