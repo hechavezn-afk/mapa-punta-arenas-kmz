@@ -902,37 +902,15 @@ def _edited_coordinate(raw: str, original, asset: dict | None, axis: str, label:
 def render_findings_panel() -> None:
     map_selected_id = str(st.session_state.pop("finding_map_selected_id", "") or "")
     minimized = bool(st.session_state.get("finding_panel_minimized", False))
-    nearby_layers_enabled = bool(st.session_state.get("finding_nearby_layers_enabled", False))
     with st.container(key="finding_controls_bar"):
-        controls_html = f'''<div class="finding-control-row" aria-label="Controles de hallazgos">
-<button type="button" class="tool-controls-toggle finding-control-filter{' is-active' if nearby_layers_enabled else ''}" role="switch" aria-checked="{str(nearby_layers_enabled).lower()}" aria-label="Capas cercanas" title="Activa o desactiva las capas cercanas a la zona visible del mapa"><span>Capas</span><span class="tool-filter-track" aria-hidden="true"><i></i></span></button>
-<button type="button" class="tool-minimize-toggle finding-control-minimize" aria-label="{'Restaurar ventana' if minimized else 'Minimizar ventana'}" title="{'Restaurar ventana' if minimized else 'Minimizar ventana'}">{'□' if minimized else '−'}</button>
-<button type="button" class="finding-control-close" aria-label="Cerrar hallazgos" title="Cerrar hallazgos">×</button>
-</div>
-<script>
-(()=>{{
-  if(window.__amiFindingToolbarBound)return;
-  window.__amiFindingToolbarBound=true;
-  document.addEventListener('click',event=>{{
-    const control=event.target?.closest?.('.finding-control-row button');
-    if(!control)return;
-    event.preventDefault();
-    event.stopPropagation();
-    const selector=control.classList.contains('finding-control-filter')
-      ?'.st-key-finding_nearby_layers_enabled input[type="checkbox"]'
-      :control.classList.contains('finding-control-minimize')
-        ?'.st-key-minimize_findings_panel button'
-        :'.st-key-close_findings_panel button';
-    document.querySelector(selector)?.click();
-  }},true);
-}})();
-</script>'''
-        st.html(controls_html, width="stretch", unsafe_allow_javascript=True)
-        st.toggle("Capas", key="finding_nearby_layers_enabled", value=False, help="Activa o desactiva las capas de activos cercanas a la zona visible del mapa")
-        if st.button("□" if minimized else "−", key="minimize_findings_panel", help="Restaurar ventana" if minimized else "Minimizar ventana"):
+        filter_col, minimize_col, close_col = st.columns([86, 38, 48], gap="small")
+        filter_col.toggle("Capas", key="finding_nearby_layers_enabled", value=False,
+                          help="Activa o desactiva las capas de activos cercanas a la zona visible del mapa")
+        if minimize_col.button("□" if minimized else "−", key="minimize_findings_panel",
+                               help="Restaurar ventana" if minimized else "Minimizar ventana", width="stretch"):
             st.session_state["finding_panel_minimized"] = not minimized
             st.rerun(scope="fragment")
-        if st.button("×", key="close_findings_panel", help="Cerrar hallazgos"):
+        if close_col.button("×", key="close_findings_panel", help="Cerrar hallazgos", width="stretch"):
             st.session_state.pop("show_findings", None)
             st.query_params.pop("findings", None)
             st.rerun(scope="fragment")
