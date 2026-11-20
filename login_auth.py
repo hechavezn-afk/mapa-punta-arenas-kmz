@@ -9,15 +9,19 @@ import ssl
 import threading
 import time
 import unicodedata
+from datetime import datetime
 from email.message import EmailMessage
 from email.utils import formataddr
 from secrets import randbelow, token_bytes, token_urlsafe
+from zoneinfo import ZoneInfo
 
 import streamlit as st
 
-# Keep the browser login alive for five hours after the last detected activity.
-# The browser checkbox controls whether a refresh/browser restart can resume it.
+# Most browser sessions expire after five idle hours. HECTOR's signed browser token
+# is remembered automatically and expires at midnight in the Punta Arenas timezone.
 IDLE_TIMEOUT_SECONDS = 5 * 60 * 60
+HECTOR_SESSION_TIMEOUT_SECONDS = 24 * 60 * 60
+HECTOR_TIMEZONE = ZoneInfo("America/Punta_Arenas")
 MFA_ENTRY_WINDOW_SECONDS = 3 * 60
 MFA_ISSUER = "Redes Edelmag Magallanes"
 CONFIG_USERNAME = "configedelmag"
@@ -65,6 +69,68 @@ def _verify_static_user(username: str, password: str) -> tuple[bool, str | None]
     canonical_name, salt, expected_hash = account
     candidate = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 310_000)
     return hmac.compare_digest(candidate, expected_hash), canonical_name
+
+
+def _is_hector(username: str | None) -> bool:
+    return (username or "").strip().casefold() == "hector"
+
+
+def _session_timeout(username: str) -> int:
+    return HECTOR_SESSION_TIMEOUT_SECONDS if _is_hector(username) else IDLE_TIMEOUT_SECONDS
+
+
+def _session_signing_key() -> bytes | None:
+    """Derive a stable server-only key so HECTOR's day token survives app restarts."""
+    try:
+        from supabase_accounts import auth_config
+
+        _url, _public_key, secret_key = auth_config()
+    except Exception:
+        return None
+    return hmac.digest(secret_key.encode("utf-8"), b"redes-edelmag/hector-session/v1", "sha256")
+
+
+def _issue_session_token(username: str) -> str:
+    if not _is_hector(username):
+        return token_urlsafe(32)
+    key = _session_signing_key()
+    if not key:
+        return token_urlsafe(32)
+    local_now = datetime.now(HECTOR_TIMEZONE)
+    expires_at = int(local_now.replace(hour=23, minute=59, second=59, microsecond=0).timestamp())
+    payload = f"HECTOR|{expires_at}|{token_urlsafe(24)}"
+    encoded = base64.urlsafe_b64encode(payload.encode("utf-8")).decode("ascii").rstrip("=")
+    signature = hmac.digest(key, encoded.encode("ascii"), "sha256")
+    signature_text = base64.urlsafe_b64encode(signature).decode("ascii").rstrip("=")
+    return f"h1.{encoded}.{signature_text}"
+
+
+def _verified_hector_token(token: str) -> str | None:
+    parts = str(token or "").split(".")
+    if len(parts) != 3 or parts[0] != "h1":
+        return None
+    key = _session_signing_key()
+    if not key:
+        return None
+    encoded, supplied_signature = parts[1], parts[2]
+    try:
+        expected = hmac.digest(key, encoded.encode("ascii"), "sha256")
+        padding = "=" * (-len(supplied_signature) % 4)
+        supplied = base64.urlsafe_b64decode(supplied_signature + padding)
+        if not hmac.compare_digest(expected, supplied):
+            return None
+        payload_padding = "=" * (-len(encoded) % 4)
+        payload = base64.urlsafe_b64decode(encoded + payload_padding).decode("utf-8")
+        username, raw_expiry, nonce = payload.split("|", 2)
+        expires_at = int(raw_expiry)
+        current_local = datetime.now(HECTOR_TIMEZONE)
+        end_of_day = int(current_local.replace(hour=23, minute=59, second=59, microsecond=0).timestamp())
+        if (username != "HECTOR" or not nonce or expires_at <= int(time.time())
+                or expires_at > end_of_day):
+            return None
+    except (ValueError, UnicodeDecodeError):
+        return None
+    return "HECTOR"
 
 
 _BROWSER_SESSION = st.components.v2.component(
@@ -195,7 +261,7 @@ def _users() -> dict[str, str]:
 
 @st.cache_resource
 def _registry() -> dict:
-    return {"guard": threading.Lock(), "owners": {}}
+    return {"guard": threading.Lock(), "owners": {}, "revoked_tokens": set()}
 
 
 def _session_limit(username: str) -> int:
@@ -220,9 +286,15 @@ def _claim(username: str, session_id: str, token: str, device_id: str = "", devi
     registry = _registry()
     now = time.monotonic()
     with registry["guard"]:
+        revoked_tokens = registry.setdefault("revoked_tokens", set())
+        if token in revoked_tokens:
+            return False
         sessions = _sessions_for(registry, username)
         for old_token, owner in list(sessions.items()):
-            if now - owner["last_activity"] >= IDLE_TIMEOUT_SECONDS:
+            if now - owner["last_activity"] >= _session_timeout(username):
+                sessions.pop(old_token, None)
+                continue
+            if _is_hector(username) and old_token.startswith("h1.") and not _verified_hector_token(old_token):
                 sessions.pop(old_token, None)
         existing = next(
             ((old_token, owner) for old_token, owner in sessions.items() if owner["session"] == session_id),
@@ -251,7 +323,10 @@ def _active_sessions(username: str) -> list[tuple[str, dict, float]]:
         active = []
         for token, owner in list(sessions.items()):
             idle = now - owner["last_activity"]
-            if idle >= IDLE_TIMEOUT_SECONDS:
+            expired = idle >= _session_timeout(username)
+            expired = expired or (_is_hector(username) and token.startswith("h1.")
+                                  and not _verified_hector_token(token))
+            if expired:
                 sessions.pop(token, None)
             else:
                 active.append((token, dict(owner), idle))
@@ -268,7 +343,10 @@ def _revoke_session(username: str, token: str) -> bool:
     registry = _registry()
     with registry["guard"]:
         sessions = _sessions_for(registry, username)
-        return sessions.pop(token, None) is not None
+        removed = sessions.pop(token, None) is not None
+        if removed:
+            registry.setdefault("revoked_tokens", set()).add(token)
+        return removed
 
 
 def _finish_pending_claim() -> bool:
@@ -283,6 +361,8 @@ def _finish_pending_claim() -> bool:
     st.session_state["map_login_role"] = "config" if is_config_user(username) else "user"
     st.session_state["map_login_session_token"] = pending["token"]
     st.session_state["map_login_authenticated"] = True
+    if _is_hector(username):
+        st.session_state["map_login_remember"] = True
     st.session_state.pop("map_login_pending_claim", None)
     st.rerun()
     return True
@@ -360,19 +440,29 @@ def _render_session_dialog() -> None:
         st.rerun()
 
 
-def _resume(token: str, session_id: str) -> str | None:
+def _resume(token: str, session_id: str, device_id: str = "", device_label: str = "") -> str | None:
     registry = _registry()
     now = time.monotonic()
+    persistent_username = _verified_hector_token(token) if str(token).startswith("h1.") else None
+    if str(token).startswith("h1.") and not persistent_username:
+        return None
+    if token in _registry().get("revoked_tokens", set()):
+        return None
     with registry["guard"]:
         for username, owner_group in list(registry["owners"].items()):
             sessions = _sessions_for(registry, username)
             for active_token, owner in list(sessions.items()):
-                if now - owner["last_activity"] >= IDLE_TIMEOUT_SECONDS:
+                expired = now - owner["last_activity"] >= _session_timeout(username)
+                expired = expired or (_is_hector(username) and active_token.startswith("h1.")
+                                      and not _verified_hector_token(active_token))
+                if expired:
                     sessions.pop(active_token, None)
                     continue
                 if active_token == token:
                     owner["session"] = session_id
                     return username
+    if persistent_username and _claim(persistent_username, session_id, token, device_id, device_label):
+        return persistent_username
     return None
 
 
@@ -384,7 +474,10 @@ def _heartbeat(username: str, session_id: str, token: str, activity_ms: int = 0)
         owner = sessions.get(token)
         if not owner or owner["session"] != session_id:
             return False
-        if now - owner["last_activity"] >= IDLE_TIMEOUT_SECONDS:
+        expired = now - owner["last_activity"] >= _session_timeout(username)
+        expired = expired or (_is_hector(username) and token.startswith("h1.")
+                              and not _verified_hector_token(token))
+        if expired:
             sessions.pop(token, None)
             return False
         if activity_ms and activity_ms > owner["activity_ms"]:
@@ -466,7 +559,7 @@ def _supabase_auth_ready() -> bool:
 
 def _finish_supabase_login(alias: str) -> None:
     session_id = st.session_state.setdefault("map_login_session_id", token_urlsafe(24))
-    session_token = token_urlsafe(32)
+    session_token = _issue_session_token(alias)
     device_id = st.session_state.get("map_login_device_id", "")
     device_label = st.session_state.get("map_login_device_label", "Navegador")
     if not _claim(alias, session_id, session_token, device_id, device_label):
@@ -485,6 +578,8 @@ def _finish_supabase_login(alias: str) -> None:
     st.session_state["map_login_role"] = "user"
     st.session_state["map_login_session_token"] = session_token
     st.session_state["map_login_authenticated"] = True
+    if _is_hector(alias):
+        st.session_state["map_login_remember"] = True
     st.session_state.pop("map_supabase_pending_identity", None)
     st.session_state.pop("map_supabase_pending_email", None)
     st.session_state.pop("map_supabase_mfa_enrollment", None)
@@ -815,7 +910,8 @@ def require_login() -> None:
     bridge = _bridge(
         expected_token if st.session_state.get("map_login_authenticated") else None,
         clear=clear_browser,
-        remember=bool(st.session_state.get("map_login_remember", False)),
+        remember=bool(st.session_state.get("map_login_remember", False)
+                       or _is_hector(st.session_state.get("map_login_user"))),
     )
     if not getattr(bridge, "ready", False):
         st.info("Restaurando sesión…")
@@ -838,6 +934,8 @@ def require_login() -> None:
             st.info("Restaurando sesión…")
             st.stop()
         if username and session_id and token and _heartbeat(username, session_id, token, activity_ms):
+            if _is_hector(username):
+                st.session_state["map_login_remember"] = True
             _keep_session_alive()
             return
         _clear_authentication()
@@ -845,9 +943,11 @@ def require_login() -> None:
         st.rerun()
 
     if browser_token and not clear_browser:
-        username = _resume(browser_token, st.session_state.setdefault("map_login_session_id", token_urlsafe(24)))
+        username = _resume(browser_token, st.session_state.setdefault("map_login_session_id", token_urlsafe(24)),
+                           device_id, device_label)
         if username:
-            st.session_state["map_login_remember"] = bool(getattr(bridge, "remembered", False))
+            st.session_state["map_login_remember"] = bool(_is_hector(username)
+                                                           or getattr(bridge, "remembered", False))
             st.session_state["map_login_user"] = username
             st.session_state["map_login_role"] = "config" if is_config_user(username) else "user"
             st.session_state["map_login_session_token"] = browser_token
@@ -870,12 +970,12 @@ def require_login() -> None:
         st.caption("Inicia sesión para continuar")
         username = st.text_input("Usuario", help="Nombre y apellido juntos, en mayúsculas. También puedes usar tu correo.")
         password = st.text_input("Contraseña", type="password")
-        remember_session = st.checkbox("Recordar sesión (máximo 5 horas sin actividad)")
+        remember_session = st.checkbox("Recordar sesión (máximo 5 horas sin actividad; HECTOR hasta medianoche)")
         submitted = st.form_submit_button("Ingresar", use_container_width=True)
 
     if submitted:
         normalized_username = username.strip()
-        st.session_state["map_login_remember"] = bool(remember_session)
+        st.session_state["map_login_remember"] = bool(remember_session or _is_hector(normalized_username))
         if is_config_user(normalized_username):
             credentials_ok = _verify_config_password(password)
             normalized_username = CONFIG_USERNAME
@@ -892,7 +992,7 @@ def require_login() -> None:
             st.error("Cuenta o contraseña incorrecta.")
         else:
             session_id = st.session_state.setdefault("map_login_session_id", token_urlsafe(24))
-            session_token = token_urlsafe(32)
+            session_token = _issue_session_token(normalized_username)
             device_id = st.session_state.get("map_login_device_id", "")
             device_label = st.session_state.get("map_login_device_label", "Navegador")
             if _claim(normalized_username, session_id, session_token, device_id, device_label):

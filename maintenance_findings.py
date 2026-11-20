@@ -4,11 +4,13 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import base64
 import csv
+import hashlib
 from html import escape
 import json
 import math
 import re
 import time
+import unicodedata
 import zipfile
 import mimetypes
 from io import BytesIO, StringIO
@@ -22,12 +24,13 @@ from uuid import uuid4
 import streamlit as st
 
 from finding_catalog import DEFAULT_FINDING_CATEGORIES
+from notice_pdf import NoticePdfError, extract_notice_pdf
 from supabase_accounts import auth_config, SupabaseSetupError
 
 LOCALITIES = ("Punta Arenas", "Puerto Natales", "Porvenir", "Puerto Williams")
 LOCALITY_CENTERS = {"Punta Arenas": (-53.15, -70.92), "Puerto Natales": (-51.73, -72.51), "Porvenir": (-53.30, -70.37), "Puerto Williams": (-54.93, -67.61)}
 STATUSES = ("Pendiente", "En revisión", "Revisado", "Resuelto", "Cerrado")
-PRIORITIES = ("Baja", "Media", "Alta", "Urgente")
+PRIORITIES = ("Baja", "Media baja", "Media", "Media alta", "Alta", "Urgente")
 CATEGORIES = DEFAULT_FINDING_CATEGORIES
 DEFAULT_CATEGORY_ICONS = {
     "Poda preventiva": "🌳", "Poste desaplomado": "🪵", "Estructura dañada": "🛠️",
@@ -482,9 +485,13 @@ def _asset_index() -> dict:
                         attrs[node.get("name")] = node.text.strip()
                 name = (mark.findtext("k:name", default="", namespaces=ns) or "").strip()
                 aliases = [name]
-                for key in ("IDENTIFICADOR_VNR", "POSTE_ID", "EQUIPO_ID", "ID", "CODIGO", "CÓDIGO"):
+                alias_sources = [{"field": "Nombre del poste en el KMZ", "value": name}] if name else []
+                for key in ("IDENTIFICADOR_VNR", "POSTE_ID", "EQUIPO_ID", "ID", "CODIGO", "CÓDIGO",
+                            "CODIGO_VNR", "DENOMINACION"):
                     if attrs.get(key):
-                        aliases.append(str(attrs[key]).strip())
+                        value = str(attrs[key]).strip()
+                        aliases.append(value)
+                        alias_sources.append({"field": key, "value": value})
                 folder_names = []
                 parent = parents.get(mark)
                 while parent is not None:
@@ -493,7 +500,8 @@ def _asset_index() -> dict:
                     parent = parents.get(parent)
                 kind = next((value for value in folder_names if value), "Activo")
                 record = {"name": name or next((a for a in aliases if a), "Activo"),
-                          "kind": kind, "latitude": lat, "longitude": lon}
+                          "kind": kind, "latitude": lat, "longitude": lon,
+                          "alias_sources": alias_sources}
                 for alias in aliases:
                     normalized = _normalize_asset_code(alias)
                     if normalized:
@@ -506,7 +514,16 @@ def _normalize_asset_code(value: str) -> str:
 
 
 def lookup_asset(locality: str, code: str) -> dict | None:
-    return _asset_index().get(locality, {}).get(_normalize_asset_code(code))
+    normalized = _normalize_asset_code(code)
+    record = _asset_index().get(locality, {}).get(normalized)
+    if not record:
+        return None
+    matched_sources = [item for item in record.get("alias_sources", [])
+                       if _normalize_asset_code(item.get("value", "")) == normalized]
+    matched_source = next((item for item in matched_sources
+                           if item.get("field") != "Nombre del poste en el KMZ"),
+                          matched_sources[0] if matched_sources else None)
+    return {**record, "matched_alias_field": (matched_source or {}).get("field", "Alias de inventario")}
 
 
 def _upload_file(file, finding_id: str, *, document: bool = False) -> dict:
@@ -570,6 +587,36 @@ def delete_finding_attachment(finding: dict, path: str, actor: str) -> None:
                       prefer="return=representation")
     if not isinstance(result, list) or not result:
         raise FindingsError("El archivo se quitó del almacenamiento, pero Supabase no confirmó la actualización del hallazgo. Actualiza la lista y vuelve a intentarlo.")
+
+
+def rename_finding_photo(finding: dict, path: str, label: str, actor: str) -> None:
+    finding_id = str(finding.get("id") or "")
+    if not finding_id or not path.startswith(f"{finding_id}/"):
+        raise FindingsError("La foto no pertenece a este hallazgo.")
+    patch, found = {}, False
+    for collection in ("photos", "reviewed_attachments", "resolution_attachments"):
+        items = list(finding.get(collection) or [])
+        updated = []
+        for item in items:
+            if str(item.get("path") or "") == path and not item.get("document"):
+                item = dict(item)
+                clean_label = str(label or "").strip()[:120]
+                if clean_label:
+                    item["label"] = clean_label
+                else:
+                    item.pop("label", None)
+                found = True
+            updated.append(item)
+        if any(str(item.get("path") or "") == path for item in items):
+            patch[collection] = updated
+    if not found:
+        raise FindingsError("No encontré esa foto en los adjuntos del hallazgo. Actualiza la lista e inténtalo otra vez.")
+    patch["updated_by"] = actor
+    query = urlencode({"id": f"eq.{finding_id}"})
+    result = _request("PATCH", f"/rest/v1/maintenance_findings?{query}", patch,
+                      prefer="return=representation")
+    if not isinstance(result, list) or not result:
+        raise FindingsError("Supabase no confirmó el nombre de la foto. Actualiza la lista y vuelve a intentarlo.")
 
 
 def save_new(payload: dict, photos, documents=None) -> dict:
@@ -658,7 +705,8 @@ def finding_history(finding_id: str) -> list[dict]:
 
 def _map_payload(rows, show_heat, focus, categories, evidence_focus_id=None):
     cases, cells = [], {}
-    colors = {"Baja": "#1976a3", "Media": "#b06300", "Alta": "#c53427", "Urgente": "#89152e"}
+    colors = {"Baja": "#1976a3", "Media baja": "#1976a3", "Media": "#b06300",
+              "Media alta": "#c53427", "Alta": "#c53427", "Urgente": "#89152e"}
     for row in rows:
         start = [float(row["latitude"]), float(row["longitude"])]
         end = None
@@ -698,7 +746,8 @@ def _map_payload(rows, show_heat, focus, categories, evidence_focus_id=None):
                 cell[0] += lat
                 cell[1] += lon
                 cell[2] += 1
-                cell[3] += {"Baja": 1, "Media": 2, "Alta": 3, "Urgente": 4}.get(row.get("priority"), 2)
+                cell[3] += {"Baja": 1, "Media baja": 1.5, "Media": 2, "Media alta": 2.5,
+                            "Alta": 3, "Urgente": 4}.get(row.get("priority"), 2)
     heat = [{"center": [lat / count, lon / count], "weight": weight}
             for lat, lon, count, weight in cells.values()]
     return {"cases": cases, "heat": heat, "focus": focus}
@@ -787,21 +836,39 @@ def render_findings_panel() -> None:
     if st.session_state.get("show_finding_icon_config", False):
         _finding_icon_dialog(shared_categories, bool(st.session_state.get("finding_category_catalog_ready", True)))
     if rows:
-        st.dataframe([{"Aviso": row.get("notice_number") or "", "Solicitante": row.get("requester") or "",
+        st.caption("Selecciona o haz doble clic en una fila para abrir ese aviso en el mapa y en su seguimiento.")
+        table_rows = [{"Aviso": row.get("notice_number") or "", "Solicitante": row.get("requester") or "",
                        "Tipo": f"{_category_icon(row.get('category', ''), shared_categories)} {row.get('category') or ''}",
                        "Localidad": row.get("locality") or "", "Estado": row.get("status") or "",
                        "Prioridad": row.get("priority") or "", "Activo": row.get("asset_code") or "",
-                       "Latitud": row.get("latitude"), "Longitud": row.get("longitude")} for row in rows],
-                   hide_index=True, width="stretch")
+                       "Latitud": row.get("latitude"), "Longitud": row.get("longitude")} for row in rows]
+
+        def select_finding_table_row():
+            state = st.session_state.get("findings_table", {})
+            selection = getattr(state, "selection", None)
+            selected_indices = getattr(selection, "rows", None)
+            if selected_indices is None and isinstance(state, dict):
+                selected_indices = state.get("selection", {}).get("rows", [])
+            if not selected_indices:
+                return
+            selected_index = int(selected_indices[-1])
+            if not 0 <= selected_index < len(rows):
+                return
+            selected_row = rows[selected_index]
+            selected_id = str(selected_row["id"])
+            selected_label = next((label for label, row in edit_choices.items()
+                                   if str(row["id"]) == selected_id), None)
+            st.session_state["finding_map_selected_id"] = selected_id
+            if selected_label:
+                st.session_state["finding_edit_choice"] = selected_label
+
+        st.dataframe(table_rows,
+                   hide_index=True, width="stretch", key="findings_table", on_select=select_finding_table_row,
+                   selection_mode="single-row")
     focus = st.session_state.pop("finding_focus", None)
     evidence_focus_id = None
     if rows:
         by_id = {str(row["id"]): row for row in rows}
-        def describe(finding_id):
-            row = by_id[finding_id]
-            return " · ".join(str(row[key]) for key in ("category", "notice_number", "asset_code", "status") if row.get(key))
-
-        finding_id = st.selectbox("Caso en el mapa", list(by_id), format_func=describe)
         if map_selected_id and map_selected_id in by_id:
             selected_row = by_id[map_selected_id]
             selected_label = next((label for label, row in edit_choices.items()
@@ -811,15 +878,115 @@ def render_findings_panel() -> None:
             evidence_focus_id = map_selected_id
             focus = {"coordinates": [float(selected_row["latitude"]), float(selected_row["longitude"])],
                      "id": map_selected_id}
-        if st.button("Ubicar en el mapa"):
-            row = by_id[finding_id]
-            focus = {"coordinates": [float(row["latitude"]), float(row["longitude"])], "id": str(row["id"])}
     payload = escape(json.dumps(_map_payload(rows, show_heat, focus, shared_categories, evidence_focus_id), ensure_ascii=False), quote=True)
     st.html(f'<span hidden id="findings-map-data" data-rows="{payload}"></span>')
 
     create_tab, follow_tab = st.tabs(("Crear hallazgo", "Seguimiento"))
     with create_tab:
         st.subheader("Crear hallazgo")
+        pdf_nonce = int(st.session_state.get("finding_notice_import_nonce", 0))
+        source_pdf = st.file_uploader("Importar aviso desde PDF (opcional)", type=["pdf"],
+                                      key=f"finding_notice_import_pdf_{pdf_nonce}", max_upload_size=10,
+                                      help="Lee los datos del aviso para completar un borrador. Revísalos antes de guardar.")
+        if source_pdf:
+            source_bytes = source_pdf.getvalue()
+            fingerprint = hashlib.sha256(source_bytes).hexdigest()
+            if fingerprint != st.session_state.get("finding_notice_import_fingerprint"):
+                try:
+                    imported = extract_notice_pdf(source_bytes)
+                    imported_locality = imported.get("locality")
+                    candidate_codes = []
+                    for field_name in ("reported_asset_code", "general_asset_code"):
+                        candidate = imported.get(field_name)
+                        if candidate and candidate not in [item["code"] for item in candidate_codes]:
+                            candidate_codes.append({"code": candidate, "field": field_name})
+                    resolved_assets = []
+                    for candidate in candidate_codes:
+                        found = lookup_asset(imported_locality, candidate["code"]) if imported_locality else None
+                        if found:
+                            resolved_assets.append({**candidate, "asset": found})
+                    distinct = {(round(float(item["asset"]["latitude"]), 7),
+                                 round(float(item["asset"]["longitude"]), 7)) for item in resolved_assets}
+                    asset_match_conflict = len(distinct) > 1
+                    selected_match = resolved_assets[0] if resolved_assets and not asset_match_conflict else None
+                    asset_match = selected_match["asset"] if selected_match else None
+                    imported_code = selected_match["code"] if selected_match else None
+                    imported["matched_asset"] = asset_match
+                    imported["asset_match_code"] = imported_code if asset_match else None
+                    imported["asset_match_field"] = selected_match["field"] if selected_match else None
+                    imported["asset_match_alias"] = asset_match.get("matched_alias_field") if asset_match else None
+                    imported["asset_match_conflict"] = asset_match_conflict
+                    imported["asset_candidate_codes"] = candidate_codes
+                    narrative = imported.get("narrative") or ""
+                    narrative_upper = unicodedata.normalize("NFKD", narrative).encode("ascii", "ignore").decode().upper()
+                    suggested_category = "Poste desaplomado" if "POSTE" in narrative_upper and any(
+                        word in narrative_upper for word in ("DESVI", "CHUEC", "INCLIN")) else "Estructura dañada" if "GRIET" in narrative_upper else "Otro"
+                    category_value = next((name for name in available_categories if name.casefold() == suggested_category.casefold()),
+                                          available_categories[0])
+                    st.session_state["finding_notice_import_fingerprint"] = fingerprint
+                    st.session_state["finding_notice_import_data"] = imported
+                    st.session_state["finding_create_locality"] = imported_locality if imported_locality in LOCALITIES else "Punta Arenas"
+                    st.session_state["finding_create_notice"] = imported.get("notice_number") or ""
+                    st.session_state["finding_create_requester"] = imported.get("contact_name") or ""
+                    st.session_state["finding_create_category"] = category_value
+                    st.session_state["finding_create_priority"] = imported.get("priority") or "Media"
+                    st.session_state["finding_create_asset_code"] = imported_code if asset_match else ""
+                    st.session_state["finding_create_description"] = narrative[:3000]
+                    # Resolve coordinates from the editable asset code at
+                    # submission time, so changing the code cannot retain a
+                    # stale point from the imported notice.
+                    st.session_state["finding_create_latitude"] = ""
+                    st.session_state["finding_create_longitude"] = ""
+                except NoticePdfError as exc:
+                    st.session_state["finding_notice_import_fingerprint"] = fingerprint
+                    st.session_state["finding_notice_import_data"] = {"error": str(exc)}
+            imported = st.session_state.get("finding_notice_import_data") or {}
+            if imported.get("error"):
+                st.warning(imported["error"] + " Puedes completar el formulario manualmente y adjuntar el PDF.")
+            elif imported:
+                st.success("Borrador leído del PDF. Confirma los campos y la ubicación antes de guardarlo.")
+                details = {
+                    "Aviso": imported.get("notice_number") or "Sin detectar",
+                    "Fecha del aviso": imported.get("notice_date") or "Sin detectar",
+                    "Prioridad original": imported.get("priority_raw") or "Sin detectar",
+                    "Solicitante/contacto": imported.get("contact_name") or "Sin detectar",
+                    "Teléfono contacto": imported.get("contact_phone") or imported.get("customer_phone") or "No informado",
+                    "Dirección servicio": imported.get("service_address") or "Sin detectar",
+                    "Dirección en el relato": imported.get("narrative_address") or "Sin detectar",
+                    "N.º instalación": imported.get("installation_number") or "Sin detectar",
+                    "Código poste en el relato": imported.get("reported_asset_code") or "Sin detectar",
+                    "Código poste datos generales": imported.get("general_asset_code") or "Sin detectar",
+                    "Código usado para enlazar al inventario": imported.get("asset_match_code") or "Sin coincidencia exacta",
+                    "Campo del inventario que coincidió": imported.get("asset_match_alias") or "Sin coincidencia exacta",
+                    "Teléfono cliente": imported.get("customer_phone") or "No informado",
+                    "ID cliente": imported.get("customer_ids_raw") or "Sin detectar",
+                    "Responsable aviso": imported.get("responsible") or "Sin detectar",
+                    "Medidor": imported.get("meter_number") or "Sin detectar",
+                    "Tarifa": imported.get("tariff") or "Sin detectar",
+                    "Potencia conectada": imported.get("connected_power") or "Sin detectar",
+                }
+                st.dataframe([details], hide_index=True, width="stretch")
+                if imported.get("matched_asset"):
+                    point = imported["matched_asset"]
+                    st.info(f"Código del PDF vinculado por coincidencia exacta en «{imported.get('asset_match_field')}» "
+                            f"con el campo «{imported.get('asset_match_alias')}» del inventario: "
+                            f"{imported['asset_match_code']} · {float(point['latitude']):.7f}, {float(point['longitude']):.7f}.")
+                elif imported.get("asset_match_conflict"):
+                    st.error("Los códigos encontrados coinciden con postes distintos del inventario. No se eligió ninguno; revisa el aviso y fija la ubicación manualmente.")
+                elif imported.get("asset_candidate_codes"):
+                    st.warning("Ninguno de los códigos de poste del PDF coincide exactamente con los alias del inventario. No se aplicó una conversión numérica supuesta; ingresa o ubica el poste manualmente.")
+                if (imported.get("general_asset_code") and imported.get("reported_asset_code")
+                        and imported["general_asset_code"] != imported["reported_asset_code"]):
+                    st.caption("Códigos distintos en el PDF: " + imported["general_asset_code"] + " (datos generales) y "
+                               + imported["reported_asset_code"] + " (relato). El enlace usa el que coincide con un único punto del inventario.")
+                if imported.get("service_address") and imported.get("narrative_address"):
+                    service_digits = re.sub(r"\D", "", imported["service_address"])
+                    narrative_digits = re.sub(r"\D", "", imported["narrative_address"])
+                    if service_digits and narrative_digits and service_digits != narrative_digits:
+                        st.warning("La dirección de servicio y la dirección escrita en el relato difieren. Revisa cuál indica el poste.")
+                if imported.get("measure_options_printed"):
+                    st.caption("El formulario trae medidas impresas, pero no aparecen marcadas; no se registran como acciones seleccionadas: "
+                               + ", ".join(imported["measure_options_printed"]))
         if st.button("📍 Añadir ubicación en el mapa", key="finding_place_on_map", width="stretch"):
             st.session_state.finding_place_mode = not st.session_state.get("finding_place_mode", False)
         placing = bool(st.session_state.get("finding_place_mode", False))
@@ -850,27 +1017,44 @@ def render_findings_panel() -> None:
             location = st.session_state.get("finding_location", {})
             suggested_locality = _detect_locality(location.get("lat"), location.get("lon")) if location.get("lat") is not None else None
             locality_default = suggested_locality or (locality if locality in LOCALITIES else "Punta Arenas")
-            f_locality = st.selectbox("Localidad", LOCALITIES, index=LOCALITIES.index(locality_default))
-            notice = st.text_input("N.º de aviso", placeholder="Número de aviso")
-            requester = st.text_input("Solicitante", placeholder="Nombre o área solicitante")
-            category_choice = st.selectbox("Hallazgo", available_categories,
+            if "finding_create_locality" not in st.session_state:
+                st.session_state["finding_create_locality"] = locality_default
+            if st.session_state.get("finding_create_locality") not in LOCALITIES:
+                st.session_state["finding_create_locality"] = locality_default
+            if st.session_state.get("finding_create_category") not in available_categories:
+                st.session_state["finding_create_category"] = available_categories[0]
+            if st.session_state.get("finding_create_priority") not in PRIORITIES:
+                st.session_state["finding_create_priority"] = "Media"
+            f_locality = st.selectbox("Localidad", LOCALITIES, key="finding_create_locality")
+            notice = st.text_input("N.º de aviso", placeholder="Número de aviso", key="finding_create_notice")
+            requester = st.text_input("Solicitante", placeholder="Nombre o área solicitante", key="finding_create_requester")
+            category_choice = st.selectbox("Hallazgo", available_categories, key="finding_create_category",
                                            format_func=lambda name: f"{_category_icon(name, shared_categories)}  {name}")
-            priority = st.select_slider("Prioridad", options=PRIORITIES, value="Media")
-            asset_code = st.text_input("Poste o activo relacionado", value=str(location.get("asset_code", "")), placeholder="Código exacto; se buscará en el inventario")
+            priority = st.select_slider("Prioridad", options=PRIORITIES, key="finding_create_priority")
+            asset_default = str(location.get("asset_code", ""))
+            if "finding_create_asset_code" not in st.session_state:
+                st.session_state["finding_create_asset_code"] = asset_default
+            asset_code = st.text_input("Poste o activo relacionado", key="finding_create_asset_code", placeholder="Código exacto; se buscará en el inventario")
             second_asset = st.text_input("Segundo poste / activo", placeholder="Para un caso entre dos activos")
-            description = st.text_area("Descripción / acción requerida", max_chars=3000)
+            description = st.text_area("Descripción / acción requerida", max_chars=3000, key="finding_create_description")
             st.caption("Si el código existe en el inventario, las coordenadas se completan desde el KMZ. También puedes indicarlas manualmente.")
             lat_col, lon_col = st.columns(2)
-            latitude = lat_col.text_input("Latitud", value=str(location.get("lat", "")), placeholder="Se completa desde el activo")
-            longitude = lon_col.text_input("Longitud", value=str(location.get("lon", "")), placeholder="Se completa desde el activo")
+            if "finding_create_latitude" not in st.session_state:
+                st.session_state["finding_create_latitude"] = str(location.get("lat", ""))
+            if "finding_create_longitude" not in st.session_state:
+                st.session_state["finding_create_longitude"] = str(location.get("lon", ""))
+            latitude = lat_col.text_input("Latitud", key="finding_create_latitude", placeholder="Se completa desde el activo")
+            longitude = lon_col.text_input("Longitud", key="finding_create_longitude", placeholder="Se completa desde el activo")
             second_lat_col, second_lon_col = st.columns(2)
             second_latitude = second_lat_col.text_input("Latitud segundo activo", placeholder="Si aplica")
             second_longitude = second_lon_col.text_input("Longitud segundo activo", placeholder="Si aplica")
             photos = st.file_uploader("Fotos (máximo 3)", type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key="finding_create_photos")
-            documents = st.file_uploader("Documentos (máximo 2, 10 MB cada uno)", type=list(DOCUMENT_EXTENSIONS), accept_multiple_files=True, key="finding_create_documents", max_upload_size=10)
+            documents = st.file_uploader("Documentos (máximo 2, 10 MB cada uno; el PDF del aviso cuenta como uno)", type=list(DOCUMENT_EXTENSIONS), accept_multiple_files=True, key="finding_create_documents", max_upload_size=10)
             submit = st.form_submit_button("Guardar hallazgo compartido", type="primary", width="stretch")
         if submit:
-            if len(photos or []) > 3 or len(documents or []) > 2:
+            source_document = source_pdf
+            all_documents = ([source_document] if source_document else []) + list(documents or [])
+            if len(photos or []) > 3 or len(all_documents) > 2:
                 st.error("Puedes adjuntar hasta 3 fotos y 2 documentos por hallazgo.")
             else:
                 actor = str(st.session_state.get("map_login_user", "usuario"))
@@ -897,18 +1081,31 @@ def render_findings_panel() -> None:
                     # Keep the editable locality selection when it is deliberate; use the
                     # coordinate-derived locality as the initial value for map/GPS points.
                     final_locality = f_locality or detected_locality or "Punta Arenas"
+                    source_data = dict(st.session_state.get("finding_notice_import_data") or {})
+                    source_data.pop("error", None)
+                    source_data.pop("matched_asset", None)
+                    source_data["asset_code_linked"] = source_data.pop("asset_match_code", None)
+                    source_data["asset_code_link_field"] = source_data.pop("asset_match_field", None)
+                    source_data["asset_code_inventory_alias"] = source_data.pop("asset_match_alias", None)
+                    source_data["asset_link_conflict"] = source_data.pop("asset_match_conflict", False)
+                    source_data.update({"source_file_name": source_pdf.name if source_pdf else None,
+                                        "measures_selected": source_data.get("measures_selected") or []})
                     payload = {"locality": final_locality, "notice_number": notice.strip(), "requester": requester.strip(), "category": category,
                                "description": description.strip(), "priority": priority, "status": "Pendiente",
                                "asset_code": asset_code.strip() or None, "second_asset_code": second_asset.strip() or None,
                                "latitude": lat, "longitude": lon, "second_latitude": lat2, "second_longitude": lon2,
+                               "source_data": source_data,
                                "created_by": actor, "updated_by": actor}
-                    saved = save_new(payload, photos, documents)
+                    saved = save_new(payload, photos, all_documents)
                     st.session_state.finding_focus = {"coordinates": [lat, lon], "id": str(saved["id"])}
                     st.session_state.finding_locality = "Todas"
                     st.session_state.finding_status = "Abiertos"
                     st.session_state.finding_type_filter = "Todos"
                     st.session_state.finding_place_mode = False
                     st.session_state.pop("finding_location", None)
+                    st.session_state.pop("finding_notice_import_data", None)
+                    st.session_state.pop("finding_notice_import_fingerprint", None)
+                    st.session_state["finding_notice_import_nonce"] = pdf_nonce + 1
                     st.html("<script>try{sessionStorage.removeItem('finding-pending-coordinate')}catch(e){}</script>")
                     st.success("Hallazgo compartido guardado.")
                     st.rerun(scope="fragment")
@@ -919,49 +1116,95 @@ def render_findings_panel() -> None:
         if not rows:
             st.caption("Agrega o filtra hallazgos para iniciar el seguimiento.")
         else:
-            label = st.selectbox("Hallazgo", list(edit_choices), key="finding_edit_choice")
+            def focus_followup_finding():
+                selected_label = st.session_state.get("finding_edit_choice")
+                selected_row = edit_choices.get(selected_label)
+                if selected_row:
+                    st.session_state["finding_map_selected_id"] = str(selected_row["id"])
+
+            label = st.selectbox("Hallazgo", list(edit_choices), key="finding_edit_choice",
+                                 on_change=focus_followup_finding)
             selected = edit_choices[label]
+            source_data = selected.get("source_data") or {}
+            if source_data:
+                with st.expander("Datos extraídos del aviso de origen"):
+                    source_labels = (
+                        ("Fecha del aviso", "notice_date"), ("Fecha deseada de término", "desired_end_date"),
+                        ("Prioridad original", "priority_raw"), ("Persona de contacto", "contact_name"),
+                        ("Cliente/identificadores", "customer_ids_raw"), ("Teléfono de contacto", "contact_phone"),
+                        ("Teléfono cliente", "customer_phone"), ("Dirección de servicio", "service_address"),
+                        ("Dirección escrita en el relato", "narrative_address"),
+                        ("N.º de instalación", "installation_number"), ("Código de poste del relato", "reported_asset_code"),
+                        ("Código de poste datos generales", "general_asset_code"), ("Responsable del aviso", "responsible"),
+                        ("Código de poste enlazado", "asset_code_linked"), ("Campo de inventario coincidente", "asset_code_inventory_alias"),
+                        ("Campo del PDF utilizado", "asset_code_link_field"),
+                        ("Tipo de aviso", "notice_type"), ("Cliente", "customer_ids_raw"),
+                        ("Medidor", "meter_number"), ("Marca del medidor", "meter_brand"),
+                        ("Modelo del medidor", "meter_model"), ("Tarifa", "tariff"),
+                        ("Clase de suministro", "service_class"), ("Potencia conectada", "connected_power"),
+                        ("Medidas seleccionadas", "measures_selected"),
+                        ("Medidas impresas (sin marcar)", "measure_options_printed"), ("PDF original", "source_file_name"),
+                        ("Otros códigos del PDF", "asset_candidate_codes"),
+                    )
+                    def display_source_value(value):
+                        if isinstance(value, list):
+                            return ", ".join(
+                                f"{item.get('field')}: {item.get('code')}" if isinstance(item, dict) else str(item)
+                                for item in value)
+                        return str(value or "Sin informar")
+
+                    source_rows = [{"Dato": title, "Valor": display_source_value(source_data[key])}
+                                   for title, key in source_labels if source_data.get(key)]
+                    if source_rows:
+                        st.dataframe(source_rows, hide_index=True, width="stretch")
             existing_photos = [(file, "Registro") for file in (selected.get("photos") or [])]
             existing_photos += [(file, "Revisión") for file in (selected.get("reviewed_attachments") or []) if not file.get("document")]
             existing_photos += [(file, "Resolución") for file in (selected.get("resolution_attachments") or []) if not file.get("document")]
             existing_documents = [(file, "Registro") for file in (selected.get("documents") or [])]
             existing_documents += [(file, "Revisión") for file in (selected.get("reviewed_attachments") or []) if file.get("document")]
             existing_documents += [(file, "Resolución") for file in (selected.get("resolution_attachments") or []) if file.get("document")]
-            if existing_photos:
-                st.caption(f"Fotos del hallazgo ({len(existing_photos)})")
-                photo_cols = st.columns(min(3, len(existing_photos)))
-                for index, (photo, stage) in enumerate(existing_photos):
-                    photo_col = photo_cols[index % len(photo_cols)]
+            attachments = [(False, file, stage) for file, stage in existing_photos]
+            attachments.extend((True, file, stage) for file, stage in existing_documents)
+            if attachments:
+                st.caption(f"Adjuntos del hallazgo ({len(attachments)})")
+                for index, (is_document, attachment, stage) in enumerate(attachments):
+                    preview_col, link_col, delete_col = st.columns((1, 5, 1.8), vertical_alignment="center")
                     try:
-                        image_url = photo_url(photo["path"])
-                        photo_col.image(image_url, caption=f"{stage} · {photo.get('name', 'Foto')}", width="stretch")
-                        photo_col.link_button("Abrir foto", image_url, width="stretch")
+                        attachment_url = photo_url(attachment["path"])
+                        if is_document:
+                            preview_col.markdown("📄")
+                            link_label = f"📎 {stage} · {attachment.get('name', 'Abrir documento')}"
+                        else:
+                            preview_col.image(attachment_url, width=64)
+                            link_label = f"🖼️ {stage} · {attachment.get('label') or attachment.get('name', 'Abrir foto')}"
+                        link_col.link_button(link_label, attachment_url, width="stretch")
                     except (FindingsError, KeyError) as exc:
-                        photo_col.warning(f"No se pudo cargar esta foto: {exc}")
-                    if photo_col.button("🗑 Eliminar foto", key=f"delete_finding_photo_{selected['id']}_{index}",
-                                        help="Borra el archivo de Supabase y su referencia en este hallazgo.", width="stretch"):
+                        link_col.warning(f"No se pudo abrir {attachment.get('name', 'el adjunto')}: {exc}")
+                    if not is_document:
+                        with link_col.expander("Nombre de la foto (opcional)"):
+                            photo_label = st.text_input(
+                                "Nombre para mostrar", value=attachment.get("label", ""),
+                                placeholder="Ej.: Poste visto desde el acceso norte",
+                                key=f"finding_photo_label_{selected['id']}_{index}")
+                            if st.button("Guardar nombre", key=f"save_finding_photo_label_{selected['id']}_{index}"):
+                                try:
+                                    rename_finding_photo(
+                                        selected, attachment["path"], photo_label,
+                                        str(st.session_state.get("map_login_user", "usuario")))
+                                    st.session_state.pop("finding_report_bundle", None)
+                                    st.rerun(scope="fragment")
+                                except (FindingsError, KeyError) as exc:
+                                    st.error(str(exc))
+                    kind = "documento" if is_document else "foto"
+                    if delete_col.button("🗑️ Borrar", key=f"delete_finding_attachment_{selected['id']}_{index}",
+                                         help=f"Eliminar {attachment.get('name', kind)} del almacenamiento y del hallazgo.",
+                                         type="primary", width="stretch"):
                         try:
-                            delete_finding_attachment(selected, photo["path"], str(st.session_state.get("map_login_user", "usuario")))
+                            delete_finding_attachment(selected, attachment["path"], str(st.session_state.get("map_login_user", "usuario")))
                             st.session_state.pop("finding_report_bundle", None)
                             st.rerun(scope="fragment")
                         except (FindingsError, KeyError) as exc:
-                            photo_col.error(str(exc))
-            if existing_documents:
-                st.caption("Documentos adjuntos")
-                for index, (document, stage) in enumerate(existing_documents):
-                    document_col, delete_col = st.columns((5, 1), vertical_alignment="center")
-                    try:
-                        document_col.link_button(f"📎 {stage} · {document.get('name', 'Abrir documento')}", photo_url(document["path"]), width="stretch")
-                    except (FindingsError, KeyError) as exc:
-                        document_col.warning(f"No se pudo abrir {document.get('name', 'el documento')}: {exc}")
-                    if delete_col.button("🗑", key=f"delete_finding_document_{selected['id']}_{index}",
-                                         help=f"Eliminar {document.get('name', 'documento')} del almacenamiento y del hallazgo."):
-                        try:
-                            delete_finding_attachment(selected, document["path"], str(st.session_state.get("map_login_user", "usuario")))
-                            st.session_state.pop("finding_report_bundle", None)
-                            st.rerun(scope="fragment")
-                        except (FindingsError, KeyError) as exc:
-                            document_col.error(str(exc))
+                            link_col.error(str(exc))
             st.dataframe([{"Aviso": selected.get("notice_number") or "", "Tipo": selected.get("category") or "",
                            "Localidad": selected.get("locality") or "", "Estado": selected.get("status") or "",
                            "Prioridad": selected.get("priority") or "", "Activo": selected.get("asset_code") or "",
@@ -1101,6 +1344,22 @@ def _finding_report_html(row, history, attachment_links=None):
               ("Segundo activo", row.get("second_asset_code")), ("Descripción", row.get("description")),
               ("Revisión", row.get("reviewed_details")), ("Trabajo realizado", row.get("resolution_details")),
               ("Coordenadas", f"{row.get('latitude')}, {row.get('longitude')}")]
+    source_data = row.get("source_data") or {}
+    for label, key in (("Fecha del aviso", "notice_date"), ("Fecha deseada de término", "desired_end_date"),
+                       ("Prioridad original", "priority_raw"), ("Persona de contacto", "contact_name"),
+                       ("Identificadores de cliente", "customer_ids_raw"), ("Responsable del aviso", "responsible"),
+                       ("Dirección de servicio", "service_address"), ("Dirección indicada en el relato", "narrative_address"),
+                       ("Teléfono de contacto", "contact_phone"), ("N.º de instalación", "installation_number"),
+                       ("Código de poste del relato", "reported_asset_code"), ("Código de poste del sistema fuente", "general_asset_code"),
+                       ("Código vinculado al inventario", "asset_code_linked"), ("Campo del inventario coincidente", "asset_code_inventory_alias"),
+                       ("Medidor", "meter_number"), ("Marca del medidor", "meter_brand"), ("Modelo del medidor", "meter_model"),
+                       ("Tarifa", "tariff"), ("Clase de suministro", "service_class"), ("Potencia conectada", "connected_power"),
+                       ("Medidas impresas en el formulario (sin marcar)", "measure_options_printed")):
+        value = source_data.get(key)
+        if isinstance(value, list):
+            value = ", ".join(map(str, value))
+        if value:
+            fields.append((label, value))
     map_url = f"https://www.google.com/maps?q={row.get('latitude')},{row.get('longitude')}"
     items = "".join(f"<tr><th>{safe(label)}</th><td>{safe(value)}</td></tr>" for label, value in fields if value not in (None, ""))
     events = "".join(f"<li><b>{safe(e.get('action'))}</b> · {safe(e.get('changed_at'))} · {safe(e.get('changed_by'))}</li>" for e in history)
