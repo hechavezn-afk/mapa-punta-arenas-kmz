@@ -230,6 +230,80 @@ def enrich_post_network(dataset: dict, catalog: dict) -> None:
             item["attributes"] = attrs
 
 
+def merge_centrality_poles(network: dict, centrality_points: list[dict], max_distance_m: float = 12) -> list[dict]:
+    """Fuse same-code, same-location poles; retain source provenance for conflicts."""
+    import math
+
+    kmz_by_code: dict[str, list[dict]] = {}
+    for group_name, group in network["groups"].items():
+        if group_name.casefold() != "postes":
+            continue
+        for item in group["points"]:
+            attrs = dict(item.get("attributes", {}))
+            code = str(attrs.get("IDENTIFICADOR_VNR") or attrs.get("POSTE_ID") or item.get("name") or "").strip().upper()
+            if not code:
+                continue
+            attrs["_DATA_ORIGINS"] = "KMZ Punta Arenas"
+            item["attributes"] = attrs
+            kmz_by_code.setdefault(code, []).append(item)
+
+    remaining = []
+    for item in centrality_points:
+        if item.get("centrality_group", "").casefold() != "postes":
+            remaining.append(item)
+            continue
+        attrs = dict(item.get("attributes", {}))
+        code = str(attrs.get("IDENTIFICADOR_VNR") or attrs.get("POSTE_ID") or item.get("name") or "").strip().upper()
+        candidates = kmz_by_code.get(code, [])
+        lon2, lat2 = item.get("coordinates", [None, None])
+        nearby = []
+        if lon2 is not None and lat2 is not None:
+            for candidate in candidates:
+                lon1, lat1 = candidate.get("coordinates", [None, None])
+                if lon1 is None or lat1 is None:
+                    continue
+                mean_lat = math.radians((float(lat1) + float(lat2)) / 2)
+                dx = (float(lon2) - float(lon1)) * 111320 * math.cos(mean_lat)
+                dy = (float(lat2) - float(lat1)) * 110540
+                distance = math.hypot(dx, dy)
+                if distance <= max_distance_m:
+                    nearby.append((distance, candidate))
+        if len(nearby) == 1:
+            _, target = nearby[0]
+            kmz_attrs = dict(target.get("attributes", {}))
+            conflicts = {}
+            for key, centrality_value in attrs.items():
+                if key.startswith("_") or centrality_value is None or not str(centrality_value).strip():
+                    continue
+                kmz_value = kmz_attrs.get(key)
+                if kmz_value is not None and str(kmz_value).strip() and str(kmz_value).strip().casefold() != str(centrality_value).strip().casefold():
+                    conflicts[key] = {"KMZ Punta Arenas": kmz_value, "Centrality": centrality_value}
+                else:
+                    kmz_attrs[key] = centrality_value
+            kmz_attrs["_DATA_ORIGINS"] = "KMZ Punta Arenas; Centrality"
+            kmz_attrs["_SOURCE_DISCREPANCIES"] = json.dumps(conflicts, ensure_ascii=False, separators=(",", ":"))
+            target["attributes"] = kmz_attrs
+            continue
+
+        attrs["_DATA_ORIGINS"] = "Centrality"
+        if candidates:
+            coords = item.get("coordinates", [])
+            discrepancy = {
+                "Coordenadas (lon, lat)": {
+                    "Centrality": coords,
+                    "KMZ Punta Arenas": [candidate.get("coordinates") for candidate in candidates],
+                }
+            }
+            attrs["_SOURCE_DISCREPANCIES"] = json.dumps(discrepancy, ensure_ascii=False, separators=(",", ":"))
+            for candidate in candidates:
+                candidate_attrs = dict(candidate.get("attributes", {}))
+                candidate_attrs["_SOURCE_DISCREPANCIES"] = json.dumps(discrepancy, ensure_ascii=False, separators=(",", ":"))
+                candidate["attributes"] = candidate_attrs
+        item["attributes"] = attrs
+        remaining.append(item)
+    return remaining
+
+
 NETWORK = "Punta Arenas.kmz"
 CONCESSION_LT = "concesiones2025v3 corregidas menor a 15.kmz"
 CONCESSION_GE = "concesiones2025v3 GEO superior a 14.kmz"
@@ -301,6 +375,7 @@ def build_layers_json() -> str:
     enrich_post_network(network, post_network_catalog)
     enrich_post_network(centrality, post_network_catalog)
     centrality_points, camera_points = split_centrality_cameras(centrality)
+    centrality_points = merge_centrality_poles(network, centrality_points)
     camera_catalog = json.loads((DATA_DIR / CAMERA_CATALOG).read_text(encoding="utf-8"))
     cameras_by_code = {
         str(item.get("attributes", {}).get("IDENTIFICADOR_VNR") or item.get("name") or "").strip().upper(): item
@@ -761,7 +836,7 @@ function visibleAssetsNear(containerPoint,maxDistance=36){if(!containerPoint)ret
 function nearestSelectableAsset(event,maxDistance=44){const point=eventContainerPoint(event);if(!point)return null;let nearest=null,best=maxDistance;for(const asset of selectableAssets){if(!map.hasLayer(asset.group)||!asset.marker)continue;const distance=map.latLngToContainerPoint(asset.coord||asset.marker.getLatLng()).distanceTo(point);if(distance<best){best=distance;nearest=asset}}return nearest}
 function nearestVisibleAsset(containerPoint,maxDistance=38){return visibleAssetsNear(containerPoint,maxDistance)[0]||null}
 function assetChoiceBadge(asset){const type=asset.marker?.options?.assetIcon||symbolType(asset.layer,asset.attrs||{}),styles={poste:['P','#ffca28','#4b3b0b'],se:['SE','#7b1fa2','#fff'],'se-municipal':['SE','#ffd21f','#4b3b0b'],fuse:['F','#ef6c00','#fff'],disconnect:['D','#008fa1','#fff'],recloser:['R','#c62828','#fff'],camera:['C','#3949ab','#fff']},[text,color,foreground]=styles[type]||['•','#607d8b','#fff'];return{text,color,foreground}}
-function openAssetChoicePopup(assets,latlng){if(assets.length<2)return false;const root=document.createElement('div');root.className='asset-choice-list';const heading=document.createElement('div');heading.className='asset-choice-heading';heading.textContent=assets.length+' activos en este punto · elige cuál consultar';root.appendChild(heading);for(const asset of assets){const badge=assetChoiceBadge(asset),button=document.createElement('button'),icon=document.createElement('span'),copy=document.createElement('span'),title=document.createElement('b'),subtitle=document.createElement('small');button.type='button';button.className='asset-choice-option';icon.className='asset-choice-icon';icon.style.background=badge.color;icon.style.color=badge.foreground;icon.textContent=badge.text;copy.className='asset-choice-copy';title.textContent=String(assetTitle(asset.layer,asset.attrs||{},asset.name)||asset.layer);subtitle.textContent=[asset.layer,assetSubtitle(asset.layer,asset.attrs||{})].filter(Boolean).join(' · ');copy.append(title,subtitle);button.append(icon,copy);button.onclick=event=>{L.DomEvent.stop(event);map.closePopup();asset.marker.openPopup()};root.appendChild(button)}const popup=L.popup({className:'asset-choice-popup',maxWidth:310,autoPan:true,closeOnClick:false}).setLatLng(latlng).setContent(root).openOn(map);return!!popup}
+function openAssetChoicePopup(assets,latlng){if(assets.length<2)return false;const root=document.createElement('div');root.className='asset-choice-list';const heading=document.createElement('div');heading.className='asset-choice-heading';heading.textContent=assets.length+' activos en este punto · elige cuál consultar';root.appendChild(heading);for(const asset of assets){const badge=assetChoiceBadge(asset),button=document.createElement('button'),icon=document.createElement('span'),copy=document.createElement('span'),title=document.createElement('b'),subtitle=document.createElement('small');button.type='button';button.className='asset-choice-option';icon.className='asset-choice-icon';icon.style.background=badge.color;icon.style.color=badge.foreground;icon.textContent=badge.text;copy.className='asset-choice-copy';title.textContent=String(assetTitle(asset.layer,asset.attrs||{},asset.name)||asset.layer);subtitle.textContent=[asset.layer,assetSubtitle(asset.layer,asset.attrs||{}),asset.attrs?._DATA_ORIGINS].filter(Boolean).join(' · ');copy.append(title,subtitle);button.append(icon,copy);button.onclick=event=>{L.DomEvent.stop(event);map.closePopup();asset.marker.openPopup()};root.appendChild(button)}const popup=L.popup({className:'asset-choice-popup',maxWidth:310,autoPan:true,closeOnClick:false}).setLatLng(latlng).setContent(root).openOn(map);return!!popup}
 L.DomEvent.disableClickPropagation(panel);L.DomEvent.disableScrollPropagation(panel);L.DomEvent.disableClickPropagation(openPanelButton);
 document.getElementById('panel-close').onclick=hidePanel;openPanelButton.onclick=showPanel;map.on('click',e=>{if(tutorialLabAreaSuppressClickUntil>Date.now())return;if(tutorialLabOpen){tutorialLabMapClick(e);return}if(fieldPostPlacementMode&&!document.getElementById('fieldpost-panel').hidden){if(!confirmPauseMapTracking('ubicar el poste en el mapa'))return;fieldPostPlacementMode=false;document.getElementById('fieldpost-place').classList.remove('active');fieldPostSetDraft(e.latlng.lat,e.latlng.lng,false);fieldPostStatus('Punto ubicado. Arrastra el símbolo para afinar la posición.');return}if(surveyPlacementMode){if(!confirmPauseMapTracking('ubicar el plano en el mapa'))return;setSurveyDraftPoint(e.latlng.lat,e.latlng.lng,false);finishSurveyPlacement();surveyStatus('Punto ubicado. Puedes arrastrar el símbolo para ajustar su posición.');return}if(routeAddMode){addMapRouteStop([e.latlng.lat,e.latlng.lng]);return}if(findingLocationMode){if(!confirmPauseMapTracking('ubicar el hallazgo en el mapa'))return;findingLocationMode=false;try{sessionStorage.removeItem('finding-place-mode')}catch{}const node=parentDocument.querySelector('#finding-coordinate-data');if(node){node.dataset.lat=e.latlng.lat.toFixed(7);node.dataset.lon=e.latlng.lng.toFixed(7);node.dataset.source='map'}setFindingMapLocation(e.latlng);parentDocument.querySelector('.st-key-finding_map_location_applied button')?.click();return}if(!areaSelectToolbarOpen){const point=eventContainerPoint(e),radius=isMobileLayout()?40:22,assets=visibleAssetsNear(point,radius);if(assets.length>1){hidePanel();openAssetChoicePopup(assets.slice(0,8),map.containerPointToLatLng(point));return}const asset=assets[0]||nearestVisibleAsset(point,radius);if(asset){hidePanel();asset.marker.openPopup();return}}hidePanel()});
 let mapCreateContextPoint=null;const mapCreateContext=document.getElementById('map-create-context');L.DomEvent.disableClickPropagation(mapCreateContext);L.DomEvent.disableScrollPropagation(mapCreateContext);
@@ -824,7 +899,7 @@ mapContainer.addEventListener('pointermove',e=>{if(areaSelectToolbarOpen&&isMobi
 mapContainer.addEventListener('pointerup',e=>{if(areaPanPointer?.id===e.pointerId){e.preventDefault();clearAreaPan();areaSelectPointerDown=null;if(areaSelectToolbarOpen)document.getElementById('area-select-message').textContent=isMobileLayout()?'Desliza para mover · toca dos esquinas: arriba selecciona, abajo quita':'Izquierdo: seleccionar · derecho: quitar · rueda: mover';return}if(!areaSelectToolbarOpen||areaSelectMode==='move'||!areaSelectPointerDown)return;e.preventDefault();const point=eventLatLng(e);if(isMobileLayout()){if(!areaSelectStart){areaSelectStart=point;const rect=mapContainer.getBoundingClientRect(),upper=e.clientY<rect.top+rect.height/2;areaSelectGestureMode=upper?'add':'remove';const removing=areaSelectGestureMode==='remove';areaSelectRectangle=L.rectangle(L.latLngBounds(point,point),{color:removing?'#c62828':'#087443',weight:2,dashArray:'6 4',fillColor:removing?'#ef5350':'#20a464',fillOpacity:.13,interactive:false}).addTo(map);areaSelectAnchorMarker=L.circleMarker(point,{renderer,radius:8,color:'#fff',weight:3,fillColor:removing?'#c62828':'#087443',fillOpacity:1,interactive:false}).addTo(map);document.getElementById('area-select-message').textContent='Punto 1 listo · '+(removing?'quitar':'seleccionar')+'; toca la esquina opuesta';areaSelectPointerDown=null;return}if(areaSelectRectangle){const removing=areaSelectGestureMode==='remove';areaSelectRectangle.setStyle({color:removing?'#c62828':'#087443',fillColor:removing?'#ef5350':'#20a464'})}finishAreaGesture(point);return}const moved=Math.hypot(e.clientX-areaSelectPointerDown.x,e.clientY-areaSelectPointerDown.y);if(moved<5){const mode=areaSelectGestureMode,target=nearestSelectableAsset(e,28);clearAreaGesture();areaSelectSuppressClickUntil=Date.now()+400;if(target){const key=assetKey(target.coord,target.attrs);if(mode==='remove')removeAssetSelection(key);else if(!poleSelection.has(key))addAssetSelection(target.layer,target.attrs,target.name,target.coord);target.marker?.closePopup();updatePoleSelectionUI();document.getElementById('area-select-message').textContent=(mode==='remove'?'Activo quitado':'Activo seleccionado')+' · total '+poleSelection.size}return}if(areaSelectStart)finishAreaGesture(point)},{passive:false});
 mapContainer.addEventListener('pointercancel',e=>{if(areaPanPointer?.id===e.pointerId){clearAreaPan();return}if(areaSelectPointerDown?.id===e.pointerId)clearAreaGesture()},{passive:true});mapContainer.addEventListener('pointerdown',e=>{if(!tutorialLabOpen||tutorialLabMode!=='area'||e.pointerType==='mouse')return;e.preventDefault();e.stopImmediatePropagation();tutorialLabAreaPointerId=e.pointerId;try{mapContainer.setPointerCapture(e.pointerId)}catch{}},{capture:true,passive:false});mapContainer.addEventListener('pointermove',e=>{if(tutorialLabAreaPointerId!==e.pointerId)return;e.preventDefault();e.stopImmediatePropagation()},{capture:true,passive:false});mapContainer.addEventListener('pointerup',e=>{if(tutorialLabAreaPointerId!==e.pointerId)return;e.preventDefault();e.stopImmediatePropagation();tutorialLabAreaPointerId=null;tutorialLabAreaSuppressClickUntil=Date.now()+500;try{if(mapContainer.hasPointerCapture(e.pointerId))mapContainer.releasePointerCapture(e.pointerId)}catch{}tutorialLabMapClick({latlng:eventLatLng(e)})},{capture:true,passive:false});mapContainer.addEventListener('pointercancel',e=>{if(tutorialLabAreaPointerId!==e.pointerId)return;e.preventDefault();e.stopImmediatePropagation();tutorialLabAreaPointerId=null},{capture:true,passive:false});mapContainer.addEventListener('contextmenu',e=>{if(areaSelectToolbarOpen)e.preventDefault()});mapContainer.addEventListener('auxclick',e=>{if(e.button===1)e.preventDefault()});window.addEventListener('blur',()=>{if(areaPanPointer)clearAreaPan();if(areaSelectPointerDown)clearAreaGesture();tutorialLabAreaPointerId=null});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&areaSelectToolbarOpen)stopAreaSelection()});document.getElementById('area-select-toggle').onclick=startAreaSelection;document.getElementById('area-selection-view').onclick=()=>{if(poleSelection.size)document.getElementById('pole-selection-open').click();else document.getElementById('area-select-message').textContent='Aún no hay activos seleccionados'};document.getElementById('area-select-close').onclick=stopAreaSelection;
 document.getElementById('pole-selection-open').onclick=()=>{updatePoleSelectionUI();poleModal.hidden=false};document.getElementById('pole-selection-clear').onclick=clearPoleSelection;document.getElementById('pole-modal-close').onclick=document.getElementById('pole-modal-done').onclick=()=>{poleModal.hidden=true};poleModal.addEventListener('click',e=>{if(e.target===poleModal)poleModal.hidden=true});document.getElementById('pole-create-project').onclick=createSurveyProjectFromSelection;document.getElementById('pole-copy').onclick=async()=>{try{await navigator.clipboard.writeText(poleSummaryText());document.getElementById('pole-copy').textContent='Copiado'}catch{const area=document.createElement('textarea');area.value=poleSummaryText();document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();document.getElementById('pole-copy').textContent='Copiado'}setTimeout(()=>document.getElementById('pole-copy').textContent='Copiar',1600)};document.getElementById('pole-export-xlsx').onclick=exportSelectionXlsx;document.getElementById('pole-export-kmz').onclick=exportSelectionKMZ;document.getElementById('pole-export-dxf').onclick=exportSelectionDXF;
-function popupFields(layer,attrs,description=''){const fields=[],put=(label,...keys)=>{for(const key of keys){const value=attrs[key];if(value!==undefined&&String(value).trim()&&!['0','#N/D','null'].includes(String(value).trim())){fields.push([label,String(value).trim()]);return}}},putSubstation=(...keys)=>{for(const key of keys){const value=attrs[key];if(value!==undefined&&String(value).trim()){fields.push(['Subestación',substationNumber(value)]);return}}},putFeeder=(...keys)=>{for(const key of keys){const value=attrs[key];if(value!==undefined&&String(value).trim()){fields.push(['Alimentador',feederNumber(value)]);return}}};
+function popupFields(layer,attrs,description=''){const fields=[],put=(label,...keys)=>{for(const key of keys){const value=attrs[key];if(value!==undefined&&String(value).trim()&&!['0','#N/D','null'].includes(String(value).trim())){fields.push([label,String(value).trim()]);return}}},putSubstation=(...keys)=>{for(const key of keys){const value=attrs[key];if(value!==undefined&&String(value).trim()){fields.push(['Subestación',substationNumber(value)]);return}}},putFeeder=(...keys)=>{for(const key of keys){const value=attrs[key];if(value!==undefined&&String(value).trim()){fields.push(['Alimentador',feederNumber(value)]);return}}};if(attrs._DATA_ORIGINS)fields.push(['Fuente(s)',attrs._DATA_ORIGINS]);if(attrs._SOURCE_DISCREPANCIES){try{const discrepancies=JSON.parse(attrs._SOURCE_DISCREPANCIES);for(const [field,values] of Object.entries(discrepancies)){const detail=Object.entries(values||{}).map(([source,value])=>source+': '+(Array.isArray(value)?value.join(', '):String(value))).join(' | ');if(detail)fields.push(['Diferencia · '+field,detail])}}catch{}}
  if(layer==='Postes'){put('N° de poste','IDENTIFICADOR_VNR','POSTE_ID');putSubstation('SUBESTACION','SE');putFeeder('ALIMENTADOR','ALIMENTADOR_ID');let voltage=attrs['TIPO_TENSION_ID'];if(voltage){const v=String(voltage).trim().toUpperCase();if(v==='MT'||v==='BT')fields.push(['Red',v]);else if(v==='AMBAS'||v==='MT/BT'||v==='BT/MT')fields.push(['Red','MT y BT'])}}
  else if(layer==='Cámaras'){put('Cámara','IDENTIFICADOR_VNR');put('Poste conectado','POSTE_ASOCIADO');putSubstation('SUBESTACION','SE');putFeeder('ALIMENTADOR','ALIMENTADOR_ID');put('Tensión','TENSION_NOMINAL')}
  else if(layer==='Equipos'){put('Tipo','TIPO_LMDS');putSubstation('SUBESTACION','SE');putFeeder('ALIMENTADOR_ID')}
