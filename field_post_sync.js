@@ -75,6 +75,21 @@ async function fieldPostSyncExchange(reply) {
         return true;
       });
       fieldSyncSaveState();
+      if (!reply.remaining && Array.isArray(reply.ownedIds) && String(reply.actor || '').toUpperCase() === 'HECTOR') {
+        const ownedIds = new Set(reply.ownedIds);
+        const eligible = createdFieldPosts.filter(post => !visibleIds.has(post.id) || ownedIds.has(post.id));
+        const obsolete = cleanLegacyFieldPosts(eligible, reply.actor);
+        for (const post of obsolete) {
+          try {
+            localStorage.setItem(fieldSyncKey + ':cleanup:' + post.id, JSON.stringify(post));
+            if (ownedIds.has(post.id)) fieldPostMarkDeleted(post);
+            createdFieldPosts.splice(createdFieldPosts.indexOf(post), 1);
+            changed = true;
+          } catch (error) {
+            console.warn('No se pudo respaldar el poste antes de depurarlo.', error);
+          }
+        }
+      }
     }
     if (changed) {
       fieldPostPersist();

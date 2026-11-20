@@ -60,9 +60,12 @@ def _read_post_changes(actor: str, revisions: dict, conflicts: list[str]) -> dic
             details = _request('GET', '/rest/v1/created_field_posts?' + detail_query) or []
         for detail in details:
             post = detail['data']
-            valid = post.get('kind') == 'style' or (
-                -56.5 <= float(post.get('lat', 0)) <= -48 and -76 <= float(post.get('lon', 0)) <= -65
-            )
+            valid = post.get('kind') == 'style'
+            if not valid:
+                try:
+                    valid = -56.5 <= float(post.get('lat')) <= -48 and -76 <= float(post.get('lon')) <= -65
+                except (TypeError, ValueError):
+                    valid = False
             if valid and post.get('photos') and 'syncPhotos' not in post:
                 photos_query = urlencode({'select': 'photos:data->syncPhotos', 'id': f"eq.{detail['id']}", 'or': access})
                 photos = _request('GET', '/rest/v1/created_field_posts?' + photos_query) or []
@@ -72,6 +75,7 @@ def _read_post_changes(actor: str, revisions: dict, conflicts: list[str]) -> dic
                 detail['photosDeferred'] = bool(post.get('photos'))
             rows.append(detail)
     return {'rows': rows, 'visibleIds': [row['id'] for row in metadata],
+            'ownedIds': [row['id'] for row in metadata if row['owner_name'] == actor and not row['deleted']],
             'remaining': max(0, len(changed) - len(selected))}
 
 

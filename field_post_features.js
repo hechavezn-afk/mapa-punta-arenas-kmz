@@ -1,4 +1,5 @@
 function fieldPostValidLocation(latitude, longitude) {
+  if (latitude == null || longitude == null || String(latitude).trim() === '' || String(longitude).trim() === '') return false;
   const lat = Number(latitude), lon = Number(longitude);
   return Number.isFinite(lat) && Number.isFinite(lon) && lat >= -56.5 && lat <= -48 && lon >= -76 && lon <= -65;
 }
@@ -14,6 +15,33 @@ function fieldPostWarnings(post) {
   if (!fieldPostValidLocation(post.lat, post.lon)) warnings.push('Coordenadas fuera de Magallanes');
   if (fieldPostDuplicates(post).length > 1) warnings.push('Código repetido');
   return warnings;
+}
+function cleanLegacyFieldPosts(posts, actor) {
+  const owned = posts.filter(post => post.kind !== 'style' && (!post.owner || post.owner === actor));
+  const removed = new Set(owned.filter(post => !fieldPostValidLocation(post.lat, post.lon)));
+  const groups = new Map();
+  for (const post of owned) {
+    const code = fieldPostCode(post);
+    if (!code || removed.has(post)) continue;
+    const visibility = post.visibility || 'private';
+    const key = JSON.stringify([code, visibility, visibility === 'user' ? post.sharedWith : '']);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(post);
+  }
+  for (const group of groups.values()) {
+    group.sort((a, b) => (b.photos?.length || 0) - (a.photos?.length || 0)
+      || String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))
+      || String(a.id).localeCompare(String(b.id)));
+    const keep = [];
+    for (const post of group) {
+      const duplicate = keep.some(other =>
+        distanceBetween([Number(post.lat), Number(post.lon)], [Number(other.lat), Number(other.lon)]) <= 8
+        && (post.photos || []).every(id => (other.photos || []).includes(id)));
+      if (duplicate) removed.add(post);
+      else keep.push(post);
+    }
+  }
+  return removed;
 }
 function polePhases(point) {
   if (point.phases === '') return '';
@@ -33,13 +61,17 @@ function fieldPostIcon(point = {}) {
   const duplicate = point.id && fieldPostDuplicates(point).length > 1;
   const general = createdFieldPosts.find(p => p.kind === 'style' && p.id === 'global-field-post-icon');
   const icon = point.icon || general?.icon;
+  const zoom = map.getZoom(), size = 2 * inventorySymbolRadius(zoom), anchor = size / 2;
+  const ring = duplicate ? 'outline:2px solid #c62828;outline-offset:-2px;' : '';
+  let html;
   if (!icon || !/^data:image\/(png|jpeg|webp);base64,/.test(icon)) {
-    const fallback = surveyIcon('poste');
-    if (!duplicate) return fallback;
-    return L.divIcon({...fallback.options, html:'<div style="outline:3px solid #c62828;border-radius:50%">'+fallback.options.html+'</div>'});
+    const color = zoom >= 13 ? '#25313e' : '#fff';
+    const glyph = zoom >= 13 ? '<i style="position:absolute;inset:15% 45%;background:#59420b"></i><i style="position:absolute;inset:30% 14% auto;height:10%;background:#59420b"></i><i style="position:absolute;inset:18% 28% auto;height:9%;background:#59420b"></i>' : '';
+    html = '<span style="display:block;position:relative;width:100%;height:100%;border-radius:50%;background:#ffca28;box-shadow:inset 0 0 0 1px '+color+';'+ring+'">'+glyph+'</span>';
+  } else {
+    html = '<img alt="Poste" src="'+esc(icon)+'" style="'+ring+'border-radius:50%;width:100%;height:100%;object-fit:contain">';
   }
-  const border = duplicate ? 'outline:3px solid #c62828;border-radius:50%;' : '';
-  return L.divIcon({className:'survey-div-icon', html:'<img alt="Poste" src="'+esc(icon)+'" style="'+border+'width:30px;height:30px;object-fit:contain">', iconSize:[30,30], iconAnchor:[15,15]});
+  return L.divIcon({className:'survey-div-icon', html, iconSize:[size,size], iconAnchor:[anchor,anchor]});
 }
 function showFieldPostPhoto(blob) {
   const dialog = document.createElement('dialog');
