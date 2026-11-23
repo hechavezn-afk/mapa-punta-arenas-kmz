@@ -571,7 +571,8 @@ HTML_TEMPLATE = r"""<!doctype html>
 #practice-banner[hidden]{display:none}
 #practice-banner{position:fixed;z-index:5890;left:60px;bottom:12px;display:flex;gap:6px;align-items:center;max-width:calc(100vw - 72px);padding:5px 7px;border-radius:9px;background:#eaf4ff;color:#183c5a;font-size:12px;box-shadow:0 2px 7px #0004}
 #practice-banner button{padding:7px;border:1px solid #bdd2e4;border-radius:6px;background:#fff;color:inherit;font-weight:700;cursor:pointer}
-.area-selection-open #tutorial-guide[data-area-step="true"] .tutorial-card,.area-selection-open #tutorial-guide[data-area-step="true"] .tutorial-focus{display:none!important}
+.area-selection-open #tutorial-guide[data-area-step="true"] .tutorial-focus{display:none!important}
+.area-selection-open #tutorial-guide[data-area-step="true"] .tutorial-card{display:block!important;pointer-events:auto}
 @media(max-width:700px){#practice-banner{bottom:8px;left:50%;transform:translateX(-50%);white-space:nowrap}}
 </style></head><body>
 <div id="map"></div><div id="map-create-context" class="map-create-context" role="menu" aria-label="Crear en este punto" hidden><button type="button" role="menuitem" data-map-create="post">🟡 Crear poste aquí</button><button type="button" role="menuitem" data-map-create="finding">📍 Crear hallazgo aquí</button></div>
@@ -1556,7 +1557,7 @@ const tutorialSteps=[
  {target:'#map',title:'Consultar la ficha de un activo',text:'Selecciona un símbolo para ver su número, tipo, red, alimentador y demás datos disponibles. La ficha también permite abrir el punto en Google Maps y copiar coordenadas.',task:'Selecciona un símbolo para revisar su ficha.',phoneTask:'Toca cerca del símbolo; el visor busca el activo visible más próximo.',tabletTask:'Toca el símbolo o muy cerca de él para abrir su ficha.',desktopTask:'Haz clic sobre el símbolo para abrir su ficha.',prepare:()=>{hidePanel();stopAreaSelection()}},
  {target:'#map-navpad',title:'Desplazar y girar el mapa',text:'La brújula queda arriba a la derecha. Arrastra el centro para desplazar el mapa o la N alrededor de la bola para girarlo.',phoneText:'Mantén el dedo sobre el centro de la bola y arrastra para desplazarte. Arrastra la N alrededor de la bola para girar.',tabletText:'Arrastra el centro de la bola para desplazarte o la N para girar el mapa.',task:'Pulsa la N para volver a orientar el norte hacia arriba.',prepare:()=>{hidePanel();stopAreaSelection();map.closePopup()}},
  {target:'#pole-labels-toggle',title:'Mostrar números de postes',text:'Activa “N° de postes” para dibujar sus identificadores junto a los símbolos. Aparecen con acercamiento suficiente para evitar saturar el mapa.',task:'Acércate a zoom 16 o superior para leerlos.',prepare:showPanel},
- {target:'#area-select-toggle',area:true,title:'Seleccionar activos del sector',text:'Abre “Seleccionar área” y practica sobre los postes visibles de este sector.',desktopText:'Mantén presionado el botón izquierdo mientras arrastras para dibujar el rectángulo. Suelta para seleccionar. Con el botón derecho puedes quitar activos.',phoneText:'Toca una esquina en la mitad superior del mapa y después la esquina opuesta para seleccionar. Para quitar, empieza en la mitad inferior.',tabletText:'Con pantalla táctil, toca dos esquinas. Empieza arriba para seleccionar o abajo para quitar.',task:'Pulsa “Ver selección” para consultar los activos o “Listo” para volver al tutorial.',prepare:()=>{stopAreaSelection();focusPracticeArea();showPanel()}},
+ {target:'#area-select-toggle',area:true,title:'Seleccionar activos del sector',text:'Abre “Seleccionar área” y practica sobre los postes visibles de este sector.',desktopText:'Mantén presionado el botón izquierdo mientras arrastras para dibujar el rectángulo. Suelta para seleccionar. Con el botón derecho puedes quitar activos.',phoneText:'Toca una esquina en la mitad superior del mapa y después la esquina opuesta para seleccionar. Para quitar, empieza en la mitad inferior.',tabletText:'Con pantalla táctil, toca dos esquinas. Empieza arriba para seleccionar o abajo para quitar.',task:'La guía queda visible mientras seleccionas. Al terminar, pulsa “Siguiente” aquí para continuar; “Listo” solo cierra el modo selección.',prepare:()=>{stopAreaSelection();focusPracticeArea();showPanel()}},
  {target:'#search',title:'Buscar un poste por su código',text:'Usa el buscador original y abre la ficha del poste. El código del ejemplo pertenece al inventario de consulta.',task:()=> 'Prueba con '+practicePoleCode()+'. También puedes tocar el símbolo en el mapa.',prepare:()=>{stopAreaSelection();showPanel()}},
  {target:'#review-toggle',title:'Abrir una revisión de activos',text:'Abre el botón + Herramientas para acceder a “Revisar activos”. La revisión es independiente de las capas generales: puedes iniciar una con activos seleccionados o importar una lista/plano para ubicarlos automáticamente.',phoneText:'Toca + para desplegar las herramientas y luego “Revisar activos”.',desktopText:'Haz clic en + para desplegar las herramientas y luego selecciona “Revisar activos”.',task:'Primero selecciona activos en el mapa o abre la herramienta para importar un listado.',prepare:()=>{stopAreaSelection();hidePanel();tutorialHideSurvey();tutorialOpenQuickActions()}},
  {target:'#review-source-box',title:'Importar postes desde un plano o listado',text:'Dentro de una revisión puedes leer códigos desde un PDF (incluso escaneado), imagen, Excel o texto. Confirma la localidad; los códigos se relacionan con los postes existentes y la app te informa cuáles encontró.',phoneText:'Abre “Agregar postes desde un plano o listado”, elige la localidad y pulsa “Leer plano / listado”. Revisa las coincidencias antes de crear la revisión.',task:'Los códigos ambiguos o sin coincidencia se muestran para que los corrijas.',prepare:()=>{tutorialShowReview();document.getElementById('review-source-box').open=true}},
@@ -1591,6 +1592,36 @@ function tutorialTargetIsVisible(element){
  const rect=element.getBoundingClientRect();
  return rect.width>0&&rect.height>0&&rect.bottom>0&&rect.right>0&&rect.top<innerHeight&&rect.left<innerWidth;
 }
+function tutorialPlaceCard(card,target,type,portrait){
+ const narrow=type==='phone'||(type==='tablet'&&portrait);
+ card.style.transform='none';card.style.left='0px';card.style.right='auto';card.style.top='0px';card.style.bottom='auto';
+ card.style.width=narrow?(type==='phone'?'min(390px,calc(100vw - 16px))':'min(500px,calc(100vw - 28px))'):(type==='tablet'?'min(380px,calc(46vw - 24px))':'min(420px,calc(100vw - 36px))');
+ card.style.maxHeight='calc(100dvh - 28px)';card.style.overflow='auto';
+ const width=card.offsetWidth,height=card.offsetHeight,pad=narrow?8:14;
+ const xs=narrow?[Math.max(pad,(innerWidth-width)/2)]:[pad,Math.max(pad,innerWidth-width-pad)];
+ const ys=[pad,Math.max(pad,(innerHeight-height)/2),Math.max(pad,innerHeight-height-pad)];
+ const blockers=[
+  {element:target,weight:9},
+  {element:document.getElementById('gps'),weight:9},
+  {element:document.getElementById('map-navpad'),weight:5},
+  {element:document.getElementById('quick-actions-toggle'),weight:4},
+  {element:document.querySelector('.map-style'),weight:5},
+  {element:document.getElementById('area-select-toolbar'),weight:9},
+  {element:document.querySelector('#pole-modal:not([hidden]) .pole-modal-card'),weight:12},
+  {element:document.getElementById('panel-open'),weight:4},
+ ].filter(item=>item.element&&item.element!==document.getElementById('map')&&tutorialTargetIsVisible(item.element));
+ let best=null;
+ for(const x of xs)for(const y of ys){
+  const box={left:x,top:y,right:x+width,bottom:y+height},area=Math.max(1,width*height);
+  let score=0;
+  for(const item of blockers){
+   const rect=item.element.getBoundingClientRect(),overlap=Math.max(0,Math.min(box.right,rect.right)-Math.max(box.left,rect.left))*Math.max(0,Math.min(box.bottom,rect.bottom)-Math.max(box.top,rect.top));
+   if(overlap)score+=item.weight*(overlap/Math.max(1,Math.min(area,rect.width*rect.height)));
+  }
+  if(!best||score<best.score)best={x,y,score};
+ }
+ card.style.left=(best?.x??pad)+'px';card.style.top=(best?.y??pad)+'px';
+}
 function tutorialPosition(){
  if(!tutorialOpen)return;
  const step=tutorialSteps[tutorialIndex],preferred=document.querySelector(step.target);
@@ -1602,18 +1633,8 @@ function tutorialPosition(){
  focus.style.display=target.id==='map'||right<=left||bottom<=top?'none':'block';
  // Move the spotlight directly to the current element. A long CSS transition
  // made it visibly trail behind when the tutorial advanced to another panel.
- focus.style.left=left+'px';focus.style.top=top+'px';focus.style.width=Math.max(22,right-left)+'px';focus.style.height=Math.max(22,bottom-top)+'px';card.classList.remove('top');
- if(type==='phone'){
-  card.style.left='50%';card.style.right='auto';card.style.transform='translateX(-50%)';card.style.width='calc(100vw - 16px)';
-  const putTop=rect.top+rect.height/2>innerHeight*.52;card.style.top=putTop?'8px':'auto';card.style.bottom=putTop?'auto':'8px';
- }else if(type==='tablet'&&portrait){
-  card.style.left='50%';card.style.right='auto';card.style.transform='translateX(-50%)';card.style.width='min(600px,calc(100vw - 28px))';
-  const putTop=rect.top+rect.height/2>innerHeight*.55;card.style.top=putTop?'14px':'auto';card.style.bottom=putTop?'auto':'14px';
- }else{
-  card.style.transform='none';card.style.width=type==='tablet'?'min(380px,calc(46vw - 24px))':'min(420px,calc(100vw - 36px))';card.style.bottom='auto';
-  const targetAtRight=rect.left+rect.width/2>innerWidth/2;card.style.left=targetAtRight?'18px':'auto';card.style.right=targetAtRight?'auto':'18px';
-  const maxTop=Math.max(18,innerHeight-card.offsetHeight-18);card.style.top=Math.min(Math.max(18,rect.top),maxTop)+'px';
- }
+ focus.style.left=left+'px';focus.style.top=top+'px';focus.style.width=Math.max(22,right-left)+'px';focus.style.height=Math.max(22,bottom-top)+'px';
+ tutorialPlaceCard(card,target,type,portrait);
 }
 function tutorialRender(){
   tutorialRemoveTarget();
