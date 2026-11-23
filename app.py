@@ -1557,7 +1557,7 @@ const tutorialSteps=[
  {target:'#map',title:'Consultar la ficha de un activo',text:'Selecciona un símbolo para ver su número, tipo, red, alimentador y demás datos disponibles. La ficha también permite abrir el punto en Google Maps y copiar coordenadas.',task:'Selecciona un símbolo para revisar su ficha.',phoneTask:'Toca cerca del símbolo; el visor busca el activo visible más próximo.',tabletTask:'Toca el símbolo o muy cerca de él para abrir su ficha.',desktopTask:'Haz clic sobre el símbolo para abrir su ficha.',prepare:()=>{hidePanel();stopAreaSelection()}},
  {target:'#map-navpad',title:'Desplazar y girar el mapa',text:'La brújula queda arriba a la derecha. Arrastra el centro para desplazar el mapa o la N alrededor de la bola para girarlo.',phoneText:'Mantén el dedo sobre el centro de la bola y arrastra para desplazarte. Arrastra la N alrededor de la bola para girar.',tabletText:'Arrastra el centro de la bola para desplazarte o la N para girar el mapa.',task:'Pulsa la N para volver a orientar el norte hacia arriba.',prepare:()=>{hidePanel();stopAreaSelection();map.closePopup()}},
  {target:'#pole-labels-toggle',title:'Mostrar números de postes',text:'Activa “N° de postes” para dibujar sus identificadores junto a los símbolos. Aparecen con acercamiento suficiente para evitar saturar el mapa.',task:'Acércate a zoom 16 o superior para leerlos.',prepare:showPanel},
- {target:'#area-select-toggle',area:true,title:'Seleccionar activos del sector',text:'Abre “Seleccionar área” y practica sobre los postes visibles de este sector.',desktopText:'Mantén presionado el botón izquierdo mientras arrastras para dibujar el rectángulo. Suelta para seleccionar. Con el botón derecho puedes quitar activos.',phoneText:'Toca una esquina en la mitad superior del mapa y después la esquina opuesta para seleccionar. Para quitar, empieza en la mitad inferior.',tabletText:'Con pantalla táctil, toca dos esquinas. Empieza arriba para seleccionar o abajo para quitar.',task:'La guía queda visible mientras seleccionas. Al terminar, pulsa “Siguiente” aquí para continuar; “Listo” solo cierra el modo selección.',prepare:()=>{stopAreaSelection();focusPracticeArea();showPanel()}},
+ {target:'#area-select-toggle',area:true,title:'Seleccionar activos del sector',text:'Abre “Seleccionar área” y practica sobre los postes visibles de este sector.',desktopText:'Mantén presionado el botón izquierdo y arrastra para seleccionar. Para quitar activos del grupo, mantén presionado el botón derecho y arrastra sobre ellos mientras el modo selección sigue activo.',phoneText:'Toca dos esquinas del mapa para seleccionar. Para quitar activos, comienza en la mitad inferior y toca la esquina opuesta.',tabletText:'Con pantalla táctil, toca dos esquinas para seleccionar. Para quitar activos, comienza en la mitad inferior.',task:'Al terminar el rectángulo, pulsa ✕ Listo arriba: el grupo se conserva. La barra inferior abre opciones para crear un plano o revisión y exportar. Un clic derecho simple, con selección cerrada, permite crear un poste o hallazgo.',desktopTask:'Al terminar, pulsa ✕ Listo en la barra superior; el grupo se conserva. Abre la barra inferior para crear un plano o revisión, copiar o exportar. El clic derecho simple para crear un poste o hallazgo funciona con el modo selección cerrado.',phoneTask:'Al terminar, pulsa ✕ Listo arriba; el grupo se conserva. Toca la barra inferior con el total seleccionado para crear un plano o revisión, o exportar.',tabletTask:'Al terminar, pulsa ✕ Listo arriba; el grupo se conserva. Abre la barra inferior para crear un plano o revisión, o exportar la selección.',prepare:()=>{stopAreaSelection();focusPracticeArea();showPanel()}},
  {target:'#search',title:'Buscar un poste por su código',text:'Usa el buscador original y abre la ficha del poste. El código del ejemplo pertenece al inventario de consulta.',task:()=> 'Prueba con '+practicePoleCode()+'. También puedes tocar el símbolo en el mapa.',prepare:()=>{stopAreaSelection();showPanel()}},
  {target:'#review-toggle',title:'Abrir una revisión de activos',text:'Abre el botón + Herramientas para acceder a “Revisar activos”. La revisión es independiente de las capas generales: puedes iniciar una con activos seleccionados o importar una lista/plano para ubicarlos automáticamente.',phoneText:'Toca + para desplegar las herramientas y luego “Revisar activos”.',desktopText:'Haz clic en + para desplegar las herramientas y luego selecciona “Revisar activos”.',task:'Primero selecciona activos en el mapa o abre la herramienta para importar un listado.',prepare:()=>{stopAreaSelection();hidePanel();tutorialHideSurvey();tutorialOpenQuickActions()}},
  {target:'#review-source-box',title:'Importar postes desde un plano o listado',text:'Dentro de una revisión puedes leer códigos desde un PDF (incluso escaneado), imagen, Excel o texto. Confirma la localidad; los códigos se relacionan con los postes existentes y la app te informa cuáles encontró.',phoneText:'Abre “Agregar postes desde un plano o listado”, elige la localidad y pulsa “Leer plano / listado”. Revisa las coincidencias antes de crear la revisión.',task:'Los códigos ambiguos o sin coincidencia se muestran para que los corrijas.',prepare:()=>{tutorialShowReview();document.getElementById('review-source-box').open=true}},
@@ -1584,13 +1584,18 @@ function tutorialVariant(step,field,type){
   return typeof value==='function'?value():value;
 }
 function tutorialTargetIsVisible(element){
+ if(!tutorialElementIsDisplayed(element))return false;
+ const rect=element.getBoundingClientRect();
+ return rect.width>0&&rect.height>0&&rect.bottom>0&&rect.right>0&&rect.top<innerHeight&&rect.left<innerWidth;
+}
+function tutorialElementIsDisplayed(element){
  if(!element||element.hidden||!element.getClientRects().length)return false;
  for(let node=element;node&&node!==document.documentElement;node=node.parentElement){
   const style=getComputedStyle(node);
   if(node.hidden||style.display==='none'||style.visibility==='hidden'||Number(style.opacity)===0)return false;
  }
  const rect=element.getBoundingClientRect();
- return rect.width>0&&rect.height>0&&rect.bottom>0&&rect.right>0&&rect.top<innerHeight&&rect.left<innerWidth;
+ return rect.width>0&&rect.height>0;
 }
 function tutorialPlaceCard(card,target,type,portrait){
  const narrow=type==='phone'||(type==='tablet'&&portrait);
@@ -1654,7 +1659,10 @@ function tutorialRender(){
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     if(!tutorialOpen||index!==tutorialIndex)return;
     const target=document.querySelector(step.target),panel=target?.closest('#layer-panel,#survey-panel,#review-panel');
-    if(panel&&target!==panel&&tutorialTargetIsVisible(target))target.scrollIntoView({block:'nearest',inline:'nearest',behavior:'instant'});
+    // Targets may be rendered inside a scrollable panel but outside its
+    // viewport. Reveal them before checking viewport visibility and placing
+    // the spotlight; otherwise the guide leaves users scrolling by hand.
+    if(panel&&target!==panel&&tutorialElementIsDisplayed(target))target.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});
     tutorialPosition();
     // Panel open/close animations and scroll anchoring can move a target just
     // after the first layout. Re-measure through the transition's settling time.
