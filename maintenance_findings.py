@@ -27,6 +27,7 @@ from urllib.request import Request, urlopen
 from uuid import uuid4
 
 import streamlit as st
+import practice_mode
 
 from finding_catalog import DEFAULT_FINDING_CATEGORIES
 from notice_pdf import NoticePdfError, extract_notice_pdf
@@ -79,6 +80,11 @@ class FindingsError(RuntimeError):
 
 def _request(method: str, path: str, payload=None, *, content_type="application/json", prefer=None,
              extra_headers: dict[str, str] | None = None):
+    if practice_mode.enabled():
+        try:
+            return practice_mode.request(method, path, payload, content_type)
+        except (KeyError, ValueError) as exc:
+            raise FindingsError(str(exc)) from None
     try:
         url, _, key = auth_config()
     except SupabaseSetupError as exc:
@@ -574,7 +580,8 @@ def _upload_file(file, finding_id: str, *, document: bool = False) -> dict:
         if not mime:
             formats = ", ".join(extension.lstrip(".").upper() for extension in DOCUMENT_MIME_BY_EXTENSION)
             raise FindingsError(f"Formato no permitido para {file.name}; usa {formats}.")
-        _ensure_finding_bucket_document_types()
+        if not practice_mode.enabled():
+            _ensure_finding_bucket_document_types()
     else:
         mime = str(file.type or "").lower()
         if mime not in {"image/jpeg", "image/png", "image/webp"}:
@@ -696,6 +703,12 @@ def update_finding(finding: dict, patch: dict, photos, documents, actor: str, ev
 
 
 def photo_url(path: str, *, expires_in: int = 3600) -> str:
+    if practice_mode.enabled():
+        try:
+            data, mime = practice_mode.file_data(path)
+        except KeyError:
+            raise FindingsError("El archivo temporal ya no está disponible.") from None
+        return f"data:{mime};base64,{base64.b64encode(data).decode('ascii')}"
     cache = st.session_state.setdefault("finding_signed_file_urls", {})
     cached = cache.get(path)
     if cached and cached[0] > time.time() + 45:
@@ -716,6 +729,11 @@ def photo_url(path: str, *, expires_in: int = 3600) -> str:
 
 def _download_file(path: str) -> bytes:
     """Download one private Storage object with the server key; never expose it to the browser."""
+    if practice_mode.enabled():
+        try:
+            return practice_mode.file_data(path)[0]
+        except KeyError:
+            raise FindingsError("El archivo temporal ya no está disponible.") from None
     try:
         base, _, key = auth_config()
     except SupabaseSetupError as exc:
@@ -900,6 +918,7 @@ def _edited_coordinate(raw: str, original, asset: dict | None, axis: str, label:
 
 
 def render_findings_panel() -> None:
+    practice = practice_mode.enabled()
     map_selected_id = str(st.session_state.pop("finding_map_selected_id", "") or "")
     with st.container(key="finding_controls_bar"):
         filter_col, minimize_col, close_col = st.columns([86, 38, 48], gap="small")
@@ -911,6 +930,8 @@ def render_findings_panel() -> None:
             st.rerun(scope="fragment")
     heading = st.container(key="findings_heading")
     heading.subheader("Hallazgos de mantenimiento")
+    if practice:
+        heading.caption("Avisos y archivos temporales de práctica.")
 
     st.html("<style>.st-key-finding_map_selected_id{display:none!important}</style>")
     st.text_input("Caso seleccionado desde el mapa", key="finding_map_selected_id", label_visibility="collapsed")
@@ -1447,9 +1468,15 @@ def render_findings_panel() -> None:
                             preview_col.markdown("📄")
                             link_label = f"📎 {stage} · {attachment.get('name', 'Abrir documento')}"
                         else:
-                            preview_col.image(attachment_url, width=64)
+                            preview_col.image(_download_file(attachment["path"]) if practice else attachment_url, width=64)
                             link_label = f"🖼️ {stage} · {attachment.get('label') or attachment.get('name', 'Abrir foto')}"
-                        link_col.link_button(link_label, attachment_url, width="stretch")
+                        if practice:
+                            link_col.download_button(link_label, _download_file(attachment["path"]),
+                                                     file_name=attachment.get("name"),
+                                                     mime=attachment.get("type"),
+                                                     key=f"practice_attachment_{selected['id']}_{index}", width="stretch")
+                        else:
+                            link_col.link_button(link_label, attachment_url, width="stretch")
                     except (FindingsError, KeyError) as exc:
                         link_col.warning(f"No se pudo abrir {attachment.get('name', 'el adjunto')}: {exc}")
                     if not is_document:

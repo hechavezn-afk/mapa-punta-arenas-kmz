@@ -412,6 +412,16 @@ def _render_pending_claim() -> None:
 
 @st.dialog("Cerrar sesión")
 def _render_session_dialog() -> None:
+    from practice_mode import enabled as practice_enabled
+
+    if practice_enabled():
+        st.caption("Estas acciones son de muestra. Tu sesión real sigue abierta.")
+        current_col, all_col = st.columns(2)
+        if current_col.button("Cerrar esta sesión", key="practice_logout_current", width="stretch"):
+            st.success("Salida de este dispositivo simulada.")
+        if all_col.button("Cerrar todas las sesiones", key="practice_logout_all", width="stretch"):
+            st.success("Salida de todos los dispositivos simulada.")
+        return
     username = st.session_state.get("map_login_user", "")
     current_token = st.session_state.get("map_login_session_token", "")
     active = _active_sessions(username)
