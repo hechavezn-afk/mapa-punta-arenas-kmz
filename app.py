@@ -71,6 +71,7 @@ html, body, #root, [data-testid="stAppViewContainer"], .stApp {width:100%!import
 .st-key-exit_map_practice,.st-key-enter_map_practice {display:none!important}
 .st-key-findings_panel {box-sizing:border-box!important;position:fixed!important;z-index:5;right:14px;top:76px;width:min(440px,calc(100vw - 28px))!important;max-height:calc(100dvh - 130px);overflow:auto;overscroll-behavior:contain;background:var(--background-color,#fff);border:1px solid #cbd5e1;border-radius:14px;padding:14px;box-shadow:0 4px 18px #0003}
 @media(max-width:800px){.st-key-findings_panel{box-sizing:border-box!important;top:auto;bottom:54px;left:8px;right:8px;width:calc(100vw - 16px)!important;max-width:calc(100vw - 16px)!important;max-height:42dvh}}
+@media(max-width:800px){.st-key-findings_panel.tutorial-tool-expanded:not(.finding-minimized){top:auto!important;bottom:54px!important;max-height:calc(100dvh - 230px)!important;opacity:1!important;transform:none!important;filter:none!important}}
 .finding-map-popup-open .st-key-findings_panel{opacity:.62!important;max-height:25dvh!important;transform:scale(.97)!important;box-shadow:0 2px 10px #0002!important;transition:max-height .22s ease,opacity .22s ease,transform .22s ease,box-shadow .22s ease!important}
 .finding-map-popup-open.finding-panel-front .st-key-findings_panel{opacity:1!important;max-height:calc(100dvh - 130px)!important;transform:none!important;box-shadow:0 5px 22px #0005!important}
 .map-popup-active .st-key-findings_panel{opacity:.62!important;max-height:25dvh!important;filter:grayscale(.25) blur(.25px);width:min(90vw,430px)!important;transition:max-height .22s ease,width .22s ease,opacity .22s ease,filter .22s ease!important}
@@ -538,6 +539,15 @@ HTML_TEMPLATE = r"""<!doctype html>
 .tutorial-device{display:inline-flex;align-items:center;gap:6px;margin:0 0 7px;padding:6px 9px;border-radius:999px;background:#e8f3fb;color:#1f5f88;font-size:12px;font-weight:900}
 @keyframes tutorialPulse{50%{border-color:#fff;box-shadow:0 0 0 9999px rgba(3,12,21,.62),0 0 0 11px rgba(83,197,255,.12)}}@keyframes tutorialTarget{50%{filter:brightness(1.12)}}
 @media(max-width:700px){.tutorial-welcome-card{padding:18px}.tutorial-welcome h2{font-size:21px}.tutorial-card{bottom:8px;padding:13px;width:calc(100vw - 16px);max-height:43dvh;overflow:auto}.tutorial-card.top{top:8px}.tutorial-card h3{font-size:17px}.tutorial-card p{font-size:13px}.tutorial-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.tutorial-actions #tutorial-exit{grid-column:1;grid-row:1}.tutorial-actions #tutorial-back{grid-column:2;grid-row:1}.tutorial-actions #tutorial-next{grid-column:1/-1;grid-row:2;justify-self:center;width:min(240px,80%);margin:0;min-height:44px}.tutorial-actions button{padding:8px 9px;font-size:12px}.tutorial-launch{width:32px;height:32px}}
+.tutorial-tool-step .tutorial-card{left:8px!important;right:8px!important;top:8px!important;bottom:auto!important;transform:none!important;width:auto!important;max-height:min(25dvh,205px)!important;overflow:auto!important;padding:8px 10px!important;border-radius:11px!important}
+.tutorial-tool-step .tutorial-card h3{font-size:14px;margin:2px 0 3px}
+.tutorial-tool-step .tutorial-card p{font-size:11px;line-height:1.25}
+.tutorial-tool-step .tutorial-task{margin-top:5px;padding:5px 7px;font-size:10px;line-height:1.25}
+.tutorial-tool-step .tutorial-actions{position:sticky;bottom:-8px;display:flex;gap:4px;padding:4px 0 0;background:rgba(255,255,255,.98)}
+.tutorial-tool-step .tutorial-actions button{min-height:32px;padding:5px 8px;font-size:11px}
+.tutorial-tool-step .tutorial-actions .next{margin-left:auto}
+.mobile-layout.tutorial-tool-step .review-panel:not(.tool-panel-minimized),.mobile-layout.tutorial-tool-step .survey-panel:not(.tool-panel-minimized),.mobile-layout.tutorial-tool-step .fieldpost-panel:not(.tool-panel-minimized){max-height:calc(100dvh - 230px)!important}
+.mobile-layout.tutorial-tool-step .survey-panel[data-mobile-position]{top:auto!important;bottom:8px!important;transform:none!important}
 
 
 .review-toggle{position:absolute;z-index:1004;top:12px;right:148px;padding:10px 14px;border:1px solid #dbe2ea;border-radius:10px;background:rgba(8,116,67,.96);color:#fff;font-size:14px;font-weight:700;box-shadow:0 2px 10px #0003;cursor:pointer;touch-action:manipulation}
@@ -1634,9 +1644,24 @@ function tutorialElementIsDisplayed(element){
  const rect=element.getBoundingClientRect();
  return rect.width>0&&rect.height>0;
 }
+function tutorialToolPanelOpen(){
+ const localPanels=['#review-panel','#survey-panel','#fieldpost-panel'].map(selector=>document.querySelector(selector));
+ if(localPanels.some(tutorialElementIsDisplayed))return true;
+ try{const panel=parentDocument.querySelector('.st-key-findings_panel');if(!panel)return false;const style=parentDocument.defaultView.getComputedStyle(panel),rect=panel.getBoundingClientRect();return !panel.hidden&&style.display!=='none'&&style.visibility!=='hidden'&&Number(style.opacity)!==0&&rect.width>0&&rect.height>0}catch{return false}
+}
+function tutorialSetToolLayout(active){
+ document.body.classList.toggle('tutorial-tool-step',!!active);
+ try{parentDocument.querySelector('.st-key-findings_panel')?.classList.toggle('tutorial-tool-expanded',!!active)}catch{}
+}
 function tutorialPlaceCard(card,target,type,portrait){
  const narrow=type==='phone'||(type==='tablet'&&portrait);
  card.style.transform='none';card.style.left='0px';card.style.right='auto';card.style.top='0px';card.style.bottom='auto';
+ const compactToolStep=type!=='desktop'&&tutorialToolPanelOpen();
+ tutorialSetToolLayout(compactToolStep);
+ if(compactToolStep){
+  card.style.width='calc(100vw - 16px)';card.style.maxHeight='min(25dvh,205px)';card.style.overflow='auto';card.style.left='8px';card.style.top='8px';
+  return;
+ }
  const titleOverlayTargets=['gps','area-select-toggle'];
  if(!narrow&&titleOverlayTargets.includes(target?.id)){
   // Keep location and area-selection instructions in the sidebar's title
@@ -1723,6 +1748,7 @@ function tutorialStart(){
 }
 function tutorialFinish(){
   tutorialRemoveTarget();tutorialOpen=false;
+  tutorialSetToolLayout(false);
   document.getElementById('tutorial-guide').hidden=true;
   stopAreaSelection();
 }
