@@ -733,7 +733,7 @@ HTML_TEMPLATE = r"""<!doctype html>
 <div class="area-select-toolbar" id="area-select-toolbar" hidden><strong class="area-mode-state" id="area-mode-state">🖱 Selección activa</strong><button id="area-selection-view" type="button">Ver selección</button><button id="area-select-close" type="button">✕ Listo</button><span id="area-select-message">Izquierdo: seleccionar · derecho: quitar · rueda: mover</span></div><div class="selection-bar" id="selection-bar" hidden><button id="pole-selection-open" type="button">Activos seleccionados: 0</button><button id="pole-selection-clear" type="button" aria-label="Limpiar selección">×</button></div>
 <div class="pole-modal" id="pole-modal" hidden><section class="pole-modal-card" role="dialog" aria-modal="true" aria-labelledby="pole-modal-title"><div class="pole-modal-head"><h2 id="pole-modal-title">Activos seleccionados</h2><button id="pole-modal-close" type="button" aria-label="Cerrar">×</button></div><p id="pole-modal-count"></p><ol id="pole-modal-list" class="pole-modal-list"></ol><div class="pole-modal-actions"><button id="pole-create-project" type="button">✚ Crear plano</button><button id="pole-create-review" type="button">📝 Crear revisión</button><button id="pole-add-review" type="button">＋ Añadir a revisión</button><button id="pole-copy" type="button">Copiar</button><button id="pole-export-xlsx" type="button">⇩ Excel</button><button id="pole-export-kmz" type="button">⇩ KMZ</button><button id="pole-export-dxf" type="button">⇩ AutoCAD DXF</button><button id="pole-modal-done" type="button">Cerrar</button></div></section></div>
 
-<div class="tutorial-welcome" id="tutorial-welcome" hidden><section class="tutorial-welcome-card" role="dialog" aria-modal="true" aria-labelledby="tutorial-welcome-title"><div class="tutorial-welcome-icon">🧭</div><div class="tutorial-device" id="tutorial-device">🖥️ Tutorial para computador</div><h2 id="tutorial-welcome-title">¿Quieres conocer el visor?</h2><p id="tutorial-welcome-text">Te guiaremos por las herramientas principales: búsqueda, GPS, capas, fichas de activos, rutas, selección por áreas y creación de planos. Puedes avanzar a tu ritmo.</p><label class="tutorial-day"><input id="tutorial-day" type="checkbox" checked> No volver a mostrar esta invitación hasta mañana</label><div class="tutorial-welcome-actions"><button id="tutorial-skip" type="button">Saltar por ahora</button><button class="primary" id="tutorial-start" type="button">Abrir práctica con tutorial</button></div></section></div>
+<div class="tutorial-welcome" id="tutorial-welcome" hidden><section class="tutorial-welcome-card" role="dialog" aria-modal="true" aria-labelledby="tutorial-welcome-title"><div class="tutorial-welcome-icon">🧭</div><div class="tutorial-device" id="tutorial-device">🖥️ Tutorial para computador</div><h2 id="tutorial-welcome-title">¿Quieres conocer el visor?</h2><p id="tutorial-welcome-text">Te guiaremos por las herramientas principales: búsqueda, GPS, capas, fichas de activos, rutas, selección por áreas y creación de planos. Puedes avanzar a tu ritmo.</p><label class="tutorial-day"><input id="tutorial-day" type="checkbox"> No volver a preguntar por hoy</label><div class="tutorial-welcome-actions"><button id="tutorial-skip" type="button">Saltar por ahora</button><button class="primary" id="tutorial-start" type="button">Abrir práctica con tutorial</button></div></section></div>
 <div class="tutorial-guide" id="tutorial-guide" hidden><div class="tutorial-focus" id="tutorial-focus"></div><section class="tutorial-card" id="tutorial-card" role="dialog" aria-live="polite"><div class="tutorial-step-label" id="tutorial-step-label"></div><h3 id="tutorial-title"></h3><p id="tutorial-text"></p><div class="tutorial-task" id="tutorial-task"></div><div class="tutorial-progress"><span id="tutorial-progress"></span></div><div class="tutorial-actions"><button class="exit" id="tutorial-exit" type="button">Cerrar guía</button><button id="tutorial-back" type="button">Atrás</button><button class="next" id="tutorial-next" type="button">Siguiente</button></div></section></div>
 <div id="practice-banner" hidden><strong>Modo práctica</strong><button id="practice-guide" type="button">Tutorial</button><button id="practice-exit" type="button">Salir de práctica</button></div>
 
@@ -1489,7 +1489,7 @@ map.on('moveend zoomend',()=>{
   });
 });document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')persistMapUiState()});window.addEventListener('pagehide',persistMapUiState);
 
-const TUTORIAL_HIDE_KEY='redes_edelmag_tutorial_hide_until_v2';
+const TUTORIAL_HIDE_KEY='redes_edelmag_tutorial_hide_until_v3';
 let tutorialIndex=0,tutorialTarget=null,tutorialOpen=false;
 function tutorialHideSurvey(){const survey=document.getElementById('survey-panel');survey.hidden=true;document.getElementById('survey-toggle').setAttribute('aria-expanded','false');finishSurveyPlacement()}
 function tutorialShowSurvey(){
@@ -1578,7 +1578,8 @@ const tutorialSteps=[
  {target:'#logout-toggle',title:'Cerrar sesión en uno o varios equipos',text:'Desde + → Cerrar sesión puedes cerrar este equipo, elegir otro dispositivo activo o cerrar todas las sesiones de tu cuenta.',task:'Usa “Cerrar esta sesión” para salir solo de este equipo. “Cerrar todas las sesiones” también cierra la actual.',prepare:()=>{hidePanel();tutorialOpenQuickActions()}},
  {target:'#tutorial-launch',title:'Tutorial terminado',text:'Ya conoces el flujo completo: consultar, ubicar, filtrar, seleccionar, exportar y levantar nuevos activos. Puedes volver al tutorial con “?” o usar “Salir” para volver al mapa de trabajo.',task:'Si quieres seguir probando, pulsa “Finalizar”. Cuando salgas del modo práctica, se descartarán los cambios.',prepare:()=>{tutorialHideSurvey();showPanel()}}
 ];
-function tutorialRememberDay(){if(document.getElementById('tutorial-day').checked)mapStorage.setItem(TUTORIAL_HIDE_KEY,String(Date.now()+86400000))}
+function tutorialPreferences(){try{return window.parent.localStorage}catch{return window.localStorage}}
+function tutorialRememberDay(){if(document.getElementById('tutorial-day').checked){const tomorrow=new Date();tomorrow.setHours(24,0,0,0);tutorialPreferences().setItem(TUTORIAL_HIDE_KEY,String(tomorrow.getTime()))}}
 function tutorialRemoveTarget(){tutorialTarget?.classList.remove('tutorial-target-live');tutorialTarget=null}
 function tutorialVariant(step,field,type){
   const suffix=field[0].toUpperCase()+field.slice(1);
@@ -1682,7 +1683,7 @@ function tutorialRender(){
 }
 function tutorialStart(){
   document.getElementById('tutorial-welcome').hidden=true;
-  if(!PRACTICE_MODE){tutorialRememberDay();openPracticeWorkspace();return}
+  if(!PRACTICE_MODE){tutorialRememberDay();try{window.parent.sessionStorage.setItem('redes_edelmag_tutorial_start_after_practice','1')}catch{}openPracticeWorkspace();return}
   document.getElementById('tutorial-guide').hidden=false;
   tutorialOpen=true;tutorialIndex=0;tutorialRender();
 }
@@ -1693,11 +1694,11 @@ function tutorialFinish(){
 }
 function tutorialSkip(){tutorialRememberDay();document.getElementById('tutorial-welcome').hidden=true}
 function tutorialInvite(force=false){
-  if(PRACTICE_MODE){tutorialStart();return}
-  if(!force&&Date.now()<Number(mapStorage.getItem(TUTORIAL_HIDE_KEY)||0))return;
+  if(!force&&Date.now()<Number(tutorialPreferences().getItem(TUTORIAL_HIDE_KEY)||0))return;
   const meta=tutorialDeviceMeta();
   document.getElementById('tutorial-device').textContent=meta.icon+' '+meta.label;
-  document.getElementById('tutorial-welcome-text').textContent='Abre el modo práctica con los controles originales. Los cambios de los ejercicios se descartan al salir.';
+  document.getElementById('tutorial-welcome-text').textContent=PRACTICE_MODE?'Estás en el espacio de práctica. Si quieres, inicia la guía para recorrer los controles; puedes saltarla y abrirla después con “Tutorial”. Los cambios se descartan al salir.':'Abre el modo práctica para recorrer las herramientas originales. Los cambios de los ejercicios se descartan al salir.';
+  document.getElementById('tutorial-start').textContent=PRACTICE_MODE?'Iniciar tutorial':'Abrir práctica con tutorial';
   document.getElementById('tutorial-welcome').hidden=false;
 }
 function initTutorial(){
@@ -1718,7 +1719,12 @@ function initTutorial(){
   document.addEventListener('transitionend',scheduleFocus,true);
   document.addEventListener('animationend',scheduleFocus,true);
   map.on('moveend',scheduleFocus);
-  if(PRACTICE_MODE){initPracticeWorkspace();tutorialStart()}
+  if(PRACTICE_MODE){
+    initPracticeWorkspace();
+    let startAfterPractice=false;
+    try{startAfterPractice=window.parent.sessionStorage.getItem('redes_edelmag_tutorial_start_after_practice')==='1';window.parent.sessionStorage.removeItem('redes_edelmag_tutorial_start_after_practice')}catch{}
+    if(startAfterPractice)tutorialStart();else setTimeout(()=>tutorialInvite(false),300);
+  }
   else setTimeout(()=>tutorialInvite(false),650);
 }
 
