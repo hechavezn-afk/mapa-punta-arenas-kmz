@@ -1600,6 +1600,15 @@ function tutorialElementIsDisplayed(element){
 function tutorialPlaceCard(card,target,type,portrait){
  const narrow=type==='phone'||(type==='tablet'&&portrait);
  card.style.transform='none';card.style.left='0px';card.style.right='auto';card.style.top='0px';card.style.bottom='auto';
+ const titleOverlayTargets=['gps','area-select-toggle'];
+ if(!narrow&&titleOverlayTargets.includes(target?.id)){
+  // Keep location and area-selection instructions in the sidebar's title
+  // area, leaving their now-centered controls visible below the card.
+  card.style.width=type==='tablet'?'min(360px,calc(100vw - 28px))':'min(380px,calc(100vw - 28px))';
+  card.style.maxHeight='calc(100dvh - 28px)';card.style.overflow='auto';
+  card.style.left='8px';card.style.top='8px';
+  return;
+ }
  card.style.width=narrow?(type==='phone'?'min(390px,calc(100vw - 16px))':'min(500px,calc(100vw - 28px))'):(type==='tablet'?'min(380px,calc(46vw - 24px))':'min(420px,calc(100vw - 36px))');
  card.style.maxHeight='calc(100dvh - 28px)';card.style.overflow='auto';
  const width=card.offsetWidth,height=card.offsetHeight,pad=narrow?8:14;
