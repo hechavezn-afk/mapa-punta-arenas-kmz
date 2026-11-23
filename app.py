@@ -746,9 +746,11 @@ __PRACTICE_MAP_JS__
 const rawLayers=JSON.parse(pako.ungzip(Uint8Array.from(atob('__LAYERS_GZIP__'),c=>c.charCodeAt(0)),{to:'string'}));
 function isMobileLayout(){return window.innerWidth<=900||window.matchMedia('(pointer:coarse)').matches}
 function tutorialDeviceType(){
- const coarse=window.matchMedia('(pointer:coarse)').matches,maxSide=Math.max(window.innerWidth,window.innerHeight),minSide=Math.min(window.innerWidth,window.innerHeight);
- if((coarse&&minSide<=600)||maxSide<=700)return'phone';
- if(coarse||window.innerWidth<=1100)return'tablet';
+ const coarse=window.matchMedia('(pointer:coarse)').matches,minSide=Math.min(window.innerWidth,window.innerHeight);
+ // Classify by the primary input device, not the browser window width.
+ // A narrow or restored desktop window still has a precise pointer.
+ if(coarse&&minSide<=600)return'phone';
+ if(coarse)return'tablet';
  return'desktop';
 }
 function tutorialDeviceMeta(){const type=tutorialDeviceType();return type==='phone'?{type,icon:'📱',label:'Tutorial para teléfono',prefix:'En el teléfono: '}:type==='tablet'?{type,icon:'📲',label:'Tutorial para tablet',prefix:'En la tablet: '}:{type,icon:'🖥️',label:'Tutorial para computador',prefix:'En el computador: '}}
