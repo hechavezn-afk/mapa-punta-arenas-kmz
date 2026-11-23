@@ -1601,8 +1601,9 @@ function tutorialPlaceCard(card,target,type,portrait){
  const xs=narrow?[Math.max(pad,(innerWidth-width)/2)]:[pad,Math.max(pad,innerWidth-width-pad)];
  const ys=[pad,Math.max(pad,(innerHeight-height)/2),Math.max(pad,innerHeight-height-pad)];
  const blockers=[
-  {element:target,weight:9},
-  {element:document.getElementById('gps'),weight:9},
+  {element:document.getElementById('layer-panel'),weight:14},
+  {element:target,weight:12},
+  {element:document.getElementById('gps'),weight:12},
   {element:document.getElementById('map-navpad'),weight:5},
   {element:document.getElementById('quick-actions-toggle'),weight:4},
   {element:document.querySelector('.map-style'),weight:5},
