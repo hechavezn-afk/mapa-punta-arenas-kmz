@@ -184,4 +184,6 @@ def render_field_post_sync():
     except (FindingsError, ValueError, KeyError, TypeError) as exc:
         response['error'] = str(exc)
     st.session_state.field_post_sync_reply = response
-    st.rerun(scope='fragment')
+    # Component state updates can reach this fragment during a full-app run.
+    # An app-scoped rerun is valid in either execution context.
+    st.rerun()
