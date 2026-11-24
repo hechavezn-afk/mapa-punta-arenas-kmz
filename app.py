@@ -979,15 +979,89 @@ function selectionRecord(layer,attrs,name,coord){const type=layer==='Postes'?'Po
 function addAssetSelection(layer,attrs,name,coord){const key=assetKey(coord,attrs);if(poleSelection.has(key))return false;poleSelection.set(key,selectionRecord(layer,attrs,name,coord));poleSelectionRings.set(key,L.circleMarker(coord,{renderer:selectionRenderer,radius:13,color:'#087443',weight:3,fillOpacity:0,interactive:false}).addTo(map));return true}
 function removeAssetSelection(key){poleSelection.delete(key);const ring=poleSelectionRings.get(key);if(ring)map.removeLayer(ring);poleSelectionRings.delete(key)}
 function wireSelectionButton(marker,layer,attrs,name,coord){const key=assetKey(coord,attrs);marker.on('click',e=>{if(!areaSelectToolbarOpen)return;L.DomEvent.preventDefault(e.originalEvent);L.DomEvent.stopPropagation(e.originalEvent);if(Date.now()<areaSelectSuppressClickUntil||(isMobileLayout()&&areaSelectStart))return;if(areaSelectRectangle){map.removeLayer(areaSelectRectangle);areaSelectRectangle=null}if(areaSelectAnchorMarker){map.removeLayer(areaSelectAnchorMarker);areaSelectAnchorMarker=null}areaSelectStart=null;areaSelectGestureMode=null;const target=isMobileLayout()?(nearestSelectableAsset(e)||{marker,layer,attrs,name,coord}):{marker,layer,attrs,name,coord},targetKey=assetKey(target.coord,target.attrs);if(!poleSelection.has(targetKey))addAssetSelection(target.layer,target.attrs,target.name,target.coord);target.marker.closePopup();updatePoleSelectionUI();document.getElementById('area-select-message').textContent='Activo seleccionado · total '+poleSelection.size});marker.on('popupopen',()=>{const button=marker.getPopup().getElement()?.querySelector('[data-pole-key]');if(button)button.onclick=()=>{const selectedKey=button.dataset.poleKey;if(poleSelection.has(selectedKey))removeAssetSelection(selectedKey);else addAssetSelection(layer,attrs,name,coord);updatePoleSelectionUI();button.classList.toggle('selected',poleSelection.has(selectedKey));button.textContent=poleSelection.has(selectedKey)?'✓ Seleccionado':'＋ Seleccionar'}});marker.on('contextmenu',e=>{if(!areaSelectToolbarOpen)return;L.DomEvent.preventDefault(e.originalEvent);L.DomEvent.stopPropagation(e.originalEvent);if(poleSelection.has(key))removeAssetSelection(key);marker.closePopup();updatePoleSelectionUI();document.getElementById('area-select-message').textContent='Activo quitado · total '+poleSelection.size})}
-function wireAssetPopup(marker,layer,attrs,name,coord,description=''){marker.bindPopup(()=>assetHeading(layer,attrs,name)+popupFields(layer,attrs,description)+popupActions(layer,attrs,coord));marker.on('click',e=>{if(areaSelectToolbarOpen)return;if(e.originalEvent)L.DomEvent.stopPropagation(e.originalEvent);const point=eventContainerPoint(e),assets=visibleAssetsNear(point,isMobileLayout()?42:24),nearest=assets[0];if(assets.length>1&&map.latLngToContainerPoint(assets[1].coord).distanceTo(point)<(isMobileLayout()?18:11)){openAssetChoicePopup(assets.slice(0,8),e.latlng||map.containerPointToLatLng(point));return}if(isMobileLayout()&&nearest&&nearest.marker!==marker){nearest.marker.openPopup();return}if(typeof openReviewAssetAt==='function'&&openReviewAssetAt(coord)){marker.closePopup();return}marker.openPopup()});if(canSelectFeature(layer,attrs))wireSelectionButton(marker,layer,attrs,name,coord)}
+function wireAssetPopup(marker,layer,attrs,name,coord,description=''){marker.bindPopup(()=>assetHeading(layer,attrs,name)+popupFields(layer,attrs,description)+poleNetworkPopup(layer,attrs,name,coord)+popupActions(layer,attrs,coord));marker.on('click',e=>{if(areaSelectToolbarOpen)return;if(e.originalEvent)L.DomEvent.stopPropagation(e.originalEvent);const point=eventContainerPoint(e),assets=visibleAssetsNear(point,isMobileLayout()?42:24),nearest=assets[0];if(assets.length>1&&map.latLngToContainerPoint(assets[1].coord).distanceTo(point)<(isMobileLayout()?18:11)){openAssetChoicePopup(assets.slice(0,8),e.latlng||map.containerPointToLatLng(point));return}if(isMobileLayout()&&nearest&&nearest.marker!==marker){nearest.marker.openPopup();return}if(typeof openReviewAssetAt==='function'&&openReviewAssetAt(coord)){marker.closePopup();return}marker.openPopup()});if(canSelectFeature(layer,attrs))wireSelectionButton(marker,layer,attrs,name,coord)}
 function selectedAssetRows(){return Array.from(poleSelection.values()).map(p=>{const u=utm19S(p.lon,p.lat);return{Tipo:p.type||'',Elemento:p.title||'',Detalle:p.detail||'',Alimentador:p.feeder?feederNumber(p.feeder):'',Subestacion:p.substation?substationNumber(p.substation):'',Red:poleNetworkLabel(p),Fases:polePhases(p),Potencia_kVA:p.power||'',Latitud:Number(p.lat.toFixed(7)),Longitud:Number(p.lon.toFixed(7)),UTM_Este_m:Number(u.easting.toFixed(3)),UTM_Norte_m:Number(u.northing.toFixed(3)),CRS:'EPSG:32719'}})}
 function poleSummaryText(){const clean=v=>String(v||'').replace(/[\t\r\n]+/g,' ').trim(),rows=[['Cantidad de activos',String(poleSelection.size)],[],['Tipo','Elemento','Detalle','Alimentador','Subestación','Red','Potencia (kVA)','Latitud','Longitud']];for(const p of poleSelection.values())rows.push([p.type,p.title,p.detail,p.feeder?feederNumber(p.feeder):'',p.substation?substationNumber(p.substation):'',p.red,p.power,p.lat,p.lon].map(clean));return rows.map(row=>row.join('\t')).join('\n')}
 function selectionFilename(ext){const d=new Date(),stamp=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');return'activos_seleccionados_'+stamp+'.'+ext}
 async function exportSelectionXlsx(){const rows=selectedAssetRows();if(!rows.length)return;try{await loadMapExcel()}catch{downloadSurveyBlob(new Blob(['\ufeff'+surveyCSV(rows)],{type:'text/csv;charset=utf-8'}),selectionFilename('csv'));return}const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Activos');XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Activos seleccionados',rows.length],['Coordenadas geográficas','WGS84 · EPSG:4326'],['Coordenadas CAD','UTM 19S · EPSG:32719']]),'Resumen');XLSX.writeFile(wb,selectionFilename('xlsx'))}
 async function exportSelectionKMZ(){if(!poleSelection.size)return;try{await loadMapZip()}catch{alert('No se pudo cargar el exportador KMZ.');return}const styles={Poste:'ff28caff',SE:'ffb347ab',F:'ff006cef',D:'ff0191a1',R:'ff2828c6',Equipo:'ff607d8b'},styleText=Object.entries(styles).map(([id,color])=>'<Style id="'+id+'"><IconStyle><color>'+color+'</color><scale>1.05</scale><Icon><href>https://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle></Style>').join(''),placemarks=Array.from(poleSelection.values()).map(p=>{const data=[['Tipo',p.type],['Detalle',p.detail],['Alimentador',p.feeder?feederNumber(p.feeder):''],['Subestación',p.substation?substationNumber(p.substation):''],['Red',p.red],['Potencia kVA',p.power],['Latitud',p.lat],['Longitud',p.lon]].filter(x=>x[1]!==''&&x[1]!==undefined).map(x=>'<Data name="'+xmlEscape(x[0])+'"><value>'+xmlEscape(x[1])+'</value></Data>').join('');return'<Placemark><name>'+xmlEscape(p.title)+'</name><styleUrl>#'+xmlEscape(p.type)+'</styleUrl><ExtendedData>'+data+'</ExtendedData><Point><coordinates>'+p.lon+','+p.lat+',0</coordinates></Point></Placemark>'}).join(''),kml='<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Activos seleccionados</name>'+styleText+placemarks+'</Document></kml>',zip=new JSZip();zip.file('doc.kml',kml);downloadSurveyBlob(await zip.generateAsync({type:'blob',compression:'DEFLATE'}),selectionFilename('kmz'))}
 function exportSelectionDXF(){if(!poleSelection.size)return;const out=['0','SECTION','2','HEADER','9','$INSUNITS','70','6','0','ENDSEC','0','SECTION','2','TABLES','0','TABLE','2','LAYER','70','6'],types=['Poste','SE','F','D','R','Equipo'];types.forEach((t,i)=>out.push('0','LAYER','2',t.toUpperCase(),'70','0','62',String([2,6,30,4,1,5][i]),'6','CONTINUOUS'));out.push('0','ENDTAB','0','ENDSEC','0','SECTION','2','ENTITIES');for(const p of poleSelection.values()){const u=utm19S(p.lon,p.lat),layer=(p.type||'Equipo').toUpperCase(),label=dxfEscape(p.title),detail=dxfEscape([p.red,p.feeder?'ALIM '+feederNumber(p.feeder):'',p.substation?'SE '+substationNumber(p.substation):''].filter(Boolean).join(' | '));out.push('0','POINT','8',layer,'10',String(u.easting),'20',String(u.northing),'30','0','0','TEXT','8',layer,'10',String(u.easting+1),'20',String(u.northing+1),'30','0','40','2.5','1',label);if(detail)out.push('0','TEXT','8',layer,'10',String(u.easting+1),'20',String(u.northing-2),'30','0','40','1.6','1',detail)}out.push('0','ENDSEC','0','EOF');downloadSurveyBlob(new Blob([out.join('\r\n')+'\r\n'],{type:'application/dxf;charset=utf-8'}),selectionFilename('dxf'))}
-function updatePoleSelectionUI(){const count=poleSelection.size,selectionEnabled=mapConfig.features?.assetSelection!==false;selectionBar.hidden=!selectionEnabled||!count;document.getElementById('pole-selection-open').textContent=count+' activo'+(count===1?' seleccionado':'s seleccionados');document.getElementById('pole-modal-count').textContent=count+' activo'+(count===1?'':'s')+' seleccionado'+(count===1?'':'s');document.getElementById('area-selection-view').textContent='Ver selección ('+count+')';document.getElementById('pole-create-project').hidden=mapConfig.features?.survey===false;document.getElementById('pole-add-review').hidden=!reviewProject();poleModalList.replaceChildren();for(const p of poleSelection.values()){const li=document.createElement('li'),details=[p.type==='SE'?'':p.type,p.detail,p.feeder?'Alimentador '+feederNumber(p.feeder):'',p.substation?'Subestación '+substationNumber(p.substation):'',p.red?'Red '+p.red:'',p.power?p.power+' kVA':''].filter(Boolean);li.textContent=[p.title,...details].filter(Boolean).join(' — ');poleModalList.appendChild(li)}}
+function updatePoleSelectionUI(){const count=poleSelection.size,selectionEnabled=mapConfig.features?.assetSelection!==false;selectionBar.hidden=!selectionEnabled||!count;document.getElementById('pole-selection-open').textContent=count+' activo'+(count===1?' seleccionado':'s seleccionados');document.getElementById('pole-modal-count').textContent=count+' activo'+(count===1?'':'s')+' seleccionado'+(count===1?'':'s');document.getElementById('area-selection-view').textContent='Ver selección ('+count+')';document.getElementById('pole-create-project').hidden=mapConfig.features?.survey===false;document.getElementById('pole-add-review').hidden=!reviewProject();poleModalList.replaceChildren();for(const p of poleSelection.values()){const li=document.createElement('li'),details=[p.type==='SE'?'':p.type,p.detail,p.feeder?'Alimentador '+feederNumber(p.feeder):'',p.substation?'Subestación '+substationNumber(p.substation):'',p.red?'Red '+p.red:'',p.power?p.power+' kVA':''].filter(Boolean);li.textContent=[p.title,...details].filter(Boolean).join(' — ');renderPoleNetworkEditor(li,p);poleModalList.appendChild(li)}}
 function clearPoleSelection(){for(const ring of poleSelectionRings.values())map.removeLayer(ring);poleSelectionRings.clear();poleSelection.clear();updatePoleSelectionUI()}
+const canAnnotatePoles=!PRACTICE_MODE&&LOGIN_USER.trim().toUpperCase()==='HECTOR';
+const poleNetworkOptions=['BT 1F','BT 3F','MT'];
+const poleNetworkStorageKey='edelmag-pole-networks:hector:v1';
+let poleNetworkNotes={};
+let poleNetworkFilter, poleNetworkLayer;
+function poleNetworkKey(p){
+  return String(p.title).trim().toUpperCase()+'|'+p.lat.toFixed(5)+','+p.lon.toFixed(5);
+}
+function poleNetworkPopup(layer,attrs,name,coord){
+  if(!canAnnotatePoles||layer!=='Postes')return '';
+  const note=poleNetworkNotes[poleNetworkKey({
+    title:attrs.IDENTIFICADOR_VNR||attrs.POSTE_ID||name,lat:coord[0],lon:coord[1]
+  })];
+  return note?'<div><b>Red registrada:</b> '+esc(note.networks.join(' · '))+'</div>':'';
+}
+function refreshPoleNetworkLayer(){
+  poleNetworkLayer.clearLayers();
+  const network=poleNetworkFilter.value;
+  if(!network)return;
+  for(const note of Object.values(poleNetworkNotes)){
+    if(!note.networks.includes(network))continue;
+    L.circleMarker([note.lat,note.lon],{radius:12,color:'#007a61',weight:3,fillOpacity:.15})
+      .bindPopup(()=>'<b>'+esc(note.title)+'</b><br>'+esc(note.networks.join(' · ')))
+      .addTo(poleNetworkLayer);
+  }
+}
+function renderPoleNetworkEditor(row,p){
+  if(!canAnnotatePoles||p.type!=='Poste')return;
+  const key=poleNetworkKey(p);
+  const editor=document.createElement('fieldset');
+  const title=document.createElement('legend');
+  title.textContent='Red registrada';
+  editor.append(title);
+  for(const network of poleNetworkOptions){
+    const label=document.createElement('label'),box=document.createElement('input');
+    box.type='checkbox';
+    box.checked=poleNetworkNotes[key]?.networks.includes(network)??false;
+    box.onchange=()=>{
+      const networks=poleNetworkOptions.filter((_,i)=>editor.querySelectorAll('input')[i].checked);
+      const next={...poleNetworkNotes};
+      if(networks.length)next[key]={title:p.title,lat:p.lat,lon:p.lon,networks};
+      else delete next[key];
+      try{mapStorage.setItem(poleNetworkStorageKey,JSON.stringify(next))}
+      catch{box.checked=!box.checked;alert('No se pudo guardar la clasificación.');return}
+      poleNetworkNotes=next;
+      refreshPoleNetworkLayer();
+    };
+    label.append(box,' '+network+'  ');
+    editor.append(label);
+  }
+  row.append(editor);
+}
+function initPoleNetworkNotes(){
+  if(!canAnnotatePoles)return;
+  try{poleNetworkNotes=JSON.parse(mapStorage.getItem(poleNetworkStorageKey)||'{}')||{}}
+  catch{poleNetworkNotes={}}
+  poleNetworkLayer=L.layerGroup().addTo(map);
+  const controls=document.createElement('div');
+  controls.className='layer-bulk';
+  poleNetworkFilter=document.createElement('select');
+  poleNetworkFilter.setAttribute('aria-label','Filtrar postes por red registrada');
+  poleNetworkFilter.add(new Option('Postes por red registrada',''));
+  for(const network of poleNetworkOptions)poleNetworkFilter.add(new Option(network,network));
+  poleNetworkFilter.onchange=refreshPoleNetworkLayer;
+  const exportButton=document.createElement('button');
+  exportButton.type='button';
+  exportButton.textContent='Descargar redes de postes';
+  exportButton.onclick=()=>downloadSurveyBlob(
+    new Blob([JSON.stringify(Object.values(poleNetworkNotes),null,2)],{type:'application/json'}),
+    'redes_postes.json'
+  );
+  controls.append(poleNetworkFilter,exportButton);
+  document.getElementById('layer-list').before(controls);
+}
 function projectedPanOffset(dx,dy){
   const angle=(map.getBearing?.()||0)*Math.PI/180;
   const cos=Math.cos(angle),sin=Math.sin(angle);
@@ -1831,7 +1905,7 @@ function initTutorial(){
   else setTimeout(()=>tutorialInvite(false),650);
 }
 
-initSurveyProjects();initTutorial();
+initSurveyProjects();initPoleNetworkNotes();initTutorial();
 </script></body></html>"""
 
 
