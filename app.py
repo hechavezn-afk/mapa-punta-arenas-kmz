@@ -998,10 +998,43 @@ function poleNetworkKey(p){
 }
 function poleNetworkPopup(layer,attrs,name,coord){
   if(!canAnnotatePoles||layer!=='Postes')return '';
-  const note=poleNetworkNotes[poleNetworkKey({
+  const key=poleNetworkKey({
     title:attrs.IDENTIFICADOR_VNR||attrs.POSTE_ID||name,lat:coord[0],lon:coord[1]
-  })];
-  return note?'<div><b>Red registrada:</b> '+esc(note.networks.join(' · '))+'</div>':'';
+  });
+  return poleAnnotationPopup(key);
+}
+function poleAnnotationPopup(key){
+  const note=poleNetworkNotes[key];
+  if(!note)return '';
+  const networks=note.networks.length?'<div><b>Red registrada:</b> '+esc(note.networks.join(' · '))+'</div>':'';
+  const photos=note.photoIds?.length?'<div data-pole-annotation-photos="'+esc(key)+'">Cargando fotos…</div>':'';
+  return networks+photos;
+}
+async function loadPoleAnnotationPopupPhotos(event){
+  if(!canAnnotatePoles)return;
+  const container=event.popup.getElement()?.querySelector('[data-pole-annotation-photos]');
+  if(!container)return;
+  const ids=poleNetworkNotes[container.dataset.poleAnnotationPhotos]?.photoIds||[];
+  try{
+    const photos=await getPhotos(ids);
+    if(!container.isConnected)return;
+    container.replaceChildren();
+    for(const photo of photos){
+      const link=document.createElement('a'),thumb=document.createElement('img');
+      link.href=photo.dataUrl;
+      link.download=photo.name||'poste.jpg';
+      thumb.src=photo.dataUrl;
+      thumb.alt=photo.name||'Foto del poste';
+      thumb.width=76;
+      thumb.height=60;
+      thumb.style.objectFit='cover';
+      link.append(thumb);
+      container.append(link,' ');
+    }
+    if(photos.length<ids.length)container.append('Hay fotos que no están disponibles en este navegador.');
+    event.popup._updateLayout();
+    event.popup._updatePosition();
+  }catch{container.textContent='No se pudieron cargar las fotos.'}
 }
 function refreshPoleNetworkLayer(){
   poleNetworkLayer.clearLayers();
@@ -1010,7 +1043,7 @@ function refreshPoleNetworkLayer(){
   for(const note of Object.values(poleNetworkNotes)){
     if(!note.networks.includes(network))continue;
     L.circleMarker([note.lat,note.lon],{radius:12,color:'#007a61',weight:3,fillOpacity:.15})
-      .bindPopup(()=>'<b>'+esc(note.title)+'</b><br>'+esc(note.networks.join(' · ')))
+      .bindPopup(()=>'<b>'+esc(note.title)+'</b>'+poleAnnotationPopup(poleNetworkKey(note)))
       .addTo(poleNetworkLayer);
   }
 }
@@ -1095,6 +1128,7 @@ function renderPoleNetworkEditor(row,p){
 }
 function initPoleNetworkNotes(){
   if(!canAnnotatePoles)return;
+  map.on('popupopen',loadPoleAnnotationPopupPhotos);
   try{poleNetworkNotes=JSON.parse(mapStorage.getItem(poleNetworkStorageKey)||'{}')||{}}
   catch{poleNetworkNotes={}}
   poleNetworkLayer=L.layerGroup().addTo(map);
