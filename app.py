@@ -1014,6 +1014,63 @@ function refreshPoleNetworkLayer(){
       .addTo(poleNetworkLayer);
   }
 }
+function savePoleAnnotation(p,changes){
+  const key=poleNetworkKey(p);
+  const note={title:p.title,lat:p.lat,lon:p.lon,networks:[],...poleNetworkNotes[key],...changes};
+  const next={...poleNetworkNotes};
+  if(note.networks.length||note.photoIds?.length)next[key]=note;
+  else delete next[key];
+  mapStorage.setItem(poleNetworkStorageKey,JSON.stringify(next));
+  poleNetworkNotes=next;
+  refreshPoleNetworkLayer();
+}
+function renderPoleAnnotationPhotos(row,p,key){
+  const input=document.createElement('input');
+  input.type='file';
+  input.accept='image/*';
+  input.setAttribute('aria-label','Agregar foto al poste');
+  const photos=document.createElement('div');
+  photos.className='review-photo-grid';
+  async function refresh(){
+    const ids=poleNetworkNotes[key]?.photoIds||[];
+    const items=await getPhotos(ids);
+    photos.replaceChildren();
+    for(const photo of items){
+      const item=document.createElement('div'),img=document.createElement('img'),remove=document.createElement('button');
+      item.className='review-photo';
+      img.src=photo.dataUrl;
+      img.alt='Foto del poste '+p.title;
+      remove.type='button';
+      remove.textContent='×';
+      remove.setAttribute('aria-label','Quitar foto');
+      remove.onclick=async()=>{
+        try{
+          savePoleAnnotation(p,{photoIds:(poleNetworkNotes[key]?.photoIds||[]).filter(id=>id!==photo.id)});
+          await deletePhoto(photo.id);
+          await refresh();
+        }catch{alert('No se pudo quitar la foto.')}
+      };
+      item.append(img,remove);
+      photos.append(item);
+    }
+  }
+  input.onchange=async()=>{
+    const file=input.files[0];
+    if(!file)return;
+    input.disabled=true;
+    try{
+      const photo={id:crypto.randomUUID(),name:file.name,dataUrl:await compressPhoto(file)};
+      await putPhoto(photo);
+      savePoleAnnotation(p,{photoIds:[...(poleNetworkNotes[key]?.photoIds||[]),photo.id]});
+      await refresh();
+    }catch{alert('No se pudo guardar la foto.')}
+    finally{input.value='';input.disabled=false}
+  };
+  const label=document.createElement('label');
+  label.append('Agregar foto ',input);
+  row.append(label,photos);
+  refresh().catch(()=>{photos.textContent='No se pudieron cargar las fotos.'});
+}
 function renderPoleNetworkEditor(row,p){
   if(!canAnnotatePoles||p.type!=='Poste')return;
   const key=poleNetworkKey(p);
@@ -1027,18 +1084,14 @@ function renderPoleNetworkEditor(row,p){
     box.checked=poleNetworkNotes[key]?.networks.includes(network)??false;
     box.onchange=()=>{
       const networks=poleNetworkOptions.filter((_,i)=>editor.querySelectorAll('input')[i].checked);
-      const next={...poleNetworkNotes};
-      if(networks.length)next[key]={title:p.title,lat:p.lat,lon:p.lon,networks};
-      else delete next[key];
-      try{mapStorage.setItem(poleNetworkStorageKey,JSON.stringify(next))}
+      try{savePoleAnnotation(p,{networks})}
       catch{box.checked=!box.checked;alert('No se pudo guardar la clasificación.');return}
-      poleNetworkNotes=next;
-      refreshPoleNetworkLayer();
     };
     label.append(box,' '+network+'  ');
     editor.append(label);
   }
   row.append(editor);
+  renderPoleAnnotationPhotos(row,p,key);
 }
 function initPoleNetworkNotes(){
   if(!canAnnotatePoles)return;
@@ -1055,10 +1108,14 @@ function initPoleNetworkNotes(){
   const exportButton=document.createElement('button');
   exportButton.type='button';
   exportButton.textContent='Descargar redes de postes';
-  exportButton.onclick=()=>downloadSurveyBlob(
-    new Blob([JSON.stringify(Object.values(poleNetworkNotes),null,2)],{type:'application/json'}),
-    'redes_postes.json'
-  );
+  exportButton.onclick=async()=>{
+    try{
+      const notes=await Promise.all(Object.values(poleNetworkNotes).map(async({photoIds,...note})=>({
+        ...note,photos:await getPhotos(photoIds)
+      })));
+      downloadSurveyBlob(new Blob([JSON.stringify(notes,null,2)],{type:'application/json'}),'redes_postes.json');
+    }catch{alert('No se pudo exportar la información de los postes.')}
+  };
   controls.append(poleNetworkFilter,exportButton);
   document.getElementById('layer-list').before(controls);
 }
