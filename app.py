@@ -85,6 +85,7 @@ html, body, #root, [data-testid="stAppViewContainer"], .stApp {width:100%!import
 .st-key-findings_panel > :is(.st-key-finding_scroll_content,:has(>.st-key-finding_scroll_content)){min-height:0!important;flex:1 1 auto!important;overflow:auto!important;overscroll-behavior:contain}
 .st-key-findings_panel:not(.finding-minimized){height:var(--sheet-height,auto);padding-block:14px!important}
 .st-key-findings_panel.finding-minimized .sheet-grip{display:none}
+.st-key-findings_panel .tutorial-finding-focus{outline:2px solid #287daf;outline-offset:-2px;border-radius:6px}
 .sheet-grip{position:absolute;inset:auto 25% 0;width:50%;height:14px;display:grid;place-items:center;cursor:ns-resize;touch-action:none;z-index:2}
 .sheet-grip::after{content:'';width:38px;height:4px;border-radius:4px;background:#9aabba}
 body:not(.map-popup-active):not(.finding-map-popup-open) .st-key-findings_panel.sheet-sized:not(.finding-minimized):not(.tutorial-tool-expanded){max-height:calc(100dvh - 140px)!important}
@@ -1808,10 +1809,41 @@ function tutorialOpenQuickActions(){
     document.getElementById('quick-actions-toggle').click();
   }
 }
+let tutorialFindingFocus=null, tutorialFindingStep=-1;
+function syncTutorialFindings(){
+  const step=tutorialSteps[tutorialIndex];
+  if(!tutorialOpen||!step.findingTab)return;
+  const panel=parentDocument.querySelector('.st-key-findings_panel');
+  if(!panel)return;
+  if(tutorialFindingStep!==tutorialIndex){
+    tutorialFindingStep=tutorialIndex;
+    if(panel.classList.contains('finding-minimized')){
+      panel.querySelector('.st-key-minimize_findings_panel button')?.click();
+    }
+    const tab=[...panel.querySelectorAll('[role="tab"]')].find(node=>node.textContent.trim()===step.findingTab);
+    if(tab?.getAttribute('aria-selected')!=='true')tab?.click();
+  }
+  const target=panel.querySelector(step.findingFocus);
+  if(target&&target!==tutorialFindingFocus&&target.getClientRects().length){
+    tutorialFindingFocus?.classList.remove('tutorial-finding-focus');
+    tutorialFindingFocus=target;
+    target.classList.add('tutorial-finding-focus');
+    const scroll=target.closest('.st-key-finding_scroll_content');
+    if(scroll)target.scrollIntoView({block:'nearest',inline:'nearest'});
+  }
+  tutorialPosition();
+}
 function tutorialPrepareFindings(){
   hidePanel();
-  if(!parentDocument.querySelector('.st-key-findings_panel'))tutorialOpenQuickActions();
+  tutorialFindingStep=-1;
+  if(!parentDocument.querySelector('.st-key-findings_panel')){
+    parentDocument.querySelector('.st-key-open_findings_from_map button')?.click();
+  }
+  syncTutorialFindings();
 }
+const tutorialFindingsObserver=new MutationObserver(syncTutorialFindings);
+tutorialFindingsObserver.observe(parentDocument.body,{subtree:true,childList:true});
+window.addEventListener('pagehide',()=>tutorialFindingsObserver.disconnect(),{once:true});
 function tutorialResetPanels(step){
   const target=step&&document.querySelector(step.target);
   const tool=target?.closest('#review-panel,#survey-panel,#fieldpost-panel');
@@ -1819,7 +1851,7 @@ function tutorialResetPanels(step){
   const survey=document.getElementById('survey-panel');
   if(tool!==survey&&!survey.hidden)closeSurveyForToolSwitch();
   if(tool?.id!=='fieldpost-panel')closeCreatedFieldPostPanel();
-  if(step?.target!=='#finding-toggle'){
+  if(!step?.findingTab){
     parentDocument.querySelector('.st-key-close_findings_panel button')?.click();
   }
   if(document.getElementById('quick-actions').dataset.open==='true'){
@@ -1879,11 +1911,11 @@ const tutorialSteps=[
  {target:'#fieldpost-toggle',title:'Crear postes independientes en terreno',text:'En + → Postes creados, escribe un código único y ubica el poste con GPS, en el mapa o desde las coordenadas de una foto. Puedes adjuntar hasta dos fotos.',phoneText:'Abre + → Postes creados. Elige una foto de la galería o toma una con la cámara. Revisa el punto que detectó la app y corrígelo en el mapa si hace falta.',desktopText:'Abre + → Postes creados. Puedes elegir un punto, cargar una imagen o pegar una lista con coordenadas WGS84. También puedes hacer clic derecho en el mapa y elegir “Crear poste”.',task:'El código debe ser único y el punto debe estar en Magallanes. Si el GPS falla, usa “Ubicar en mapa”. Elige si lo compartes con tu cuenta, con un usuario o con todos.',prepare:()=>{stopAreaSelection();closeReview();tutorialHideSurvey();hidePanel();tutorialOpenQuickActions()}},
  {target:'#fieldpost-number',title:'Completar un poste de práctica',text:'Escribe un código único y usa “Ubicar en mapa” para elegir el punto. Completa los datos y guarda el poste de práctica.',task:'Puedes revisar el poste en la lista. Los cambios se descartan al salir del modo práctica.',prepare:()=>{hidePanel();openCreatedFieldPostPanel(false)}},
  {target:'.survey-export',title:'Respaldar y llevar el plano a otros sistemas',text:'Exporta el proyecto a Excel, KMZ, CSV o AutoCAD DXF. El respaldo JSON conserva proyectos e iconos para continuar en otro dispositivo.',task:'Haz respaldos periódicos; los proyectos locales dependen del navegador y del dispositivo.',prepare:tutorialShowSurvey},
- {target:'#finding-toggle',title:'Abrir Hallazgos de mantenimiento',text:'Abre + y elige “Crear / revisar hallazgos”. Usa “Crear hallazgo” para registrar un aviso y “Seguimiento” para consultar uno existente.',task:'Abre el módulo y déjalo abierto para los próximos pasos.',phoneTask:'Toca + y luego “Crear / revisar hallazgos”. Desliza dentro del panel para ver sus controles.',tabletTask:'Toca + y luego “Crear / revisar hallazgos”. La barra superior del módulo queda a mano mientras te desplazas.',prepare:tutorialPrepareFindings},
- {target:'#finding-toggle',title:'Completar o importar un aviso',text:'En “Crear hallazgo”, completa el formulario a mano o usa “Importar aviso desde PDF”. Revisa el número de aviso, la localidad, el tipo, la prioridad y la descripción. Usa + junto al tipo para añadir otro problema al mismo aviso.',task:'Corrige los datos importados antes de guardar. Puedes practicar con un aviso ficticio sin subir un documento real.',prepare:tutorialPrepareFindings},
- {target:'#finding-toggle',title:'Ubicar y guardar el hallazgo',text:'Pulsa “Ubicar en el mapa”. Busca el poste por su código, usa la dirección del aviso o ingresa latitud y longitud. Comprueba el punto en el mapa, adjunta fotos o documentos si corresponde y pulsa “Guardar hallazgo compartido”.',task:'En modo práctica, puedes guardar un ejemplo para encontrarlo en el paso siguiente.',desktopTask:'También puedes hacer clic derecho en el mapa y elegir “Crear hallazgo” para partir de ese punto.',phoneTask:'Toca el mapa para revisar el punto y vuelve al formulario para guardar.',tabletTask:'Toca el punto en el mapa y comprueba que corresponda al aviso antes de guardar.',prepare:tutorialPrepareFindings},
- {target:'#finding-toggle',title:'Encontrar y actualizar un aviso',text:'Filtra por localidad, estado o tipo. En “Seguimiento”, elige un hallazgo para centrarlo en el mapa y abrir su ficha. Desde allí puedes actualizar el estado o añadir antecedentes.',task:'Busca el aviso de práctica y revisa su ficha.',desktopTask:'También puedes hacer doble clic en un aviso de la tabla para ir al punto y abrir su ficha.',phoneTask:'Usa el selector de Seguimiento para abrir el aviso. Desplázate dentro del panel para ver la ficha.',tabletTask:'Usa el selector de Seguimiento para abrir la ficha y ver el punto en el mapa.',prepare:tutorialPrepareFindings},
- {target:'#finding-toggle',title:'Consultar adjuntos y exportar',text:'En la ficha de Seguimiento puedes abrir las fotos y los documentos. Descarga “PDF resumido” para compartir una síntesis o prepara el ZIP para incluir el informe y los adjuntos.',task:'Prueba el PDF resumido con el aviso de práctica y ubica la opción de descarga completa.',prepare:tutorialPrepareFindings},
+ {target:'#map',findingTab:'Crear hallazgo',findingFocus:'[role="tablist"]',title:'Abrir Hallazgos de mantenimiento',text:'La ventana de Hallazgos ya está abierta. Usa “Crear hallazgo” para registrar un aviso y “Seguimiento” para consultar uno existente.',task:'Cambia entre ambas pestañas para reconocerlas. Los avisos de práctica se descartan al salir.',phoneTask:'Toca las pestañas y desliza dentro del panel para ver los controles.',tabletTask:'Toca las pestañas. La barra superior queda visible mientras te desplazas.',prepare:tutorialPrepareFindings},
+ {target:'#map',findingTab:'Crear hallazgo',findingFocus:'[class*="st-key-finding_notice_import_pdf_"]',title:'Completar o importar un aviso',text:'En “Crear hallazgo”, completa el formulario a mano o usa “Importar aviso desde PDF”. Revisa el número de aviso, la localidad, el tipo, la prioridad y la descripción. Usa + junto al tipo para añadir otro problema al mismo aviso.',task:'Corrige los datos importados antes de guardar. Puedes practicar con un aviso ficticio sin subir un documento real.',prepare:tutorialPrepareFindings},
+ {target:'#map',findingTab:'Crear hallazgo',findingFocus:'.st-key-finding_place_on_map',title:'Ubicar y guardar el hallazgo',text:'Pulsa “Ubicar en el mapa”. Busca el poste por su código, usa la dirección del aviso o ingresa latitud y longitud. Comprueba el punto en el mapa, adjunta fotos o documentos si corresponde y pulsa “Guardar hallazgo compartido”.',task:'En modo práctica, puedes guardar un ejemplo para encontrarlo en el paso siguiente.',desktopTask:'También puedes hacer clic derecho en el mapa y elegir “Crear hallazgo” para partir de ese punto.',phoneTask:'Toca el mapa para revisar el punto y vuelve al formulario para guardar.',tabletTask:'Toca el punto en el mapa y comprueba que corresponda al aviso antes de guardar.',prepare:tutorialPrepareFindings},
+ {target:'#map',findingTab:'Seguimiento',findingFocus:'.st-key-finding_edit_choice',title:'Encontrar y actualizar un aviso',text:'Filtra por localidad, estado o tipo. En “Seguimiento”, elige un hallazgo para centrarlo en el mapa y abrir su ficha. Desde allí puedes actualizar el estado o añadir antecedentes.',task:'Busca el aviso que creaste o elige PRACTICA-001 para revisar su ficha.',desktopTask:'También puedes hacer doble clic en un aviso de la tabla para ir al punto y abrir su ficha.',phoneTask:'Usa el selector de Seguimiento para abrir el aviso. Desplázate dentro del panel para ver la ficha.',tabletTask:'Usa el selector de Seguimiento para abrir la ficha y ver el punto en el mapa.',prepare:tutorialPrepareFindings},
+ {target:'#map',findingTab:'Seguimiento',findingFocus:'[class*="st-key-download_finding_report_pdf_"]',title:'Consultar adjuntos y exportar',text:'En la ficha de Seguimiento puedes abrir las fotos y los documentos. Descarga “PDF resumido” para compartir una síntesis o prepara el ZIP para incluir el informe y los adjuntos.',task:'Prueba el PDF resumido con el aviso de práctica y ubica la opción de descarga completa.',prepare:tutorialPrepareFindings},
  {target:'#review-panel .review-head',title:'Capas, minimizar y cerrar',text:'La barra superior de Revisión, Planos, Postes creados y Hallazgos se mantiene visible al desplazar el contenido.',task:'Capas muestra los activos cercanos al área visible. Usa − para minimizar, □ para restaurar y × para cerrar.',prepare:tutorialShowReview},
  {target:'#admin-toggle',title:'Personalizar el mapa y sus controles',text:'Abre + → Configuración. Puedes elegir la cartografía, mover el panel y el botón + Herramientas, ajustar ancho y densidad, definir colores y decidir si los códigos de postes aparecen al abrir. También puedes abrir Google Maps centrado en el mapa actual.',task:'Tus preferencias personales se conservan en este navegador.',prepare:()=>{closeReview();hidePanel();tutorialOpenQuickActions()}},
  {target:'#logout-toggle',title:'Cerrar sesión en uno o varios equipos',text:'Desde + → Cerrar sesión puedes cerrar este equipo, elegir otro dispositivo activo o cerrar todas las sesiones de tu cuenta.',task:'Usa “Cerrar esta sesión” para salir solo de este equipo. “Cerrar todas las sesiones” también cierra la actual.',prepare:()=>{hidePanel();tutorialOpenQuickActions()}},
@@ -1892,6 +1924,10 @@ const tutorialSteps=[
 function tutorialPreferences(){try{return window.parent.localStorage}catch{return window.localStorage}}
 function tutorialRememberDay(){if(document.getElementById('tutorial-day').checked){const tomorrow=new Date();tomorrow.setHours(24,0,0,0);tutorialPreferences().setItem(TUTORIAL_HIDE_KEY,String(tomorrow.getTime()))}}
 function tutorialRemoveTarget(){tutorialTarget?.classList.remove('tutorial-target-live');tutorialTarget=null}
+function clearTutorialFindingFocus(){
+  tutorialFindingFocus?.classList.remove('tutorial-finding-focus');
+  tutorialFindingFocus=null;
+}
 function tutorialVariant(step,field,type){
   const suffix=field[0].toUpperCase()+field.slice(1);
   const value=step[type+suffix]||step[(type==='phone'?'mobile':type)+suffix]||step[field];
@@ -1945,6 +1981,7 @@ function tutorialPlaceCard(card,target,type,portrait){
  const ys=[pad,Math.max(pad,(innerHeight-height)/2),Math.max(pad,innerHeight-height-pad)];
  const blockers=[
   {element:document.getElementById('layer-panel'),weight:14},
+  {element:parentDocument.querySelector('.st-key-findings_panel'),weight:30},
   {element:target,weight:12},
   {element:document.getElementById('gps'),weight:12},
   {element:document.getElementById('map-navpad'),weight:5},
@@ -1982,6 +2019,7 @@ function tutorialPosition(){
 }
 function tutorialRender(){
   tutorialRemoveTarget();
+  clearTutorialFindingFocus();
   const step=tutorialSteps[tutorialIndex],meta=tutorialDeviceMeta(),guide=document.getElementById('tutorial-guide');
   const gestureType=step.area?(window.matchMedia('(pointer:coarse)').matches?'phone':'desktop'):meta.type;
   guide.dataset.areaStep=String(Boolean(step.area));
@@ -2020,6 +2058,7 @@ function tutorialStart(){
 }
 function tutorialFinish(){
   tutorialRemoveTarget();tutorialOpen=false;
+  clearTutorialFindingFocus();
   tutorialResetPanels();
   tutorialSetToolLayout(false);
   document.getElementById('tutorial-guide').hidden=true;
