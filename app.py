@@ -2072,7 +2072,63 @@ function initTutorial(){
   else setTimeout(()=>tutorialInvite(false),650);
 }
 
-initSurveyProjects();initPoleNetworkNotes();initTutorial();
+function initMovableToolsButton(){
+  const root=document.getElementById('quick-actions');
+  const button=document.getElementById('quick-actions-toggle');
+  const menu=root.querySelector('.quick-actions-menu');
+  const storageKey='redes-edelmag-tools-button:'+TUTORIAL_ACCOUNT.toLowerCase();
+  let position, drag, timer, suppressClickUntil=0;
+  try{position=JSON.parse(mapStorage.getItem(storageKey)||'null')}catch{}
+  function bounds(){
+    return [Math.max(0,innerWidth-button.offsetWidth-16),Math.max(0,innerHeight-button.offsetHeight-16)];
+  }
+  function paint(){
+    if(!Number.isFinite(position?.x)||!Number.isFinite(position?.y))return;
+    const [width,height]=bounds();
+    const left=8+position.x*width,top=8+position.y*height;
+    Object.assign(root.style,{left:left+'px',top:top+'px',right:'auto',bottom:'auto',transform:'none',width:button.offsetWidth+'px'});
+    Object.assign(menu.style,{position:'absolute',width:'max-content',maxWidth:'calc(100vw - 16px)'});
+    const menuLeft=Math.max(8,Math.min(innerWidth-menu.offsetWidth-8,left+(button.offsetWidth-menu.offsetWidth)/2));
+    Object.assign(menu.style,{position:'absolute',left:(menuLeft-left)+'px',
+      top:top<innerHeight/2?'calc(100% + 8px)':'auto',
+      bottom:top>=innerHeight/2?'calc(100% + 8px)':'auto',
+      maxHeight:Math.max(40,Math.max(top,innerHeight-top-button.offsetHeight)-16)+'px',overflowY:'auto'});
+  }
+  button.style.touchAction='none';
+  button.addEventListener('pointerdown',event=>{
+    if(!event.isPrimary||event.button!==0)return;
+    suppressClickUntil=0;
+    const rect=button.getBoundingClientRect();
+    drag={id:event.pointerId,x:event.clientX,y:event.clientY,dx:event.clientX-rect.left,dy:event.clientY-rect.top,ready:false,moved:false};
+    button.setPointerCapture(event.pointerId);
+    timer=setTimeout(()=>{if(drag)drag.ready=true},350);
+  });
+  button.addEventListener('pointermove',event=>{
+    if(drag?.id!==event.pointerId)return;
+    if(Math.hypot(event.clientX-drag.x,event.clientY-drag.y)<5&&!drag.moved)return;
+    if(!drag.ready){clearTimeout(timer);return}
+    drag.moved=true;
+    const [width,height]=bounds();
+    const fraction=(value,limit)=>limit?Math.max(0,Math.min(1,value/limit)):0;
+    position={x:fraction(event.clientX-drag.dx-8,width),y:fraction(event.clientY-drag.dy-8,height)};
+    paint();
+  });
+  function finish(event){
+    if(drag?.id!==event.pointerId)return;
+    clearTimeout(timer);
+    if(drag.ready)suppressClickUntil=Date.now()+500;
+    if(drag.moved){try{mapStorage.setItem(storageKey,JSON.stringify(position))}catch{}}
+    drag=null;
+  }
+  for(const type of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(type,finish);
+  button.addEventListener('contextmenu',event=>event.preventDefault());
+  button.addEventListener('click',event=>{
+    if(event.detail&&Date.now()<suppressClickUntil){event.preventDefault();event.stopImmediatePropagation()}
+  },true);
+  window.addEventListener('resize',paint);
+  paint();
+}
+initSurveyProjects();initPoleNetworkNotes();initMovableToolsButton();initTutorial();
 for(const id of ['review-panel','survey-panel','fieldpost-panel'])installSheetGrip(document.getElementById(id));
 </script></body></html>"""
 
