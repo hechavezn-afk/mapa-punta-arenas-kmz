@@ -1635,7 +1635,7 @@ const tutorialSteps=[
  {target:'#review-panel .review-head',title:'Capas, minimizar y cerrar',text:'La barra superior de Revisión, Planos, Postes creados y Hallazgos se mantiene visible al desplazar el contenido.',task:'Capas muestra los activos cercanos al área visible. Usa − para minimizar, □ para restaurar y × para cerrar.',prepare:tutorialShowReview},
  {target:'#admin-toggle',title:'Personalizar el mapa y sus controles',text:'Abre + → Configuración. Puedes elegir la cartografía, mover el panel y el botón + Herramientas, ajustar ancho y densidad, definir colores y decidir si los códigos de postes aparecen al abrir. También puedes abrir Google Maps centrado en el mapa actual.',task:'Tus preferencias personales se conservan en este navegador.',prepare:()=>{closeReview();hidePanel();tutorialOpenQuickActions()}},
  {target:'#logout-toggle',title:'Cerrar sesión en uno o varios equipos',text:'Desde + → Cerrar sesión puedes cerrar este equipo, elegir otro dispositivo activo o cerrar todas las sesiones de tu cuenta.',task:'Usa “Cerrar esta sesión” para salir solo de este equipo. “Cerrar todas las sesiones” también cierra la actual.',prepare:()=>{hidePanel();tutorialOpenQuickActions()}},
- {target:'#tutorial-launch',title:'Tutorial terminado',text:'Ya conoces el flujo completo: consultar, ubicar, filtrar, seleccionar, exportar y levantar nuevos activos. Puedes volver al tutorial con “?” o usar “Salir” para volver al mapa de trabajo.',task:'Si quieres seguir probando, pulsa “Finalizar”. Cuando salgas del modo práctica, se descartarán los cambios.',prepare:()=>{tutorialHideSurvey();showPanel()}}
+ {target:'#tutorial-launch',title:'Tutorial terminado',text:'Ya conoces el flujo completo: consultar, ubicar, filtrar, seleccionar, exportar y levantar nuevos activos. Puedes volver al tutorial con “?” o usar “Salir” para volver al mapa de trabajo.',task:'Pulsa “Finalizar” para volver al mapa de trabajo. Los cambios de práctica se descartarán.',prepare:()=>{tutorialHideSurvey();showPanel()}}
 ];
 function tutorialPreferences(){try{return window.parent.localStorage}catch{return window.localStorage}}
 function tutorialRememberDay(){if(document.getElementById('tutorial-day').checked){const tomorrow=new Date();tomorrow.setHours(24,0,0,0);tutorialPreferences().setItem(TUTORIAL_HIDE_KEY,String(tomorrow.getTime()))}}
@@ -1788,7 +1788,15 @@ function initTutorial(){
   document.getElementById('tutorial-launch').onclick=()=>tutorialInvite(true);
   document.getElementById('tutorial-exit').onclick=tutorialFinish;
   document.getElementById('tutorial-back').onclick=()=>{if(tutorialIndex>0){tutorialIndex--;tutorialRender()}};
-  document.getElementById('tutorial-next').onclick=()=>{if(tutorialIndex>=tutorialSteps.length-1){tutorialFinish();return}tutorialIndex++;tutorialRender()};
+  document.getElementById('tutorial-next').onclick=()=>{
+    if(tutorialIndex>=tutorialSteps.length-1){
+      tutorialFinish();
+      if(PRACTICE_MODE)document.getElementById('practice-exit').click();
+      return;
+    }
+    tutorialIndex++;
+    tutorialRender();
+  };
   let focusFrame=0;
   const scheduleFocus=()=>{
     if(!tutorialOpen||focusFrame)return;
