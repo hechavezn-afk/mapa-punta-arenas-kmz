@@ -1559,11 +1559,24 @@ function tutorialShowReview(){
   }else openReview();
 }
 function tutorialOpenQuickActions(){
-  requestAnimationFrame(()=>{
-    if(!tutorialOpen)return;
-    const root=document.getElementById('quick-actions');
-    if(root.dataset.open!=='true')document.getElementById('quick-actions-toggle').click();
-  });
+  if(document.getElementById('quick-actions').dataset.open!=='true'){
+    document.getElementById('quick-actions-toggle').click();
+  }
+}
+function tutorialResetPanels(step){
+  const target=step&&document.querySelector(step.target);
+  const tool=target?.closest('#review-panel,#survey-panel,#fieldpost-panel');
+  if(tool!==reviewPanel)closeReview();
+  const survey=document.getElementById('survey-panel');
+  if(tool!==survey&&!survey.hidden)closeSurveyForToolSwitch();
+  if(tool?.id!=='fieldpost-panel')closeCreatedFieldPostPanel();
+  if(step?.target!=='#finding-toggle'){
+    parentDocument.querySelector('.st-key-close_findings_panel button')?.click();
+  }
+  if(document.getElementById('quick-actions').dataset.open==='true'){
+    document.getElementById('quick-actions-toggle').click();
+  }
+  return tool;
 }
 let practiceAsset=null;
 function focusPracticeArea(){
@@ -1615,6 +1628,7 @@ const tutorialSteps=[
  {target:'#survey-toggle',title:'Crear o modificar un plano de sector',text:'Abre + Herramientas y elige “Crear plano”. Los proyectos son independientes de las redes generales. Puedes comenzar vacío o convertir una selección existente en un proyecto editable.',phoneText:'Toca + para desplegar las herramientas y luego “Crear plano”.',desktopText:'Haz clic en + para desplegar las herramientas y luego selecciona “Crear plano”.',task:'Cada proyecto queda guardado en este navegador hasta que lo respaldes o exportes.',prepare:()=>{stopAreaSelection();closeReview();tutorialHideSurvey();hidePanel();tutorialOpenQuickActions()}},
  {target:'#survey-panel',title:'Editar puntos del plano de sector',text:'Abre el botón + Herramientas, elige “Crear plano” y selecciona el proyecto que quieras trabajar. Al iniciar, ningún plano guardado se activa automáticamente. Elige poste, subestación, desconectador o reconectador; usa GPS o coloca el punto y completa sus datos. Si adjuntas el PDF, se conserva con el proyecto.',task:'Al guardar, el siguiente punto mantiene red, subestación y alimentador para agilizar el trabajo de campo.',phoneText:'Toca + Herramientas, elige “Crear plano” y selecciona el proyecto. Los planos guardados parten cerrados. Usa GPS o coloca el punto y completa sus datos.',phoneTask:'Cierra o mueve el menú cuando necesites comprobar la ubicación exacta.',tabletText:'Abre + Herramientas, elige “Crear plano” y selecciona el proyecto. Los planos guardados no se activan solos.',tabletTask:'Al guardar, conserva red, subestación y alimentador para el siguiente activo.',prepare:tutorialShowSurvey},
  {target:'#fieldpost-toggle',title:'Crear postes independientes en terreno',text:'En + → Postes creados, escribe un código único y ubica el poste con GPS, en el mapa o desde las coordenadas de una foto. Puedes adjuntar hasta dos fotos.',phoneText:'Abre + → Postes creados. Elige una foto de la galería o toma una con la cámara. Revisa el punto que detectó la app y corrígelo en el mapa si hace falta.',desktopText:'Abre + → Postes creados. Puedes elegir un punto, cargar una imagen o pegar una lista con coordenadas WGS84. También puedes hacer clic derecho en el mapa y elegir “Crear poste”.',task:'El código debe ser único y el punto debe estar en Magallanes. Si el GPS falla, usa “Ubicar en mapa”. Elige si lo compartes con tu cuenta, con un usuario o con todos.',prepare:()=>{stopAreaSelection();closeReview();tutorialHideSurvey();hidePanel();tutorialOpenQuickActions()}},
+ {target:'#fieldpost-number',title:'Completar un poste de práctica',text:'Escribe un código único y usa “Ubicar en mapa” para elegir el punto. Completa los datos y guarda el poste de práctica.',task:'Puedes revisar el poste en la lista. Los cambios se descartan al salir del modo práctica.',prepare:()=>{hidePanel();openCreatedFieldPostPanel(false)}},
  {target:'.survey-export',title:'Respaldar y llevar el plano a otros sistemas',text:'Exporta el proyecto a Excel, KMZ, CSV o AutoCAD DXF. El respaldo JSON conserva proyectos e iconos para continuar en otro dispositivo.',task:'Haz respaldos periódicos; los proyectos locales dependen del navegador y del dispositivo.',prepare:tutorialShowSurvey},
  {target:'#finding-toggle',title:'Crear y ubicar un hallazgo',text:'Abre + → Crear / revisar hallazgos. Puedes completar el formulario a mano o usar “Importar aviso desde PDF”. En “Ubicar en el mapa” elige poste, dirección del aviso o coordenadas manuales.',task:'Revisa los datos importados y confirma el punto. Usa + junto al tipo para agregar otro problema al mismo aviso. En PC también puedes crear un hallazgo con clic derecho sobre el mapa.',prepare:()=>{stopAreaSelection();closeReview();tutorialHideSurvey();hidePanel();tutorialOpenQuickActions()}},
   {target:'#finding-toggle',title:'Seguimiento, adjuntos e informes',text:'Selecciona un aviso en la tabla, desde el mapa o en Seguimiento para ver su ubicación y su ficha. Puedes filtrar por localidad, estado y tipo, y mostrar la concentración del tipo seleccionado.',task:'Abre las fotos y documentos desde la lista de adjuntos. En Seguimiento puedes actualizar el caso, descargar el PDF resumido o preparar el ZIP completo con archivos.',prepare:()=>{hidePanel();tutorialOpenQuickActions()}},
@@ -1719,7 +1733,12 @@ function tutorialRender(){
   const step=tutorialSteps[tutorialIndex],meta=tutorialDeviceMeta(),guide=document.getElementById('tutorial-guide');
   const gestureType=step.area?(window.matchMedia('(pointer:coarse)').matches?'phone':'desktop'):meta.type;
   guide.dataset.areaStep=String(Boolean(step.area));
+  const tool=tutorialResetPanels(step);
   step.prepare?.();
+  if(tool?.classList.contains('tool-panel-minimized')){
+    tool.querySelector('.tool-minimize-toggle')?.click();
+  }
+  tutorialSetToolLayout(meta.type!=='desktop'&&tutorialToolPanelOpen());
   document.getElementById('tutorial-step-label').textContent=meta.label+' · paso '+(tutorialIndex+1)+' de '+tutorialSteps.length;
   document.getElementById('tutorial-title').textContent=tutorialVariant(step,'title',meta.type);
   document.getElementById('tutorial-text').textContent=tutorialVariant(step,'text',gestureType);
@@ -1730,7 +1749,7 @@ function tutorialRender(){
   const index=tutorialIndex;
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     if(!tutorialOpen||index!==tutorialIndex)return;
-    const target=document.querySelector(step.target),panel=target?.closest('#layer-panel,#survey-panel,#review-panel');
+    const target=document.querySelector(step.target),panel=target?.closest('#layer-panel,#survey-panel,#review-panel,#fieldpost-panel');
     // Targets may be rendered inside a scrollable panel but outside its
     // viewport. Reveal them before checking viewport visibility and placing
     // the spotlight; otherwise the guide leaves users scrolling by hand.
@@ -1749,6 +1768,7 @@ function tutorialStart(){
 }
 function tutorialFinish(){
   tutorialRemoveTarget();tutorialOpen=false;
+  tutorialResetPanels();
   tutorialSetToolLayout(false);
   document.getElementById('tutorial-guide').hidden=true;
   stopAreaSelection();
