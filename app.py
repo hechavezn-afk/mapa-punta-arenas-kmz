@@ -80,8 +80,15 @@ html, body, #root, [data-testid="stAppViewContainer"], .stApp {width:100%!import
 .mobile-layout.tool-window-open #quick-actions{opacity:0!important;visibility:hidden!important;pointer-events:none!important;transition:opacity .18s ease,visibility .18s ease}
 .finding-popup-muted .leaflet-popup-pane .leaflet-popup{opacity:.58;filter:grayscale(.35);transition:opacity .2s ease,filter .2s ease}
 @media(max-width:1100px),(pointer:coarse){.mobile-layout.map-popup-active #quick-actions{opacity:0!important;visibility:hidden!important;pointer-events:none!important}.mobile-layout.map-popup-active .panel:not(.is-hidden),.mobile-layout.map-popup-active .survey-panel:not([hidden]),.mobile-layout.map-popup-active .review-panel:not([hidden]),.mobile-layout.map-popup-active .fieldpost-panel:not([hidden]),.mobile-layout.map-popup-active .route-panel:not([hidden]){opacity:.62!important;filter:grayscale(.25) blur(.25px);width:min(90vw,430px)!important;transition:width .22s ease,opacity .22s ease,filter .22s ease}.mobile-layout.map-popup-active.map-panel-front .panel:not(.is-hidden),.mobile-layout.map-popup-active.map-panel-front .survey-panel:not([hidden]),.mobile-layout.map-popup-active.map-panel-front .review-panel:not([hidden]),.mobile-layout.map-popup-active.map-panel-front .fieldpost-panel:not([hidden]),.mobile-layout.map-popup-active.map-panel-front .route-panel:not([hidden]){opacity:1!important;filter:none!important}.mobile-layout.map-popup-active.map-panel-front .leaflet-popup-pane .leaflet-popup{opacity:.58;filter:grayscale(.35)}}
-.st-key-findings_panel{overflow-x:hidden!important}
-.st-key-findings_panel>[data-testid="stLayoutWrapper"]:has(>.st-key-finding_controls_bar){position:sticky!important;top:0!important;z-index:20!important;background:var(--background-color,#fff)!important}
+.st-key-findings_panel{overflow:hidden!important;display:flex!important;flex-direction:column!important;gap:0!important}
+.st-key-findings_panel > :is(.st-key-finding_controls_bar,:has(>.st-key-finding_controls_bar)){flex:0 0 auto!important;position:static!important}
+.st-key-findings_panel > :is(.st-key-finding_scroll_content,:has(>.st-key-finding_scroll_content)){min-height:0!important;flex:1 1 auto!important;overflow:auto!important;overscroll-behavior:contain}
+.st-key-findings_panel:not(.finding-minimized){height:var(--sheet-height,auto);padding-block:14px!important}
+.st-key-findings_panel.finding-minimized .sheet-grip{display:none}
+.sheet-grip{position:absolute;inset:auto 25% 0;width:50%;height:14px;display:grid;place-items:center;cursor:ns-resize;touch-action:none;z-index:2}
+.sheet-grip::after{content:'';width:38px;height:4px;border-radius:4px;background:#9aabba}
+body:not(.map-popup-active):not(.finding-map-popup-open) .st-key-findings_panel.sheet-sized:not(.finding-minimized):not(.tutorial-tool-expanded){max-height:calc(100dvh - 140px)!important}
+@media(max-width:800px){.st-key-findings_panel .sheet-grip{top:0;bottom:auto}}
 .st-key-finding_controls_bar{padding:3px 0 6px!important;margin-bottom:5px!important;border-bottom:1px solid #e5eaf0!important;background:var(--background-color,#fff)!important}
 .st-key-finding_controls_bar{width:100%!important;max-width:100%!important;min-width:0!important;overflow:visible!important;box-sizing:border-box!important}
 .st-key-finding_controls_bar [data-testid="stHorizontalBlock"]{display:grid!important;grid-template-columns:minmax(0,86px) 44px 44px!important;justify-content:end!important;align-items:center!important;gap:4px!important;width:100%!important;min-width:0!important;margin:0!important}
@@ -563,8 +570,16 @@ HTML_TEMPLATE = r"""<!doctype html>
 .tool-controls-toggle.is-active .tool-filter-track i{transform:translateX(14px)}
 .tool-minimize-toggle{display:inline-flex;flex:0 0 38px;align-items:center;justify-content:center;width:38px;min-width:38px;min-height:38px;padding:0!important;border:1px solid #d5dde6!important;border-radius:9px!important;background:#f5f8fb!important;color:#234b70!important;font-size:17px!important;font-weight:800!important;touch-action:manipulation}
 .review-head b,.survey-head b,.fieldpost-head b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tool-panel-content{overflow:visible;transition:opacity .18s ease,transform .18s ease}
-.survey-dock{top:42px!important}
+.tool-panel-content{min-height:0;overflow:auto;overscroll-behavior:contain;transition:opacity .18s ease,transform .18s ease}
+.tool-panel-content .survey-dock{top:0!important}
+:is(.review-panel,.survey-panel,.fieldpost-panel):not([hidden]){display:flex!important;flex-direction:column!important;overflow:hidden!important}
+:is(.review-panel,.survey-panel,.fieldpost-panel):not(.tool-panel-minimized){height:var(--sheet-height,auto);padding-block:14px!important}
+:is(.review-head,.survey-head,.fieldpost-head){position:static!important;flex:0 0 auto;align-items:center!important}
+.tool-panel-minimized .tool-panel-content,.tool-panel-minimized .sheet-grip{display:none!important}
+.sheet-grip{position:absolute;inset:auto 25% 0;width:50%;height:14px;display:grid;place-items:center;cursor:ns-resize;touch-action:none;z-index:2}
+.sheet-grip::after{content:'';width:38px;height:4px;border-radius:4px;background:#9aabba}
+body:not(.tutorial-tool-step):not(.map-popup-active) :is(.review-panel,.survey-panel,.fieldpost-panel).sheet-sized:not(.tool-panel-minimized){max-height:calc(100dvh - 120px)!important}
+@media(max-width:700px),(pointer:coarse){.sheet-grip{top:0;bottom:auto}}
 .tool-panel-collapsed .tool-panel-content{display:none!important}
 .tool-panel-collapsed{max-height:none!important}
 .tool-panel-minimized{width:min(228px,calc(100vw - 16px))!important;max-width:calc(100vw - 16px)!important;max-height:58px!important;overflow:hidden!important;padding:6px!important}
@@ -910,6 +925,38 @@ let findingPanelWasOpen=false;
 function syncFindingsState(){syncFindingsMap();const open=!!parentDocument.querySelector('.st-key-findings_panel');if(open&&findingsLayerEntry){if(!findingPanelWasOpen)activateFindingsMode();findingPanelWasOpen=true}else if(!open)findingPanelWasOpen=false}
 function syncToolWindowVisibility(){const localOpen=['#survey-panel','#review-panel','#fieldpost-panel','#route-panel','#area-selection-view'].some(selector=>{const element=document.querySelector(selector);return element&&!element.hidden});const findingsPanel=parentDocument.querySelector('.st-key-findings_panel'),findingsOpen=!!findingsPanel;document.body.classList.toggle('tool-window-open',localOpen||findingsOpen);if(findingsPanel&&!findingsPanel.dataset.popupLayerToggle){findingsPanel.dataset.popupLayerToggle='1';findingsPanel.addEventListener('click',()=>{if(parentDocument.body.classList.contains('map-popup-active')){parentDocument.body.classList.add('finding-panel-front','map-panel-front');document.body.classList.add('map-panel-front','finding-popup-muted')}})}}
 const findingsObserver = new MutationObserver(syncFindingsState);
+function installSheetGrip(panel){
+  if(!panel||panel.querySelector(':scope > .sheet-grip'))return;
+  const grip=panel.ownerDocument.createElement('div');
+  grip.className='sheet-grip';
+  grip.title='Arrastra para ajustar la altura';
+  grip.setAttribute('aria-hidden','true');
+  let drag=null;
+  grip.addEventListener('pointerdown',event=>{
+    if(!event.isPrimary||event.button!==0)return;
+    event.preventDefault();
+    event.stopPropagation();
+    const rect=panel.getBoundingClientRect();
+    const fromTop=grip.getBoundingClientRect().top<rect.top+rect.height/2;
+    const viewport=panel.ownerDocument.documentElement.clientHeight;
+    drag={id:event.pointerId,y:event.clientY,height:rect.height,direction:fromTop?-1:1,
+      max:Math.max(0,fromTop?rect.bottom-68:viewport-rect.top-24)};
+    grip.setPointerCapture(event.pointerId);
+  });
+  grip.addEventListener('pointermove',event=>{
+    if(drag?.id!==event.pointerId)return;
+    const minimum=Math.min(190,drag.max);
+    const height=Math.min(drag.max,Math.max(minimum,drag.height+(event.clientY-drag.y)*drag.direction));
+    panel.classList.add('sheet-sized');
+    panel.style.setProperty('--sheet-height',Math.round(height)+'px');
+  });
+  grip.addEventListener('lostpointercapture',()=>{drag=null});
+  panel.append(grip);
+}
+const findingsGripObserver=new MutationObserver(()=>installSheetGrip(parentDocument.querySelector('.st-key-findings_panel')));
+findingsGripObserver.observe(parentDocument.body,{subtree:true,childList:true});
+installSheetGrip(parentDocument.querySelector('.st-key-findings_panel'));
+window.addEventListener('pagehide',()=>findingsGripObserver.disconnect(),{once:true});
 findingsObserver.observe(parentDocument.body, {subtree:true,childList:true,attributes:true,attributeFilter:['data-rows']});
 const toolWindowObserver=new MutationObserver(syncToolWindowVisibility);
 toolWindowObserver.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class']});
@@ -2026,6 +2073,7 @@ function initTutorial(){
 }
 
 initSurveyProjects();initPoleNetworkNotes();initTutorial();
+for(const id of ['review-panel','survey-panel','fieldpost-panel'])installSheetGrip(document.getElementById(id));
 </script></body></html>"""
 
 

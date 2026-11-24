@@ -928,6 +928,11 @@ def render_findings_panel() -> None:
             st.session_state.pop("show_findings", None)
             st.query_params.pop("findings", None)
             st.rerun(scope="fragment")
+    with st.container(key="finding_scroll_content"):
+        _render_findings_content(practice, map_selected_id)
+
+
+def _render_findings_content(practice: bool, map_selected_id: str) -> None:
     heading = st.container(key="findings_heading")
     heading.subheader("Hallazgos de mantenimiento")
     if practice:
