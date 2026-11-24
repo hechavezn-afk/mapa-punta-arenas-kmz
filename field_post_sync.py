@@ -132,6 +132,29 @@ def render_field_post_sync():
     if not request or request.get('id') == reply.get('id'):
         return
     response = {'id': request.get('id'), 'acks': [], 'rows': [], 'error': ''}
+    if request.get('annotationSync') is not None:
+        response['annotationSync'] = True
+        try:
+            if actor != 'HECTOR':
+                raise FindingsError('Esta función está reservada a la cuenta HECTOR.')
+            operation = request['annotationSync']
+            if operation.get('read'):
+                response['annotations'] = _request(
+                    'GET', '/rest/v1/private_pole_annotations?select=pole_key,annotation'
+                )
+            else:
+                key, note = operation['key'], operation['note']
+                if not isinstance(key, str) or not 1 <= len(key) <= 256:
+                    raise FindingsError('Identificador de poste inválido.')
+                if not isinstance(note, dict) or len(json.dumps(note)) > 8 * 1024 * 1024:
+                    raise FindingsError('La anotación supera el tamaño permitido.')
+                _request('POST', '/rest/v1/private_pole_annotations?on_conflict=pole_key',
+                         {'pole_key': key, 'annotation': note},
+                         prefer='resolution=merge-duplicates,return=minimal')
+        except (FindingsError, ValueError, KeyError, TypeError, AttributeError) as exc:
+            response['error'] = str(exc)
+        st.session_state.field_post_sync_reply = response
+        st.rerun()
     try:
         for op in request.get('operations', [])[:SYNC_BATCH_SIZE]:
             post = op['post']

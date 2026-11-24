@@ -1055,6 +1055,7 @@ function savePoleAnnotation(p,changes){
   else delete next[key];
   mapStorage.setItem(poleNetworkStorageKey,JSON.stringify(next));
   poleNetworkNotes=next;
+  queuePoleAnnotationSync(key);
   refreshPoleNetworkLayer();
 }
 function renderPoleAnnotationPhotos(row,p,key){
@@ -1151,6 +1152,10 @@ function initPoleNetworkNotes(){
     }catch{alert('No se pudo exportar la información de los postes.')}
   };
   controls.append(poleNetworkFilter,exportButton);
+  const status=document.createElement('small');
+  status.id='pole-annotation-sync-status';
+  status.textContent='Conectando con Supabase…';
+  controls.append(status);
   document.getElementById('layer-list').before(controls);
 }
 function projectedPanOffset(dx,dy){

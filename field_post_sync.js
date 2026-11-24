@@ -1,5 +1,47 @@
 const fieldSyncKey = 'field-post-sync-v1:' + LOGIN_USER;
 let fieldSyncState = {}, fieldSyncPending = null, fieldSyncApplied = '';
+const annotationQueueKey = 'edelmag-pole-annotation-queue:v1';
+let annotationQueue = {}, annotationLoaded = false, annotationRetryAt = 0;
+if (LOGIN_USER.toUpperCase() === 'HECTOR') {
+  try { annotationQueue = JSON.parse(mapStorage.getItem(annotationQueueKey) || '{}'); } catch {}
+}
+function queuePoleAnnotationSync(key) {
+  annotationQueue[key] = crypto.randomUUID();
+  mapStorage.setItem(annotationQueueKey, JSON.stringify(annotationQueue));
+}
+async function applyPoleAnnotationSync(reply, pending) {
+  const status = document.getElementById('pole-annotation-sync-status');
+  if (reply.error) {
+    annotationRetryAt = Date.now() + 60000;
+    status.textContent = 'Pendiente de guardar en Supabase: ' + reply.error;
+    return;
+  }
+  if (pending.read) {
+    const remoteKeys = new Set();
+    for (const {pole_key: key, annotation: note} of reply.annotations || []) {
+      remoteKeys.add(key);
+      if (annotationQueue[key]) continue;
+      const {photos = [], ...metadata} = note;
+      if (!metadata.networks.length && !photos.length) {
+        delete poleNetworkNotes[key];
+        continue;
+      }
+      for (const photo of photos) await putPhoto(photo);
+      poleNetworkNotes[key] = {...metadata, photoIds: photos.map(photo => photo.id)};
+    }
+    for (const key of Object.keys(poleNetworkNotes)) {
+      if (!remoteKeys.has(key) && !annotationQueue[key]) queuePoleAnnotationSync(key);
+    }
+    mapStorage.setItem(poleNetworkStorageKey, JSON.stringify(poleNetworkNotes));
+    refreshPoleNetworkLayer();
+    annotationLoaded = true;
+  } else if (annotationQueue[pending.key] === pending.version) {
+    delete annotationQueue[pending.key];
+    mapStorage.setItem(annotationQueueKey, JSON.stringify(annotationQueue));
+  }
+  status.textContent = Object.keys(annotationQueue).length
+    ? 'Cambios pendientes de sincronizar' : 'Anotaciones guardadas en Supabase';
+}
 try { fieldSyncState = JSON.parse(localStorage.getItem(fieldSyncKey) || '{}'); } catch {}
 function fieldSyncSignature(post) { return JSON.stringify(post); }
 function fieldSyncSaveState() { localStorage.setItem(fieldSyncKey, JSON.stringify(fieldSyncState)); }
@@ -16,7 +58,11 @@ async function fieldPostSyncExchange(reply) {
       target.add(new Option(name, name));
     }
   }
-  if (reply.id && reply.id !== fieldSyncApplied) {
+  if (reply.annotationSync && reply.id === fieldSyncPending?.id) {
+    await applyPoleAnnotationSync(reply, fieldSyncPending.annotationSync);
+    fieldSyncPending = null;
+  }
+  if (reply.id && reply.id !== fieldSyncApplied && !reply.annotationSync) {
     let changed = false;
     for (const ack of reply.acks || []) {
       const deletePending = fieldSyncState[ack.id]?.deletePending && !ack.deleted;
@@ -104,6 +150,22 @@ async function fieldPostSyncExchange(reply) {
     return null;
   }
   if (fieldSyncPending) return null;
+  if (canAnnotatePoles && Date.now() >= annotationRetryAt) {
+    let operation;
+    if (!annotationLoaded) operation = {read:true};
+    else {
+      const key = Object.keys(annotationQueue)[0];
+      if (key) {
+        const {photoIds, ...note} = poleNetworkNotes[key] || {networks:[]};
+        const version = annotationQueue[key];
+        operation = {key, version, note:{...note, photos:await getPhotos(photoIds)}};
+      }
+    }
+    if (operation) {
+      fieldSyncPending = {id:crypto.randomUUID(), annotationSync:operation};
+      return fieldSyncPending;
+    }
+  }
   const operations = [];
   const postIds = new Set(createdFieldPosts.map(post => post.id));
   for (const [id, known] of Object.entries(fieldSyncState)) {
