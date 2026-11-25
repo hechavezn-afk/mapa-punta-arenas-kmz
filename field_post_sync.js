@@ -59,8 +59,15 @@ async function fieldPostSyncExchange(reply) {
     }
   }
   if (reply.annotationSync && reply.id === fieldSyncPending?.id) {
-    await applyPoleAnnotationSync(reply, fieldSyncPending.annotationSync);
-    fieldSyncPending = null;
+    try {
+      await applyPoleAnnotationSync(reply, fieldSyncPending.annotationSync);
+    } catch {
+      annotationRetryAt = Date.now() + 60000;
+      document.getElementById('pole-annotation-sync-status').textContent =
+        'No se pudo actualizar la copia local. Se reintentará.';
+    } finally {
+      fieldSyncPending = null;
+    }
   }
   if (reply.id && reply.id !== fieldSyncApplied && !reply.annotationSync) {
     let changed = false;
