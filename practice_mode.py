@@ -60,7 +60,17 @@ def request(method: str, path: str, payload, content_type: str):
         if method == "GET":
             locality = filters.get("locality", [""])[0].removeprefix("eq.")
             rows = [row for row in findings.values() if not locality or row["locality"] == locality]
-            return deepcopy(sorted(rows, key=lambda row: row["updated_at"], reverse=True))
+            status = filters.get("status", [""])[0]
+            if status.startswith("eq."):
+                rows = [row for row in rows if row["status"] == status[3:]]
+            elif status.startswith("in.("):
+                states = {value.strip('"') for value in status[4:-1].split(",")}
+                rows = [row for row in rows if row["status"] in states]
+            rows.sort(key=lambda row: row["id"])
+            rows.sort(key=lambda row: row["updated_at"], reverse=True)
+            offset = int(filters.get("offset", ["0"])[0])
+            limit = int(filters.get("limit", [str(len(rows))])[0])
+            return deepcopy(rows[offset:offset + limit])
         if method in ("POST", "PATCH"):
             created = method == "POST"
             item_id = payload["id"] if created else filters["id"][0].removeprefix("eq.")

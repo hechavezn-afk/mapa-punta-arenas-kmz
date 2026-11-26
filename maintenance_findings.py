@@ -134,15 +134,21 @@ def _request(method: str, path: str, payload=None, *, content_type="application/
 
 
 def list_findings(locality: str, status_filter: str) -> list[dict]:
-    query = {"select": "*", "order": "updated_at.desc", "limit": "2000"}
+    page_size = 500
+    query = {"select": "*", "order": "updated_at.desc,id.asc", "limit": str(page_size)}
     if locality != "Todas":
         query["locality"] = f"eq.{locality}"
-    rows = _request("GET", "/rest/v1/maintenance_findings?" + urlencode(query)) or []
     if status_filter == "Abiertos":
-        rows = [row for row in rows if row.get("status") in ("Pendiente", "En revisión", "Revisado")]
+        query["status"] = 'in.(Pendiente,"En revisión",Revisado)'
     elif status_filter != "Todos":
-        rows = [row for row in rows if row.get("status") == status_filter]
-    return rows
+        query["status"] = f"eq.{status_filter}"
+    rows = []
+    while True:
+        query["offset"] = str(len(rows))
+        page = _request("GET", "/rest/v1/maintenance_findings?" + urlencode(query)) or []
+        rows.extend(page)
+        if len(page) < page_size:
+            return rows
 
 
 def list_shared_categories() -> list[dict]:
@@ -628,13 +634,16 @@ def delete_finding_attachment(finding: dict, path: str, actor: str) -> None:
     if not found:
         raise FindingsError("No encontré ese archivo en los adjuntos del hallazgo. Actualiza la lista e inténtalo otra vez.")
 
-    _request("DELETE", f"/storage/v1/object/{BUCKET}/{quote(path, safe='/')}")
     patch["updated_by"] = actor
     query = urlencode({"id": f"eq.{finding_id}"})
     result = _request("PATCH", f"/rest/v1/maintenance_findings?{query}", patch,
                       prefer="return=representation")
     if not isinstance(result, list) or not result:
-        raise FindingsError("El archivo se quitó del almacenamiento, pero Supabase no confirmó la actualización del hallazgo. Actualiza la lista y vuelve a intentarlo.")
+        raise FindingsError("Supabase no confirmó la actualización del hallazgo. Actualiza la lista y vuelve a intentarlo.")
+    try:
+        _request("DELETE", f"/storage/v1/object/{BUCKET}/{quote(path, safe='/')}")
+    except FindingsError:
+        st.warning("Se quitó el adjunto del hallazgo, pero quedó pendiente eliminar su copia del almacenamiento.")
 
 
 def rename_finding_photo(finding: dict, path: str, label: str, actor: str) -> None:
@@ -1632,27 +1641,28 @@ def _render_findings_content(practice: bool, map_selected_id: str) -> None:
             except FindingsError as exc:
                 st.caption(f"No se pudo leer el historial: {exc}")
 
-            try:
-                report_history = finding_history(str(selected["id"]))
-            except FindingsError:
-                report_history = history
+            report_history = history
             report_name = re.sub(r"[^A-Za-z0-9_-]+", "_", str(selected.get("notice_number") or selected["id"])).strip("_")
             pdf_col, report_col, bundle_col = st.columns(3)
             pdf_col.download_button("PDF resumido", data=_finding_report_pdf(selected, report_history),
                                     file_name=f"Hallazgo_{report_name}_resumen.pdf", mime="application/pdf",
                                     key=f"download_finding_report_pdf_{selected['id']}", width="stretch",
                                     help="Resumen del aviso, ubicación, estado y últimos movimientos.")
-            report_col.download_button("Informe HTML", data=_finding_report_html(selected, report_history),
-                                       file_name=f"Hallazgo_{report_name}.html", mime="text/html", width="stretch",
-                                       help="Incluye el seguimiento y enlaces temporales a los archivos compartidos.")
+            report_key = (str(selected["id"]), selected.get("updated_at"))
+            if report_col.button("Preparar informe HTML", width="stretch"):
+                st.session_state["finding_report_html"] = (report_key, _finding_report_html(selected, report_history))
+            html_key, html_data = st.session_state.get("finding_report_html", (None, None))
+            if html_key == report_key:
+                report_col.download_button("Descargar informe HTML", data=html_data,
+                                           file_name=f"Hallazgo_{report_name}.html", mime="text/html", width="stretch")
             if bundle_col.button("Preparar informe con archivos", key="prepare_finding_report_bundle", width="stretch"):
                 try:
                     bundle = _finding_report_bundle(selected, report_history)
-                    st.session_state["finding_report_bundle"] = {"id": str(selected["id"]), "data": bundle}
+                    st.session_state["finding_report_bundle"] = {"key": report_key, "data": bundle}
                 except FindingsError as exc:
                     st.error(str(exc))
             bundle_state = st.session_state.get("finding_report_bundle") or {}
-            if bundle_state.get("id") == str(selected["id"]):
+            if bundle_state.get("key") == report_key:
                 st.download_button("Descargar informe completo (.zip)", data=bundle_state["data"],
                                    file_name=f"Hallazgo_{report_name}_completo.zip", mime="application/zip",
                                    key="download_finding_report_bundle", width="stretch")
