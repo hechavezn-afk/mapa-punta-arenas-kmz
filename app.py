@@ -2143,7 +2143,10 @@ function initMovableToolsButton(){
     const [width,height]=bounds();
     const left=8+position.x*width,top=8+position.y*height;
     Object.assign(root.style,{left:left+'px',top:top+'px',right:'auto',bottom:'auto',transform:'none',width:button.offsetWidth+'px'});
-    Object.assign(menu.style,{position:'absolute',width:'max-content',maxWidth:'calc(100vw - 16px)'});
+    Object.assign(menu.style,{
+      position:'absolute',width:'max-content',maxWidth:'calc(100vw - 16px)',
+      boxSizing:'border-box',padding:'0 4px',overflowX:'hidden'
+    });
     const menuLeft=Math.max(8,Math.min(innerWidth-menu.offsetWidth-8,left+(button.offsetWidth-menu.offsetWidth)/2));
     Object.assign(menu.style,{position:'absolute',left:(menuLeft-left)+'px',
       top:top<innerHeight/2?'calc(100% + 8px)':'auto',
