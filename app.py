@@ -106,6 +106,25 @@ body:not(.map-popup-active):not(.finding-map-popup-open) .st-key-findings_panel.
 .st-key-findings_panel.finding-closing{visibility:hidden!important;pointer-events:none!important}
 @media(max-width:800px){.st-key-findings_panel{box-sizing:border-box!important;left:8px!important;right:8px!important;width:auto!important;max-width:none!important;overflow-x:hidden!important;transition:max-height .24s ease,width .2s ease,transform .24s ease,opacity .2s ease;border:1px solid #cbd5e1;border-radius:14px}.st-key-findings_panel .stButton button{min-height:38px}.st-key-findings_panel .stHeading{margin-top:0}.st-key-findings_panel.finding-minimized{left:auto!important;right:8px!important;width:min(228px,calc(100vw - 16px))!important;max-width:calc(100vw - 16px)!important}}
 [data-testid="stElementContainer"]:has(iframe[title="st.iframe"]) {position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;margin:0!important;padding:0!important;z-index:1!important}
+.st-key-findings_panel {
+  --findings-bottom: max(54px, calc(46px + env(safe-area-inset-bottom, 0px)));
+  --findings-available: calc(100dvh - 76px - var(--findings-bottom));
+  bottom: var(--findings-bottom) !important;
+}
+.st-key-findings_panel:not(.finding-minimized):not(.tutorial-tool-expanded) {
+  height: var(--sheet-height, var(--findings-available));
+}
+body:not(.map-popup-active):not(.finding-map-popup-open) .st-key-findings_panel:not(.finding-minimized):not(.tutorial-tool-expanded),
+body.finding-panel-front .st-key-findings_panel:not(.finding-minimized):not(.tutorial-tool-expanded),
+body.map-panel-front .st-key-findings_panel:not(.finding-minimized):not(.tutorial-tool-expanded) {
+  max-height: var(--findings-available) !important;
+}
+@media (max-width:900px), (pointer:coarse) {
+  .st-key-findings_panel { top: auto !important; }
+  .st-key-findings_panel:not(.finding-minimized):not(.tutorial-tool-expanded) {
+    height: var(--sheet-height, min(65dvh, var(--findings-available)));
+  }
+}
 iframe[title="st.iframe"] {position:absolute!important;inset:0!important;display:block!important;width:100vw!important;height:100dvh!important;max-height:100dvh!important;border:0!important}
 </style>
 """, unsafe_allow_html=True)
