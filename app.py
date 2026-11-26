@@ -83,18 +83,19 @@ html, body, #root, [data-testid="stAppViewContainer"], .stApp {width:100%!import
 .st-key-findings_panel{overflow:hidden!important;display:flex!important;flex-direction:column!important;gap:0!important}
 .st-key-findings_panel > :is(.st-key-finding_controls_bar,:has(>.st-key-finding_controls_bar)){flex:0 0 auto!important;position:static!important}
 .st-key-findings_panel > :is(.st-key-finding_scroll_content,:has(>.st-key-finding_scroll_content)){min-height:0!important;flex:1 1 auto!important;overflow:auto!important;overscroll-behavior:contain}
-.st-key-findings_panel:not(.finding-minimized){height:var(--sheet-height,auto);padding-block:14px!important}
+.st-key-findings_panel:not(.finding-minimized){height:var(--sheet-height,auto);padding-block:10px 12px!important}
 .st-key-findings_panel.finding-minimized .sheet-grip{display:none}
 .st-key-findings_panel .tutorial-finding-focus{outline:2px solid #287daf;outline-offset:-2px;border-radius:6px}
 .sheet-grip{position:absolute;inset:auto 25% 0;width:50%;height:14px;display:grid;place-items:center;cursor:ns-resize;touch-action:none;z-index:2}
 .sheet-grip::after{content:'';width:38px;height:4px;border-radius:4px;background:#9aabba}
 body:not(.map-popup-active):not(.finding-map-popup-open) .st-key-findings_panel.sheet-sized:not(.finding-minimized):not(.tutorial-tool-expanded){max-height:calc(100dvh - 140px)!important}
 @media(max-width:900px){.st-key-findings_panel .sheet-grip{top:0;bottom:auto}.st-key-findings_panel{top:auto;bottom:54px;max-height:42dvh}}
-.st-key-finding_controls_bar{padding:3px 0 6px!important;margin-bottom:5px!important;border-bottom:1px solid #e5eaf0!important;background:var(--background-color,#fff)!important}
+.st-key-finding_controls_bar{padding:0 0 4px!important;margin-bottom:2px!important;border-bottom:1px solid #e5eaf0!important;background:var(--background-color,#fff)!important}
 .st-key-finding_controls_bar{width:100%!important;max-width:100%!important;min-width:0!important;overflow:visible!important;box-sizing:border-box!important}
 .st-key-finding_controls_bar [data-testid="stHorizontalBlock"]{display:grid!important;grid-template-columns:minmax(0,86px) 44px 44px!important;justify-content:end!important;align-items:center!important;gap:4px!important;width:100%!important;min-width:0!important;margin:0!important}
 .st-key-finding_controls_bar [data-testid="stHorizontalBlock"]> :is(.stColumn,[data-testid="column"],[data-testid="stColumn"]){box-sizing:border-box!important;width:100%!important;max-width:none!important;min-width:0!important;padding:0!important}
 .st-key-finding_controls_bar [data-testid="stElementContainer"]{width:100%!important;min-width:0!important;margin:0!important}
+.st-key-finding_controls_bar :is([data-testid="stToggle"],.stButton){display:flex!important;align-items:center!important;height:44px!important;margin:0!important}
 .st-key-finding_controls_bar .st-key-finding_nearby_layers_enabled label{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;min-height:44px!important;gap:4px!important;margin:0!important;padding:0 4px!important;border:1px solid #d5dde6!important;border-radius:9px!important;background:#f5f8fb!important;box-sizing:border-box!important;white-space:nowrap!important;cursor:pointer}
 .st-key-finding_controls_bar .st-key-finding_nearby_layers_enabled label p{font-size:11px!important;font-weight:800!important;white-space:nowrap!important}
 .st-key-finding_controls_bar .stButton button{width:100%!important;min-width:0!important;height:44px!important;min-height:44px!important;padding:0!important;border:1px solid #d5dde6!important;border-radius:9px!important;background:#f5f8fb!important;color:#234b70!important;font-size:17px!important;font-weight:800!important;touch-action:manipulation!important}
