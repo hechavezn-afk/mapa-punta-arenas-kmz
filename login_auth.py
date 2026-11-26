@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import io
 import hashlib
 import hmac
 import logging
@@ -856,15 +857,18 @@ def _supabase_second_factor() -> None:
                 return
         st.write("Escanea este QR con Microsoft Authenticator, Google Authenticator u otra app TOTP.")
         qr = enrollment["qr_code"]
-        if qr.startswith("data:image/"):
-            st.markdown(f'<img alt="QR para configurar Authenticator" width="190" src="{qr}">', unsafe_allow_html=True)
-        elif "<svg" in qr[:300].lower():
-            qr_svg = base64.b64encode(qr.encode("utf-8")).decode("ascii")
-            st.markdown(
-                f'<img alt="QR para configurar Authenticator" width="190" '
-                f'src="data:image/svg+xml;base64,{qr_svg}">',
-                unsafe_allow_html=True,
-            )
+        # Render the QR through Streamlit's image element.  Using raw HTML here
+        # can be escaped by Streamlit (especially on the first MFA enrollment),
+        # exposing the literal <img ...> markup to the user.
+        try:
+            if qr.startswith("data:image/"):
+                _header, _encoded = qr.split(",", 1)
+                _raw = base64.b64decode(_encoded) if ";base64" in _header.lower() else _encoded.encode("utf-8")
+                st.image(io.BytesIO(_raw), width=190, caption="QR para configurar Authenticator")
+            elif "<svg" in qr[:300].lower():
+                st.image(io.BytesIO(qr.encode("utf-8")), width=190, caption="QR para configurar Authenticator")
+        except Exception:
+            st.warning("No se pudo mostrar el QR. Usa la clave manual que aparece debajo.")
         if enrollment.get("secret"):
             st.caption("Si no puedes escanear, ingresa esta clave manualmente en la app Authenticator:")
             st.code(enrollment["secret"], language=None)
