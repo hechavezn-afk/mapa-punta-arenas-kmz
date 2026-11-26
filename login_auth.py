@@ -411,7 +411,11 @@ def _render_pending_claim() -> None:
         st.rerun()
 
 
-@st.dialog("Cerrar sesión")
+def _dismiss_session_dialog() -> None:
+    st.session_state.pop("map_login_show_sessions", None)
+
+
+@st.dialog("Cerrar sesión", on_dismiss=_dismiss_session_dialog)
 def _render_session_dialog() -> None:
     from practice_mode import enabled as practice_enabled
 
@@ -1038,10 +1042,13 @@ def require_login() -> None:
 
 
 def render_session_dialog() -> None:
+    st.session_state["map_login_show_sessions"] = True
     _render_session_dialog()
 
 
 @st.fragment
 def render_session_controls() -> None:
     if st.button("Administrar sesiones", key="manage_sessions_from_map"):
+        st.session_state["map_login_show_sessions"] = True
+    if st.session_state.get("map_login_show_sessions"):
         _render_session_dialog()
