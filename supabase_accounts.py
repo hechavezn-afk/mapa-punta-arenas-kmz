@@ -38,19 +38,30 @@ class SupabaseSetupError(RuntimeError):
     pass
 
 
-def auth_config() -> tuple[str, str, str]:
-    """Return URL, publishable key, and server-only secret key from Streamlit."""
+def public_auth_config() -> tuple[str, str]:
+    """Return the project URL and public key used for password login."""
     try:
         public = dict(st.secrets["supabase"])
-        private = dict(st.secrets["security"])
         url = str(public["url"]).strip().rstrip("/")
         public_key = str(public.get("key") or public.get("publishable_key") or public.get("anon_key") or "").strip()
+    except Exception:
+        raise SupabaseSetupError("Configura [supabase] url/key en Streamlit Secrets.") from None
+    if not url.startswith("https://") or not public_key:
+        raise SupabaseSetupError("La URL o la clave pública de Supabase no es válida.")
+    return url, public_key
+
+
+def auth_config() -> tuple[str, str, str]:
+    """Return the project URL and keys for server-side operations."""
+    url, public_key = public_auth_config()
+    try:
+        private = dict(st.secrets["security"])
         secret_key = str(private.get("supabase_secret_key") or private.get("secret_key") or private.get("service_role_key") or "").strip()
     except Exception:
         raise SupabaseSetupError(
             "Configura [supabase] url/key y [security] supabase_secret_key en Streamlit Secrets."
         ) from None
-    if not url.startswith("https://") or not public_key or not secret_key.startswith("sb_secret_"):
+    if not secret_key.startswith("sb_secret_"):
         raise SupabaseSetupError("Las claves o la URL de Supabase no tienen el formato esperado.")
     return url, public_key, secret_key
 

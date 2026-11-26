@@ -187,6 +187,7 @@ _BROWSER_SESSION = st.components.v2.component(
 
       setStateValue("remembered", remembered);
       setStateValue("browser_token", token);
+      setStateValue("cleared_request", data?.clear || "");
       setStateValue("ready", true);
       setStateValue("device_id", deviceId);
       setStateValue("device_label", deviceLabel);
@@ -508,12 +509,13 @@ def _release(username: str | None, session_id: str | None, token: str | None) ->
             sessions.pop(token, None)
 
 
-def _bridge(token: str | None = None, *, clear: bool = False, remember: bool = True):
+def _bridge(token: str | None = None, *, clear: str = "", remember: bool = True):
     return _BROWSER_SESSION(
         data={"token": token or "", "clear": clear, "remember": remember},
-        default={"browser_token": "", "remembered": False, "ready": False, "activity_ms": 0, "device_id": "", "device_label": "Navegador"},
+        default={"browser_token": "", "cleared_request": "", "remembered": False, "ready": False, "activity_ms": 0, "device_id": "", "device_label": "Navegador"},
         key="map_auth_browser_session",
         on_browser_token_change=lambda: None,
+        on_cleared_request_change=lambda: None,
         on_remembered_change=lambda: None,
         on_ready_change=lambda: None,
         on_activity_ms_change=lambda: None,
@@ -567,17 +569,12 @@ def logout(*, all_sessions: bool = False) -> None:
         except Exception:
             pass
     _clear_authentication()
-    st.session_state["map_login_remember"] = False
-    st.session_state["map_login_clear_browser_session"] = True
-
-
-def _supabase_auth_ready() -> bool:
-    try:
-        from supabase_accounts import auth_config
-        auth_config()
-        return True
-    except Exception:
-        return False
+    for key in list(st.session_state):
+        if key != "map_auth_browser_session":
+            del st.session_state[key]
+    for key in ("admin", "findings", "practice"):
+        st.query_params.pop(key, None)
+    st.session_state["map_login_clear_browser_session"] = token_urlsafe(16)
 
 
 def _finish_supabase_login(alias: str) -> None:
@@ -888,7 +885,7 @@ def _supabase_second_factor() -> None:
                 st.error("Supabase no pudo validar el factor Authenticator. Cierra sesión, vuelve a entrar y revisa que TOTP esté habilitado en Authentication → Multi-factor Authentication.")
 def _try_supabase_login(identity: str, password: str) -> bool:
     """Start password verification for the explicitly configured roster only."""
-    from supabase_accounts import account_for_identity, auth_config
+    from supabase_accounts import account_for_identity, public_auth_config
 
     account = account_for_identity(identity)
     if not account:
@@ -896,10 +893,9 @@ def _try_supabase_login(identity: str, password: str) -> bool:
     alias, details = account
     try:
         from supabase import ClientOptions, create_client
-        url, public_key, _ = auth_config()
+        url, public_key = public_auth_config()
         client = create_client(url, public_key, options=ClientOptions(auto_refresh_token=True, persist_session=False))
-        client.auth.sign_in_with_password({"email": details["email"], "password": password})
-        verified = client.auth.get_user()
+        verified = client.auth.sign_in_with_password({"email": details["email"], "password": password})
         if not verified or not verified.user or str(verified.user.email).casefold() != details["email"].casefold():
             raise ValueError("Identity mismatch")
     except Exception:
@@ -928,7 +924,10 @@ def _keep_session_alive() -> None:
 
 def require_login() -> None:
     users = _users()
-    clear_browser = bool(st.session_state.pop("map_login_clear_browser_session", False))
+    clear_browser = st.session_state.get("map_login_clear_browser_session", "")
+    if clear_browser is True:
+        clear_browser = token_urlsafe(16)
+        st.session_state["map_login_clear_browser_session"] = clear_browser
     expected_token = st.session_state.get("map_login_session_token")
     bridge = _bridge(
         expected_token if st.session_state.get("map_login_authenticated") else None,
@@ -936,6 +935,11 @@ def require_login() -> None:
         remember=bool(st.session_state.get("map_login_remember", False)
                        or _is_hector(st.session_state.get("map_login_user"))),
     )
+    if clear_browser and getattr(bridge, "cleared_request", "") != clear_browser:
+        st.info("Cerrando sesión…")
+        st.stop()
+    if clear_browser:
+        st.session_state.pop("map_login_clear_browser_session", None)
     if not getattr(bridge, "ready", False):
         st.info("Restaurando sesión…")
         st.stop()
@@ -991,7 +995,7 @@ def require_login() -> None:
     with st.form("map_login_form"):
         st.title("Redes Edelmag Magallanes")
         st.caption("Inicia sesión para continuar")
-        username = st.text_input("Usuario", help="Nombre y apellido juntos, en mayúsculas. También puedes usar tu correo.")
+        username = st.text_input("Usuario o correo corporativo", help="Usa tu alias de AMI o el correo asociado a tu cuenta.")
         password = st.text_input("Contraseña", type="password")
         remember_session = st.checkbox("Recordar sesión (máximo 5 horas sin actividad)")
         submitted = st.form_submit_button("Ingresar", use_container_width=True)
@@ -1003,7 +1007,7 @@ def require_login() -> None:
             credentials_ok = _verify_config_password(password)
             normalized_username = CONFIG_USERNAME
         else:
-            if _supabase_auth_ready() and _try_supabase_login(normalized_username, password):
+            if _try_supabase_login(normalized_username, password):
                 st.stop()
             credentials_ok, static_username = _verify_static_user(normalized_username, password)
             if static_username:
